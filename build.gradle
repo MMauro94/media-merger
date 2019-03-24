@@ -1,0 +1,33 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.3.21'
+}
+
+group 'com.github.mmauro94'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+    jcenter()
+    maven {
+        url "https://oss.sonatype.org/content/repositories/snapshots"
+    }
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+
+
+    compile 'com.github.mmauro94:mkvtoolnix-wrapper:1.0-SNAPSHOT'
+
+    compile 'net.bramp.ffmpeg:ffmpeg:0.6.2'
+    compile 'org.slf4j:slf4j-nop:1.7.26'
+
+    //compile 'com.beust:klaxon:5.0.5' //TODO Remove
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
