@@ -34,7 +34,7 @@ private fun selectStretchFactor(duration: Duration, targetDuration: Duration): B
     return null
 }
 
-fun selectAdjustment(inputFile: InputFile, targetDuration: Duration): Adjustment? {
+fun selectAdjustment(inputFile: InputFile, targetDuration: Duration): Pair<Adjustment, Boolean>? {
     val originalDuration = inputFile.duration
     if (originalDuration == null) {
         println()
@@ -64,7 +64,7 @@ fun selectAdjustment(inputFile: InputFile, targetDuration: Duration): Adjustment
             stretchFactor = if (selection == 0) BigDecimal.ONE
             else KNOWN_STRETCH_FACTORS[selection - 1].second
 
-            Adjustment(inputFile, stretchFactor, targetDuration)
+            Adjustment(inputFile, stretchFactor, targetDuration) to true
         } else null
-    } else Adjustment(inputFile, stretchFactor, targetDuration)
+    } else Adjustment(inputFile, stretchFactor, targetDuration) to false
 }

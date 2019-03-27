@@ -17,29 +17,30 @@ class InputFile private constructor(
 
     val duration = ffprobeResult.format.duration.asSecondsDuration()
 
-    override fun toString() = file.name
+    override fun toString() = file.name!!
 
     override fun equals(other: Any?) = other is InputFile && other.file == file
 
     override fun hashCode() = file.hashCode()
 
     companion object {
-        fun new(    file: File,
-                    mkvIdentification: MkvToolnixFileIdentification,
-                    ffprobeResult: FFmpegProbeResult
-        ) : InputFile {
+        private fun new(
+            file: File,
+            mkvIdentification: MkvToolnixFileIdentification,
+            ffprobeResult: FFmpegProbeResult
+        ): InputFile {
             val input = InputFile(file, mkvIdentification, ffprobeResult)
             input._tracks = tracks(input)
             return input
         }
 
-        fun parse(file : File) = InputFile.new(file, MkvToolnix.identify(file), FFprobe().probe(file.absolutePath))
+        fun parse(file: File) = InputFile.new(file, MkvToolnix.identify(file), FFprobe().probe(file.absolutePath))
 
         private fun tracks(inputFile: InputFile): List<Track> {
             val ret = ArrayList<Track>(inputFile.mkvIdentification.tracks.size)
             inputFile.mkvIdentification.tracks.forEach { t ->
                 val ff = inputFile.ffprobeResult.streams.find { it.index.toLong() == t.id }
-                if(ff != null && t.id == ff.index.toLong()) {
+                if (ff != null && t.id == ff.index.toLong()) {
                     Track.from(inputFile, t, ff)?.let {
                         ret.add(it)
                     }

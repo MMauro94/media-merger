@@ -1,19 +1,19 @@
 package com.github.mmauro94.shows_merger
 
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
+import com.uwetrottmann.tmdb2.entities.BaseTvShow
 import java.time.Duration
 
 object MergeOptions {
 
+    var TV_SHOW: BaseTvShow? = null
+
     val OTHER_LANGUAGES_TO_KEEP = mutableSetOf<MkvToolnixLanguage>()
-    val MAIN_LANGUAGES = mutableSetOf(
-        MkvToolnixLanguage.all.getValue("eng"),
-        MkvToolnixLanguage.all.getValue("ita")
-    )
-    val MAX_DURATION_ERROR = Duration.ofSeconds(3)!!
+    val MAIN_LANGUAGES = mutableSetOf<MkvToolnixLanguage>()
+    var MAX_DURATION_ERROR = Duration.ofSeconds(2)!!
 
 
-    fun isDurationValid(duration: Duration, targetDuration : Duration) : Boolean {
+    fun isDurationValid(duration: Duration, targetDuration: Duration): Boolean {
         return duration > targetDuration.minus(MAX_DURATION_ERROR) && duration < targetDuration.plus(MAX_DURATION_ERROR)
     }
 }

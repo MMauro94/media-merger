@@ -1,6 +1,7 @@
 package com.github.mmauro94.shows_merger
 
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
+import java.time.Duration
 
 fun askLanguage(defaultLanguage: MkvToolnixLanguage? = null): MkvToolnixLanguage {
     var lang: MkvToolnixLanguage? = null
@@ -27,10 +28,10 @@ fun askLanguage(defaultLanguage: MkvToolnixLanguage? = null): MkvToolnixLanguage
     return lang
 }
 
-fun askLanguages(): LinkedHashSet<MkvToolnixLanguage> {
+fun askLanguages(question: String): LinkedHashSet<MkvToolnixLanguage> {
     var langs: LinkedHashSet<MkvToolnixLanguage>? = null
     while (langs == null) {
-        print("Please give languages: ")
+        print("$question ")
         val l = scanner.nextLine().trim()
         if (!l.isEmpty()) {
             val temp = l.split(Regex(",\\s*"))
@@ -56,11 +57,17 @@ fun menu(
     map: LinkedHashMap<String, () -> Unit>,
     premenu: () -> Unit = {},
     exitAfterSelection: (Int) -> Boolean = { true }
+) = menu({ map }, premenu, exitAfterSelection)
+
+fun menu(
+    mapF: () -> LinkedHashMap<String, () -> Unit>,
+    premenu: () -> Unit = {},
+    exitAfterSelection: (Int) -> Boolean = { true }
 ) {
     var selection = -1
     while (selection != 0) {
         premenu()
-        println()
+        val map = mapF()
         map.keys.forEachIndexed { i, str ->
             println("${i + 1}) $str")
         }
@@ -101,9 +108,9 @@ fun askYesNo(question: String, default: Boolean): Boolean {
 fun askInt(question: String, min: Int? = null, max: Int? = null, default: Int? = null): Int {
     var ret: Int? = null
     while (ret == null) {
-        print(question)
+        print("$question ")
         if (default != null) {
-            print(" [$default] ")
+            print("[$default] ")
         }
         val v = scanner.nextLine().trim()
         if (v.isEmpty() && default != null) {
@@ -112,6 +119,40 @@ fun askInt(question: String, min: Int? = null, max: Int? = null, default: Int? =
             val i = v.toIntOrNull()
             if (i != null && (min == null || i >= min) && (max == null || i <= max)) {
                 ret = i
+            }
+        }
+    }
+    return ret
+}
+
+fun askString(question: String, defaultValue: String = ""): String {
+    print("$question ")
+    if (defaultValue.isNotBlank()) {
+        print("[$defaultValue] ")
+    }
+    val l = scanner.nextLine().trim()
+    return if (l.isBlank()) defaultValue
+    else l
+}
+
+fun askDuration(question: String, defaultValue: Duration?) : Duration {
+    var ret : Duration? = null
+    while(ret == null) {
+        print("$question ")
+        if(defaultValue != null) {
+            print("[${defaultValue.humanStr()}] ")
+        }
+        val l = scanner.nextLine().trim()
+        if (!l.isEmpty()) {
+            ret = parseDuration(l)
+            if (ret == null) {
+                System.err.println("Invalid duration!")
+            }
+        } else {
+            if (defaultValue == null) {
+                System.err.println("No language given")
+            } else {
+                ret = defaultValue
             }
         }
     }

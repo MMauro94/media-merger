@@ -23,8 +23,8 @@ class Track(
 
     val isForced =
         mkvTrack.isForced() == true ||
-                mkvTrack.properties?.trackName?.contains("forced") == true ||
-                mkvTrack.fileIdentification.fileName.parentFile.name.contains("forced")
+                mkvTrack.properties?.trackName?.contains("forced", ignoreCase = true) == true ||
+                mkvTrack.fileIdentification.fileName.parentFile.name.contains("forced", ignoreCase = true)
 
     val isOnItsFile by lazy { inputFile.tracks.size == 1 }
 

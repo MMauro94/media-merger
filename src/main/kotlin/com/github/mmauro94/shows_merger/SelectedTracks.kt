@@ -11,7 +11,12 @@ data class SelectedTracks(
     val videoTrack: Track,
     val languageTracks: Map<MkvToolnixLanguage, LanguageTracks>
 ) {
-    data class TrackWithOptions(var track: Track? = null, var stretchFactor: BigDecimal? = null)
+    data class TrackWithOptions(var track: Track? = null, var stretchFactor: BigDecimal? = null) {
+        override fun toString(): String {
+            return if (track == null) "None"
+            else "$track" + (stretchFactor?.let { ", stretch factor: $it" } ?: "")
+        }
+    }
 
     data class LanguageTracks(
         val audioTrack: TrackWithOptions = TrackWithOptions(),
@@ -46,12 +51,14 @@ data class SelectedTracks(
     fun operation(): () -> Unit {
         val invalidDurationFiles = invalidDurationFiles()
         val audioAdjustments = ArrayList<Pair<AudioAdjustment, (AudioAdjustment) -> Unit>>()
+        var needsCheck = false
         invalidDurationFiles.forEach { inputFile ->
-            val adj = selectAdjustment(inputFile, videoTrack.inputFile.duration!!)
-            if (adj != null) {
+            val pair = selectAdjustment(inputFile, videoTrack.inputFile.duration!!)
+            if (pair != null) {
+                val (adj, userSelected) = pair
+                needsCheck = needsCheck || userSelected
                 allTracks()
                     .filter { it.track?.inputFile == inputFile }
-                    .filterNotNull()
                     .forEach {
                         if (it.track!!.isAudioTrack()) {
                             audioAdjustments.add(Pair(AudioAdjustment(it.track!!, adj), { aa ->
@@ -70,12 +77,19 @@ data class SelectedTracks(
         return {
             val size = audioAdjustments.size
             audioAdjustments.forEachIndexed { i, (aa, f) ->
-                if(aa.adjust("${i + 1}/$size")) {
+                if (aa.adjust("${i + 1}/$size")) {
                     f(aa)
                 }
             }
 
-            MkvMergeCommand(File(File(Main.workingDir, "OUTPUT"), videoTrack.file.name))
+            val outputFile = File(
+                File(Main.workingDir, "OUTPUT"),
+                (episodeInfo.outputName() ?: videoTrack.file.nameWithoutExtension)
+                        + (if (needsCheck) "_needscheck" else "")
+                        + ".mkv"
+            )
+
+            MkvMergeCommand(outputFile)
                 .addTrack(videoTrack) {
                     isDefault = true
                     isForced = false
@@ -148,7 +162,7 @@ fun Set<InputFile>.filesWithInvalidDuration(videoTrack: Track): Set<InputFile> {
         val fd = it.duration
         val okDuration = fd != null && MergeOptions.isDurationValid(fd, videoDuration)
         val isSubtitleFile = it.file.extension in SUBTITLES_EXTENSIONS
-        okDuration || isSubtitleFile || it.file.name.contains("ignoreduration")
+        okDuration || isSubtitleFile || it.file.name.contains("ignoreduration", ignoreCase = true)
     }.toSet()
 }
 
@@ -187,7 +201,7 @@ fun InputFiles.selectTracks(): SelectedTracks? {
                 }, {
                     it.isOnItsFile
                 }, {
-                    it.mkvTrack.properties?.trackName?.contains("SDH") == true
+                    it.mkvTrack.properties?.trackName?.contains("SDH", ignoreCase = true) == true
                 }, {
                     sameFile(it, videoTrack)
                 })

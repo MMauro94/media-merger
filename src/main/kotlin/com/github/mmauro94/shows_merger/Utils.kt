@@ -1,12 +1,10 @@
 package com.github.mmauro94.shows_merger
 
-import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
-import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixFileIdentification
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import com.github.mmauro94.mkvtoolnix_wrapper.merge.MkvMergeCommand
-import java.io.File
 import java.time.Duration
 import java.util.*
+import java.util.regex.Pattern
 
 val scanner = Scanner(System.`in`)
 
@@ -32,10 +30,6 @@ fun <K, V> MutableMap<K, MutableList<V>>.addAll(another: Map<K, List<V>>) {
     }
 }
 
-fun MkvToolnixLanguage?.isNullOrUndefined() = this == null || this.isUndefined()
-
-fun MkvToolnixLanguage.isUndefined() = this.iso639_2 == "und"
-
 fun MkvMergeCommand.addTrack(track: Track, f: MkvMergeCommand.InputFile.TrackOptions.() -> Unit = {}) =
     this.addTrack(track.mkvTrack) {
         language = track.language
@@ -50,6 +44,23 @@ fun <T> Sequence<T>.sortWithPreferences(vararg sorters: (T) -> Boolean) =
 
 fun Duration.humanStr() = "${this.toHours()}h${this.toMinutesPart()}m${this.toSecondsPart()}s"
 
-fun MkvToolnixFileIdentification.getDuration() = container.properties?.duration
+fun Double.asSecondsDuration() =
+    if (this == 0.0) null else Duration.ofSeconds(toLong(), ((this % 1) * 1000000000).toLong())!!
 
-fun Double.asSecondsDuration() = if(this == 0.0) null else Duration.ofSeconds(toLong(), ((this % 1) * 1000000000).toLong())!!
+private val DURATION_PATTERN = Pattern.compile("(?:(\\d+)h)?\\s*(?:(\\d+)m)?\\s*(?:(\\d+)s)?")!!
+fun parseDuration(str: String): Duration? {
+    val m = DURATION_PATTERN.matcher(str)
+    return if (m.matches()) {
+        var seconds = 0L
+        m.group(3)?.toLong()?.let {
+            seconds += it
+        }
+        m.group(2)?.toLong()?.let {
+            seconds += it * 60
+        }
+        m.group(1)?.toLong()?.let {
+            seconds += it * 3600
+        }
+        Duration.ofSeconds(seconds)
+    } else null
+}
