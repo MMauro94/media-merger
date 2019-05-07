@@ -1,5 +1,6 @@
 package com.github.mmauro94.shows_merger
 
+import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import com.github.mmauro94.mkvtoolnix_wrapper.merge.MkvMergeCommand
 import java.io.File
@@ -89,7 +90,7 @@ data class SelectedTracks(
                         + ".mkv"
             )
 
-            MkvMergeCommand(outputFile)
+            MkvToolnix.merge(outputFile)
                 .addTrack(videoTrack) {
                     isDefault = true
                     isForced = false

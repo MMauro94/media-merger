@@ -8,16 +8,13 @@ version '1.0-SNAPSHOT'
 repositories {
     mavenCentral()
     jcenter()
-    maven {
-        url "https://oss.sonatype.org/content/repositories/snapshots"
-    }
 }
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 
 
-    compile 'com.github.mmauro94:mkvtoolnix-wrapper:1.0-SNAPSHOT'
+    compile 'com.github.mmauro94:mkvtoolnix-wrapper:1.0.0'
 
     compile 'com.uwetrottmann.tmdb2:tmdb-java:2.0.2'
 
