@@ -136,6 +136,16 @@ fun askString(question: String, defaultValue: String = ""): String {
     else l
 }
 
+fun askEnum(question: String, enums : List<String>, defaultValue: String = ""): String {
+    val selection = askString(question + " (" + enums.joinToString(", ")  + ")", defaultValue)
+    if(selection in enums) {
+        return selection
+    } else {
+        System.err.println("Invalid value! Must be one of " + enums.map { "'$it'" }.joinToString { ", " })
+        return askEnum(question, enums, defaultValue)
+    }
+}
+
 fun askDuration(question: String, defaultValue: Duration?) : Duration {
     var ret : Duration? = null
     while(ret == null) {

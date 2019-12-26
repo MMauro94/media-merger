@@ -12,11 +12,19 @@ object Main {
 
     val workingDir: File = File("").absoluteFile
     private var inputFiles: List<InputFiles>? = null
-    var showProvider: ShowProvider<*> = TvdbShowProvider
+    var showProvider: ShowProvider<*>? = null
 
     private fun inputFiles() = inputFiles.let {
         it ?: InputFiles.detect(workingDir).sorted().apply {
             inputFiles = this
+        }
+    }
+
+    private fun changeShowProvider() {
+        showProvider = when (askEnum("Select show info provider", listOf("tmdb", "tvdb"))) {
+            "tmdb" -> TmdbShowProvider
+            "tvdb" -> TvdbShowProvider
+            else -> throw IllegalStateException()
         }
     }
 
@@ -55,7 +63,10 @@ object Main {
     fun selectTvShow() {
         val q = askString("Name of TV show to search:")
         val results = try {
-            showProvider.searchShow(q)
+            if(showProvider == null) {
+                changeShowProvider()
+            }
+            showProvider!!.searchShow(q)
         } catch (e: ShowInfoException) {
             System.err.println("Error searching for show")
             if (e.message != null && e.message.isNotBlank()) {
