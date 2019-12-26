@@ -30,9 +30,10 @@ class AudioAdjustment(
         track.file.parentFile,
         track.file.nameWithoutExtension +
                 "_" + track.id +
-                "_" + ratio.toString().replace('.', '_')
-                + "_" + track.language.iso639_2
-                + ".$outputExtension"
+                "_" + ratio.toString().replace('.', '_') +
+                "_" + adjustment.offset.toString() +
+                "_" + track.language.iso639_2 +
+                ".$outputExtension"
     )
 
     fun adjust(progress: String) : Boolean {
@@ -46,6 +47,7 @@ class AudioAdjustment(
                 .setAudioFilter("atempo=$ratio")
                 .done()
 
+            println(builder.build().joinToString(" "))
             FFmpegExecutor(FFmpeg(), FFprobe()).apply {
                 createJob(builder) { prg ->
                     val percentage = prg.out_time_ns / adjustment.targetDuration.toNanos().toDouble()

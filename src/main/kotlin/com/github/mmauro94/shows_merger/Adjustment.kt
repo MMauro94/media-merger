@@ -17,6 +17,7 @@ private val KNOWN_STRETCH_FACTORS = arrayOf(
 data class Adjustment(
     val inputFile: InputFile,
     val stretchFactor: BigDecimal,
+    val offset: Duration,
     val targetDuration: Duration
 )
 
@@ -34,6 +35,9 @@ private fun selectStretchFactor(duration: Duration, targetDuration: Duration): B
     return null
 }
 
+/**
+ * @return Adjustment, userSelected
+ */
 fun selectAdjustment(inputFile: InputFile, targetDuration: Duration): Pair<Adjustment, Boolean>? {
     val originalDuration = inputFile.duration
     if (originalDuration == null) {
@@ -49,22 +53,24 @@ fun selectAdjustment(inputFile: InputFile, targetDuration: Duration): Pair<Adjus
         }
         println()
         println("Track $inputFile cannot be adjusted because of unknown duration ratio (duration=${originalDuration.humanStr()}, target=${targetDuration.humanStr()}, possibleOutcomes=$possibleOutcomes)")
-        val adjustAnyway = askYesNo("Adjust anyway?", false)
+        val adjustAnyway = askYesNo("Adjust anyway with custom parameters?", false)
         if (adjustAnyway) {
             println("0) No adjustment (${originalDuration.humanStr()})")
             KNOWN_STRETCH_FACTORS.forEachIndexed { i, (name, sf) ->
                 val resultingDuration = resultingDurationForStretchFactor(originalDuration, sf)
                 println("${i + 1}) $name (resulting duration: ${resultingDuration.humanStr()})")
             }
-            val selection = askInt(
+            val stretchSelection = askInt(
                 "Select wanted resulting duration: ",
                 0,
                 KNOWN_STRETCH_FACTORS.size
             )
-            stretchFactor = if (selection == 0) BigDecimal.ONE
-            else KNOWN_STRETCH_FACTORS[selection - 1].second
+            stretchFactor = if (stretchSelection == 0) BigDecimal.ONE
+            else KNOWN_STRETCH_FACTORS[stretchSelection - 1].second
 
-            Adjustment(inputFile, stretchFactor, targetDuration) to true
+            val moveDuration = Duration.ofMillis(askInt("Select wanted offset (in ms): ").toLong())
+
+            Adjustment(inputFile, stretchFactor, moveDuration, targetDuration) to true
         } else null
-    } else Adjustment(inputFile, stretchFactor, targetDuration) to false
+    } else Adjustment(inputFile, stretchFactor, Duration.ZERO, targetDuration) to false
 }

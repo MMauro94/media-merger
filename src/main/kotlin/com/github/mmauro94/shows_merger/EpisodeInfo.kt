@@ -13,7 +13,7 @@ class EpisodeInfo(
     val season: Int,
     val episode: Int,
     val info: Pair<BaseTvShow, TvEpisode>?
-) {
+) : Comparable<EpisodeInfo> {
     override fun toString() = outputName() ?: "Season $season, Episode $episode"
 
     override fun hashCode() = Objects.hash(season, episode)
@@ -39,6 +39,12 @@ class EpisodeInfo(
                 .replace('<', '❮')
                 .replace('>', '❯')
         }
+    }
+
+    override fun compareTo(other: EpisodeInfo) = COMPARATOR.compare(this, other)
+
+    companion object {
+        private val COMPARATOR = compareBy<EpisodeInfo> { it.season }.thenComparing { ei -> ei.episode }
     }
 }
 

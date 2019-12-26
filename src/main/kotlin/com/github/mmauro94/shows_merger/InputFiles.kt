@@ -2,12 +2,13 @@ package com.github.mmauro94.shows_merger
 
 import com.uwetrottmann.tmdb2.entities.BaseTvShow
 import com.uwetrottmann.tmdb2.entities.TvSeason
+import org.apache.tools.ant.taskdefs.Input
 import java.io.File
 
 data class InputFiles(
     val episodeInfo: EpisodeInfo,
     val inputFiles: List<InputFile>
-) : Iterable<InputFile> {
+) : Iterable<InputFile>, Comparable<InputFiles> {
 
     override fun iterator() = inputFiles.iterator()
 
@@ -52,7 +53,7 @@ data class InputFiles(
             }
 
             val ret = HashMap<EpisodeInfo, MutableList<InputFile>>()
-            val listFiles = dir.listFiles()
+            val listFiles: Array<File> = dir.listFiles() ?: emptyArray()
             val files = listFiles
                 .filter { it.extension in EXTENSIONS_TO_IDENTIFY }
                 .groupBy { it.name.detectEpisodeInfo(info) }
@@ -74,4 +75,6 @@ data class InputFiles(
             return ret
         }
     }
+
+    override fun compareTo(other: InputFiles) = episodeInfo.compareTo(other.episodeInfo)
 }

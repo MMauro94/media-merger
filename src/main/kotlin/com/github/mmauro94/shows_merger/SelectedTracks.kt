@@ -12,10 +12,15 @@ data class SelectedTracks(
     val videoTrack: Track,
     val languageTracks: Map<MkvToolnixLanguage, LanguageTracks>
 ) {
-    data class TrackWithOptions(var track: Track? = null, var stretchFactor: BigDecimal? = null) {
+    data class TrackWithOptions(
+        var track: Track? = null,
+        var offset: Duration = Duration.ZERO,
+        var stretchFactor: BigDecimal? = null
+    ) {
         override fun toString(): String {
             return if (track == null) "None"
-            else "$track" + (stretchFactor?.let { ", stretch factor: $it" } ?: "")
+            else "$track" + (stretchFactor?.let { ", stretch factor: $it" }
+                ?: "") + (offset?.let { ", offset factor: ${it.toMillis()}" } ?: "")
         }
     }
 
@@ -72,6 +77,7 @@ data class SelectedTracks(
                         } else {
                             it.stretchFactor = adj.stretchFactor
                         }
+                        it.offset = adj.offset
                     }
             } else return {}
         }
@@ -238,8 +244,11 @@ fun MkvMergeCommand.addTrack(
 ) {
     track.track?.let {
         addTrack(it.mkvTrack) {
-            track.stretchFactor?.let { sf ->
-                sync(Duration.ZERO, Pair(sf.toFloat(), null))
+            if (track.stretchFactor != null || track.offset > Duration.ZERO) {
+                sync(
+                    track.offset,
+                    track.stretchFactor.let { sf -> if (sf == null) null else Pair(sf.toFloat(), null) }
+                )
             }
             apply(f)
         }

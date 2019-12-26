@@ -8,11 +8,11 @@ import java.time.ZoneId
 
 object Main {
 
-    val workingDir = File("").absoluteFile!!
+    val workingDir: File = File("").absoluteFile
     private var inputFiles: List<InputFiles>? = null
 
     private fun inputFiles() = inputFiles.let {
-        it ?: InputFiles.detect(workingDir).apply {
+        it ?: InputFiles.detect(workingDir).sorted().apply {
             inputFiles = this
         }
     }
@@ -167,7 +167,7 @@ object Main {
                 println("\tSkipped")
             } else {
                 println("\tVideo track: ${selectedTracks.videoTrack}")
-                selectedTracks.languageTracks.forEach { lang, lt ->
+                selectedTracks.languageTracks.forEach { (lang, lt) ->
                     if (lt.audioTrack.track != null) {
                         println("\t${lang.iso639_2} audio: ${lt.audioTrack}")
                     }
