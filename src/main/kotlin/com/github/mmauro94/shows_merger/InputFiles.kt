@@ -1,12 +1,9 @@
 package com.github.mmauro94.shows_merger
 
-import com.uwetrottmann.tmdb2.entities.BaseTvShow
-import com.uwetrottmann.tmdb2.entities.TvSeason
-import org.apache.tools.ant.taskdefs.Input
 import java.io.File
 
 data class InputFiles(
-    val episodeInfo: EpisodeInfo,
+    val episode: Episode,
     val inputFiles: List<InputFile>
 ) : Iterable<InputFile>, Comparable<InputFiles> {
 
@@ -30,33 +27,14 @@ data class InputFiles(
             return ret.map { InputFiles(it.key, it.value) }
         }
 
-        private fun detectInner(dir: File): Map<EpisodeInfo, List<InputFile>> {
-            val seasons = HashMap<Int, TvSeason?>()
+        private fun detectInner(dir: File): Map<Episode, List<InputFile>> {
             val show = MergeOptions.TV_SHOW
-            val info: Pair<BaseTvShow, (Int) -> TvSeason?>? = if (show == null) null
-            else {
-                show to { sn ->
-                    seasons.getOrPut(sn) {
-                        tmdb?.let { tmdb ->
-                            tmdb.tvSeasonsService().season(
-                                show.id,
-                                sn,
-                                MergeOptions.MAIN_LANGUAGES.first().iso639_1 ?: "en"
-                            ).execute().body().apply {
-                                if (this == null) {
-                                    System.err.println("Unable to download season $sn info")
-                                }
-                            }
-                        }
-                    }
-                }
-            }
 
-            val ret = HashMap<EpisodeInfo, MutableList<InputFile>>()
+            val ret = HashMap<Episode, MutableList<InputFile>>()
             val listFiles: Array<File> = dir.listFiles() ?: emptyArray()
             val files = listFiles
                 .filter { it.extension in EXTENSIONS_TO_IDENTIFY }
-                .groupBy { it.name.detectEpisodeInfo(info) }
+                .groupBy { it.name.detectEpisode(show) }
                 .filterKeys { it != null }
 
             files.forEach { (ei, files) ->
@@ -76,5 +54,5 @@ data class InputFiles(
         }
     }
 
-    override fun compareTo(other: InputFiles) = episodeInfo.compareTo(other.episodeInfo)
+    override fun compareTo(other: InputFiles) = episode.compareTo(other.episode)
 }

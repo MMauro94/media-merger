@@ -8,7 +8,7 @@ import java.math.BigDecimal
 import java.time.Duration
 
 data class SelectedTracks(
-    val episodeInfo: EpisodeInfo,
+    val episode: Episode,
     val videoTrack: Track,
     val languageTracks: Map<MkvToolnixLanguage, LanguageTracks>
 ) {
@@ -91,7 +91,7 @@ data class SelectedTracks(
 
             val outputFile = File(
                 File(Main.workingDir, "OUTPUT"),
-                (episodeInfo.outputName() ?: videoTrack.file.nameWithoutExtension)
+                (episode.outputName() ?: videoTrack.file.nameWithoutExtension)
                         + (if (needsCheck) "_needscheck" else "")
                         + ".mkv"
             )
@@ -235,7 +235,7 @@ fun InputFiles.selectTracks(): SelectedTracks? {
         .mapValues { it.value as SelectedTracks.LanguageTracks }
         .toMap()
 
-    return SelectedTracks(episodeInfo, videoTrack, languageTracks)
+    return SelectedTracks(episode, videoTrack, languageTracks)
 }
 
 fun MkvMergeCommand.addTrack(

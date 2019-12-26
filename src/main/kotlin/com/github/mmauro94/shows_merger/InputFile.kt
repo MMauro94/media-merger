@@ -17,7 +17,7 @@ class InputFile private constructor(
 
     val duration = ffprobeResult.format.duration.asSecondsDuration()
 
-    override fun toString() = file.name!!
+    override fun toString() : String = file.name
 
     override fun equals(other: Any?) = other is InputFile && other.file == file
 
@@ -34,7 +34,7 @@ class InputFile private constructor(
             return input
         }
 
-        fun parse(file: File) = InputFile.new(file, MkvToolnix.identify(file), FFprobe().probe(file.absolutePath))
+        fun parse(file: File) = new(file, MkvToolnix.identify(file), FFprobe().probe(file.absolutePath))
 
         private fun tracks(inputFile: InputFile): List<Track> {
             val ret = ArrayList<Track>(inputFile.mkvIdentification.tracks.size)

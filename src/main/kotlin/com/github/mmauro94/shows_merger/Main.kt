@@ -1,15 +1,18 @@
 package com.github.mmauro94.shows_merger
 
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
+import com.github.mmauro94.shows_merger.show_info.ShowInfoException
+import com.github.mmauro94.shows_merger.show_provider.ShowProvider
+import com.github.mmauro94.shows_merger.show_provider.TmdbShowProvider
+import com.github.mmauro94.shows_merger.show_provider.TvdbShowProvider
 import java.io.File
-import java.time.Instant
-import java.time.ZoneId
 
 
 object Main {
 
     val workingDir: File = File("").absoluteFile
     private var inputFiles: List<InputFiles>? = null
+    var showProvider: ShowProvider<*> = TvdbShowProvider
 
     private fun inputFiles() = inputFiles.let {
         it ?: InputFiles.detect(workingDir).sorted().apply {
@@ -49,39 +52,28 @@ object Main {
     }
 
 
-    private fun selectTvShow() {
-        tmdb?.let { tmdb ->
-            val q = askString("Name of TV show to search:")
-            val search =
-                tmdb.searchService().tv(q, 1, MergeOptions.MAIN_LANGUAGES.first().iso639_1 ?: "en", null, null)
-                    .execute()
-            val body = search.body()
-            if (body != null) {
-                val map = body.results.asSequence().associate {
-                    val year = it.first_air_date?.let { d ->
-                        "(" + Instant.ofEpochMilli(d.time).atZone(ZoneId.systemDefault()).year + ")"
-                    }
-                    var name = it.name ?: ""
-                    if (year != null && !name.endsWith(year)) {
-                        name += " $year"
-                    }
-                    "$name - TMDB ID:${it.id}" to {
-                        inputFiles = null
-                        MergeOptions.TV_SHOW = it
-                        Unit
-                    }
-                }.toMap(LinkedHashMap())
-                map["-- Search again --"] = {
-                    selectTvShow()
-                }
-                menu(map)
-            } else {
-                System.err.println("Error searching for show")
-                search.errorBody()?.let {
-                    System.err.println(it.string())
-                }
+    fun selectTvShow() {
+        val q = askString("Name of TV show to search:")
+        val results = try {
+            showProvider.searchShow(q)
+        } catch (e: ShowInfoException) {
+            System.err.println("Error searching for show")
+            if (e.message != null && e.message.isNotBlank()) {
+                System.err.println(e.message)
             }
+            return
         }
+        val map = results.associate {
+            it.name to {
+                inputFiles = null
+                MergeOptions.TV_SHOW = it
+                Unit
+            }
+        }.toMap(LinkedHashMap())
+        map["-- Search again --"] = {
+            selectTvShow()
+        }
+        menu(map)
     }
 
     private fun mergeFiles() {
@@ -151,7 +143,7 @@ object Main {
 
     private fun seeDetectedFiles() {
         inputFiles().forEach {
-            println("${it.episodeInfo}:")
+            println("${it.episode}:")
             it.forEach { f ->
                 println("\t${f.file.name}")
             }
@@ -161,7 +153,7 @@ object Main {
 
     private fun seeSelectedTracks() {
         inputFiles().forEach {
-            println("${it.episodeInfo}:")
+            println("${it.episode}:")
             val selectedTracks = it.selectTracks()
             if (selectedTracks == null) {
                 println("\tSkipped")
