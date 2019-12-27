@@ -21,7 +21,7 @@ class Episode(
         return episodeInfo?.let { i ->
             String.format(
                 "%s %02dx%02d - %s",
-                i.show.name,
+                i.show.givenName,
                 i.seasonNumber,
                 i.episodeNumber,
                 i.name ?: "Episode ${i.episodeNumber}"

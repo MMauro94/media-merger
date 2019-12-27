@@ -6,6 +6,9 @@ import com.github.mmauro94.shows_merger.show_provider.ShowProvider
 import com.github.mmauro94.shows_merger.show_provider.TmdbShowProvider
 import com.github.mmauro94.shows_merger.show_provider.TvdbShowProvider
 import java.io.File
+import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 
 object Main {
@@ -50,6 +53,7 @@ object Main {
             },
             map = linkedMapOf(
                 "Merge files" to ::mergeFiles,
+                "Just rename files" to ::justRenameFiles,
                 "See detected files" to ::seeDetectedFiles,
                 "See selected tracks" to ::seeSelectedTracks,
                 "Edit merge options" to ::editMergeOptions,
@@ -63,7 +67,7 @@ object Main {
     fun selectTvShow() {
         val q = askString("Name of TV show to search:")
         val results = try {
-            if(showProvider == null) {
+            if (showProvider == null) {
                 changeShowProvider()
             }
             showProvider!!.searchShow(q)
@@ -101,6 +105,33 @@ object Main {
             }
     }
 
+    fun justRenameFiles() {
+        if (MergeOptions.TV_SHOW == null) {
+            System.out.println("Must select show!")
+            selectTvShow()
+        }
+        if (MergeOptions.TV_SHOW == null) {
+            System.err.println("Cannot rename if show not selected!")
+        } else {
+            inputFiles = null
+            inputFiles().forEach {
+                val outputName = it.episode.outputName()
+                if (outputName != null) {
+                    it.inputFiles.forEach { f ->
+                        try {
+                            Files.move(
+                                f.file.toPath(),
+                                File(f.file.parentFile, outputName + "." + f.file.extension).toPath(),
+                                StandardCopyOption.ATOMIC_MOVE
+                            )
+                        } catch (ioe: IOException) {
+                            System.err.println(ioe.message)
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     private fun editMergeOptions() {
         menu(
