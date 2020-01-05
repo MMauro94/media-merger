@@ -46,7 +46,7 @@ class Episode(
 }
 
 
-private val PATTERN = Pattern.compile("(?:(\\d+)x(\\d+)|S(\\d+)E(\\d+))")!!
+private val PATTERN = Pattern.compile("(?:(\\d+)x(\\d+)|S(\\d+)E(\\d+))", Pattern.CASE_INSENSITIVE)!!
 
 fun String.detectEpisode(show: ShowInfo?): Episode? {
     val m = PATTERN.matcher(this)

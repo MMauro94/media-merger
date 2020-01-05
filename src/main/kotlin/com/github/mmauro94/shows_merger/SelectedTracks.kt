@@ -2,6 +2,8 @@ package com.github.mmauro94.shows_merger
 
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
+import com.github.mmauro94.mkvtoolnix_wrapper.hasErrors
+import com.github.mmauro94.mkvtoolnix_wrapper.hasWarnings
 import com.github.mmauro94.mkvtoolnix_wrapper.merge.MkvMergeCommand
 import java.io.File
 import java.math.BigDecimal
@@ -20,7 +22,7 @@ data class SelectedTracks(
         override fun toString(): String {
             return if (track == null) "None"
             else "$track" + (stretchFactor?.let { ", stretch factor: $it" }
-                ?: "") + (offset?.let { ", offset factor: ${it.toMillis()}" } ?: "")
+                ?: "") + offset.let { ", offset factor: ${it.toMillis()}" }
         }
     }
 
@@ -96,7 +98,7 @@ data class SelectedTracks(
                         + ".mkv"
             )
 
-            MkvToolnix.merge(outputFile)
+            val result = MkvToolnix.merge(outputFile)
                 .addTrack(videoTrack) {
                     isDefault = true
                     isForced = false
@@ -138,6 +140,14 @@ data class SelectedTracks(
                         }
                     }
                 }.executeAndPrint(true)
+            if(!result.success) {
+                val part = if(!result.output.hasErrors()) "warn" else "err"
+                File(outputFile.parentFile, outputFile.nameWithoutExtension + ".$part.txt").printWriter().use {pw->
+                    result.output.forEach {
+                        pw.println(it)
+                    }
+                }
+            }
         }
     }
 }

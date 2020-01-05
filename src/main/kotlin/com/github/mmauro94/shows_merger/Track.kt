@@ -4,6 +4,7 @@ import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixTrack
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixTrackType
 import net.bramp.ffmpeg.probe.FFmpegStream
+import java.io.File
 import java.util.*
 
 class Track(
@@ -21,12 +22,16 @@ class Track(
 
     val durationOrFileDuration = duration ?: inputFile.duration
 
-    val isForced =
+    val isOnItsFile by lazy { inputFile.tracks.size == 1 }
+
+    val isForced by lazy {
         mkvTrack.isForced() == true ||
                 mkvTrack.properties?.trackName?.contains("forced", ignoreCase = true) == true ||
-                mkvTrack.fileIdentification.fileName.parentFile.name.contains("forced", ignoreCase = true)
-
-    val isOnItsFile by lazy { inputFile.tracks.size == 1 }
+                (isOnItsFile && inputFile.file.find {
+                    it.name.contains("forced", ignoreCase = true)
+                } ?: false) ||
+                (isOnItsFile && inputFile.file.length() in 1..(1024 * 10)) //< 10KiB
+    }
 
     fun isAudioTrack() =
         mkvTrack.type == MkvToolnixTrackType.audio && ffprobeStream.codec_type == FFmpegStream.CodecType.AUDIO
@@ -46,8 +51,8 @@ class Track(
             val file = mkvTrack.fileIdentification.fileName
 
             var language = mkvTrack.properties?.language
-            if ((language == null || language.isUndefined()) && mkvTrack.fileIdentification.tracks.count { it.type == mkvTrack.type } == 1) {
-                language = file.name.findLanguage() ?: file.parentFile.name.findLanguage()
+            if ((language == null || language.isUndefined()) && mkvTrack.fileIdentification.tracks.first { it.type == mkvTrack.type } == mkvTrack) {
+                language = file.findLanguage()
             }
             return if (language == null) {
                 System.err.println("Track ${mkvTrack.id} of file ${file.name} skipped because of no language")
@@ -57,12 +62,26 @@ class Track(
             }
         }
 
-        private fun String.findLanguage() : MkvToolnixLanguage? {
-            return split(Regex("(\\s+|_)")).asSequence()
-                .filter { it.length == 3 }
-                .map { MkvToolnixLanguage.all[it.toLowerCase()] }
-                .filterNotNull()
-                .singleOrNull()
+        private fun File.findLanguage(): MkvToolnixLanguage? {
+            return find { f ->
+                val map = f.name.split(Regex("(\\s+|_|\\.)")).asSequence()
+                    .filter { it.length in 2..3 }
+                    .groupingBy { s ->
+                        MkvToolnixLanguage.all[s.toLowerCase()]
+                            ?: MkvToolnixLanguage.all.values.singleOrNull { it.iso639_1 == s.toLowerCase() }
+                    }
+                    .eachCount()
+                val max = map.values.max()
+                map.entries.singleOrNull { it.value == max }?.key
+            }
+        }
+
+        private fun <T> File.find(finder: (File) -> T?): T? {
+            val found = finder(this)
+            val parent = absoluteFile.parentFile?.absoluteFile
+            return if (found == null && parent != null && parent != Main.workingDir) {
+                parent.find(finder)
+            } else found
         }
     }
 }
