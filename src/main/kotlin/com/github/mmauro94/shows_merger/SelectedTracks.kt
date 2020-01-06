@@ -198,6 +198,8 @@ fun InputFiles.selectTracks(): SelectedTracks? {
                 .asSequence()
                 .filter { it.isAudioTrack() }
                 .sortWithPreferences({
+                    it.mkvTrack.codec.contains("DTS", true)
+                }, {
                     it.mkvTrack.codec.contains("AC-3", true)
                 }, {
                     it.mkvTrack.codec.contains("AAC", true)
