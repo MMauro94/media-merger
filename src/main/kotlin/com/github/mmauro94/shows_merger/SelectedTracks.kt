@@ -3,7 +3,6 @@ package com.github.mmauro94.shows_merger
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import com.github.mmauro94.mkvtoolnix_wrapper.hasErrors
-import com.github.mmauro94.mkvtoolnix_wrapper.hasWarnings
 import com.github.mmauro94.mkvtoolnix_wrapper.merge.MkvMergeCommand
 import java.io.File
 import java.math.BigDecimal
@@ -57,30 +56,31 @@ data class SelectedTracks(
     }
 
     fun operation(): () -> Unit {
-        val invalidDurationFiles = invalidDurationFiles()
         val audioAdjustments = ArrayList<Pair<AudioAdjustment, (AudioAdjustment) -> Unit>>()
         var needsCheck = false
-        invalidDurationFiles.forEach { inputFile ->
-            val pair = selectAdjustment(inputFile, videoTrack.inputFile.duration!!)
+        allFiles().forEach { inputFile ->
+            val pair = selectAdjustment(inputFile, videoTrack.inputFile)
             if (pair != null) {
                 val (adj, userSelected) = pair
                 needsCheck = needsCheck || userSelected
-                allTracks()
-                    .filter { it.track?.inputFile == inputFile }
-                    .forEach {
-                        if (it.track!!.isAudioTrack()) {
-                            audioAdjustments.add(Pair(AudioAdjustment(it.track!!, adj), { aa ->
-                                val i = InputFile.parse(aa.outputFile)
-                                require(i.tracks.size == 1 && i.tracks[0].isAudioTrack())
-                                it.track = i.tracks[0]
-                                it.stretchFactor = null
-                                Unit
-                            }))
-                        } else {
-                            it.stretchFactor = adj.stretchFactor
+                if (adj != null) {
+                    allTracks()
+                        .filter { it.track?.inputFile == inputFile }
+                        .forEach {
+                            if (it.track!!.isAudioTrack()) {
+                                audioAdjustments.add(Pair(AudioAdjustment(it.track!!, adj), { aa ->
+                                    val i = InputFile.parse(aa.outputFile)
+                                    require(i.tracks.size == 1 && i.tracks[0].isAudioTrack())
+                                    it.track = i.tracks[0]
+                                    it.stretchFactor = null
+                                    Unit
+                                }))
+                            } else {
+                                it.stretchFactor = adj.stretchFactor.factor
+                            }
+                            it.offset = adj.offset
                         }
-                        it.offset = adj.offset
-                    }
+                }
             } else return {}
         }
         return {
@@ -140,9 +140,9 @@ data class SelectedTracks(
                         }
                     }
                 }.executeAndPrint(true)
-            if(!result.success) {
-                val part = if(!result.output.hasErrors()) "warn" else "err"
-                File(outputFile.parentFile, outputFile.nameWithoutExtension + ".$part.txt").printWriter().use {pw->
+            if (!result.success) {
+                val part = if (!result.output.hasErrors()) "warn" else "err"
+                File(outputFile.parentFile, outputFile.nameWithoutExtension + ".$part.txt").printWriter().use { pw ->
                     result.output.forEach {
                         pw.println(it)
                     }

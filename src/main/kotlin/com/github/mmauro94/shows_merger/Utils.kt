@@ -2,6 +2,7 @@ package com.github.mmauro94.shows_merger
 
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import com.github.mmauro94.mkvtoolnix_wrapper.merge.MkvMergeCommand
+import java.math.BigDecimal
 import java.time.Duration
 import java.util.*
 import java.util.regex.Pattern
@@ -42,10 +43,12 @@ fun sameFile(track1: Track, track2: Track) =
 fun <T> Sequence<T>.sortWithPreferences(vararg sorters: (T) -> Boolean) =
     this.sortedWith(compareBy(*sorters).reversed())
 
-fun Duration.humanStr() = "${this.toHours()}h${this.toMinutesPart()}m${this.toSecondsPart()}s"
+fun Duration?.humanStr() = if(this == null) "Unknown" else "${this.toHours()}h${this.toMinutesPart()}m${this.toSecondsPart()}s${this.toMillisPart()}ms"
 
 fun Double.asSecondsDuration() =
     if (this == 0.0) null else Duration.ofSeconds(toLong(), ((this % 1) * 1000000000).toLong())!!
+
+fun Duration.toTotalSeconds(): BigDecimal = BigDecimal.valueOf(toNanos(), 9)
 
 private val DURATION_PATTERN = Pattern.compile("(?:(\\d+)h)?\\s*(?:(\\d+)m)?\\s*(?:(\\d+)s)?")!!
 fun parseDuration(str: String): Duration? {

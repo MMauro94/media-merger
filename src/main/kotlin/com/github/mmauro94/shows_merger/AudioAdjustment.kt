@@ -7,7 +7,6 @@ import net.bramp.ffmpeg.FFprobe
 import net.bramp.ffmpeg.builder.FFmpegBuilder
 import java.io.File
 import java.math.BigDecimal
-import java.math.RoundingMode
 import java.util.concurrent.TimeUnit
 
 class AudioAdjustment(
@@ -24,19 +23,18 @@ class AudioAdjustment(
         }
     }
 
-    val ratio = BigDecimal.ONE.divide(adjustment.stretchFactor, 6, RoundingMode.HALF_UP)!!
-
     val outputFile = File(
         track.file.parentFile,
         track.file.nameWithoutExtension +
                 "_" + track.id +
-                "_" + ratio.toString().replace('.', '_') +
+                "_" + adjustment.stretchFactor.ratio.toString().replace('.', '_') +
                 "_" + adjustment.offset.toString() +
                 "_" + track.language.iso639_2 +
                 ".$outputExtension"
     )
 
-    fun adjust(progress: String) : Boolean {
+    fun adjust(progress: String): Boolean {
+        val ratio = adjustment.stretchFactor.ratio
         return if (ratio.compareTo(BigDecimal.ONE) != 0) {
             val builder = FFmpegBuilder()
                 .setInput(track.file.absolutePath)
@@ -50,7 +48,8 @@ class AudioAdjustment(
             println(builder.build().joinToString(" "))
             FFmpegExecutor(FFmpeg(), FFprobe()).apply {
                 createJob(builder) { prg ->
-                    val percentage = prg.out_time_ns / adjustment.targetDuration.toNanos().toDouble()
+                    //val percentage = prg.out_time_ns / adjustment.targetDuration.toNanos().toDouble()
+                    val percentage = 0 //TODO
 
                     println(
                         String.format(

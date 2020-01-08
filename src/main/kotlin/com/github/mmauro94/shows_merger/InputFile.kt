@@ -5,6 +5,7 @@ import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixFileIdentification
 import net.bramp.ffmpeg.FFprobe
 import net.bramp.ffmpeg.probe.FFmpegProbeResult
 import java.io.File
+import java.time.Duration
 
 class InputFile private constructor(
     val file: File,
@@ -17,7 +18,15 @@ class InputFile private constructor(
 
     val duration = ffprobeResult.format.duration.asSecondsDuration()
 
-    override fun toString() : String = file.name
+    val framerate by lazy { detectFramerate() }
+
+    val blackSegments by lazy {
+        if (tracks.any { it.isVideoTrack() }) {
+            detectBlackSegments(Duration.ofMillis(250), Duration.ofSeconds(30))
+        } else null
+    }
+
+    override fun toString(): String = file.name
 
     override fun equals(other: Any?) = other is InputFile && other.file == file
 
