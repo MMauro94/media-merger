@@ -39,10 +39,13 @@ class StretchFactor(val factor: BigDecimal, val name: String? = null) {
 
 }
 
+private val MAX_DURATION_ERROR = Duration.ofSeconds(2)!!
+
 fun detectStretchFactorFromDuration(duration: Duration?, targetDuration: Duration?): StretchFactor? {
     if (duration != null && targetDuration != null) {
         KNOWN_STRETCH_FACTORS.forEach { sf ->
-            if (MergeOptions.isDurationValid(sf.resultingDurationForStretchFactor(duration), targetDuration)) {
+            val resultingDuration = sf.resultingDurationForStretchFactor(duration)
+            if (resultingDuration > targetDuration.minus(MAX_DURATION_ERROR) && resultingDuration < targetDuration.plus(MAX_DURATION_ERROR)) {
                 return sf
             }
         }

@@ -10,9 +10,4 @@ object MergeOptions {
 
     val OTHER_LANGUAGES_TO_KEEP = mutableSetOf<MkvToolnixLanguage>()
     val MAIN_LANGUAGES = mutableSetOf<MkvToolnixLanguage>()
-    var MAX_DURATION_ERROR = Duration.ofSeconds(2)!!
-
-    fun isDurationValid(duration: Duration, targetDuration: Duration): Boolean {
-        return duration > targetDuration.minus(MAX_DURATION_ERROR) && duration < targetDuration.plus(MAX_DURATION_ERROR)
-    }
 }

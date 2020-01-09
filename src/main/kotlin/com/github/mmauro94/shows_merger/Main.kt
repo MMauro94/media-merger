@@ -149,10 +149,6 @@ object Main {
                 val currentShow = MergeOptions.TV_SHOW?.name ?: "N/A"
                 linkedMapOf(
                     "Select TV Show (Current: $currentShow)" to ::selectTvShow,
-                    "Change max duration error (${MergeOptions.MAX_DURATION_ERROR.humanStr()})" to {
-                        inputFiles = null
-                        MergeOptions.MAX_DURATION_ERROR = askDuration("New duration", MergeOptions.MAX_DURATION_ERROR)
-                    },
                     "Edit other languages to keep (${MergeOptions.OTHER_LANGUAGES_TO_KEEP.map { it.iso639_2 }})" to {
                         inputFiles = null
                         editLanguagesSet(MergeOptions.OTHER_LANGUAGES_TO_KEEP)

@@ -47,14 +47,6 @@ data class SelectedTracks(
         .filterNotNull()
         .toSet()
 
-    fun invalidDurationFiles(): Set<InputFile> {
-        val files = allFiles()
-        val invalidDurationFiles = files.filesWithInvalidDuration(videoTrack)
-        return files.filter {
-            it in invalidDurationFiles
-        }.toSet()
-    }
-
     fun operation(mergeMode: MergeMode): () -> Unit {
         val audioAdjustments = ArrayList<Pair<AudioAdjustment, (AudioAdjustment) -> Unit>>()
         var needsCheck = false
@@ -168,21 +160,6 @@ fun Sequence<Track>.selectVideoTrack(): Track? {
                 System.err.println("No video tracks found")
             }
         }
-}
-
-fun Set<InputFile>.filesWithInvalidDuration(videoTrack: Track): Set<InputFile> {
-    val videoDuration = videoTrack.inputFile.duration
-    if (videoDuration == null) {
-        System.err.println("Selected video track of file $videoTrack has no duration")
-        return emptySet()
-    }
-
-    return asSequence().filterNot {
-        val fd = it.duration
-        val okDuration = fd != null && MergeOptions.isDurationValid(fd, videoDuration)
-        val isSubtitleFile = it.file.extension in SUBTITLES_EXTENSIONS
-        okDuration || isSubtitleFile || it.file.name.contains("ignoreduration", ignoreCase = true)
-    }.toSet()
 }
 
 fun InputFiles.selectTracks(): SelectedTracks? {
