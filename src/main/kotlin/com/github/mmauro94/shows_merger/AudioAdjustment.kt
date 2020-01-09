@@ -28,7 +28,6 @@ class AudioAdjustment(
         track.file.nameWithoutExtension +
                 "_" + track.id +
                 "_" + adjustment.stretchFactor.ratio.toString().replace('.', '_') +
-                "_" + adjustment.offset.toString() +
                 "_" + track.language.iso639_2 +
                 ".$outputExtension"
     )

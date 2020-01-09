@@ -6,15 +6,15 @@ import java.time.Duration
 data class Adjustment(
     val inputFile: InputFile,
     val stretchFactor: StretchFactor,
-    val offset: Duration
+    val cuts : Cuts
 ) {
-    fun isEmpty() = stretchFactor.factor.compareTo(BigDecimal.ONE) == 0 && offset.isZero
+    fun isEmpty() = stretchFactor.factor.compareTo(BigDecimal.ONE) == 0 && cuts.isEmpty()
 
     companion object {
         fun empty(inputFile: InputFile) = Adjustment(
             inputFile,
             StretchFactor(BigDecimal.ONE),
-            Duration.ZERO
+            Cuts(emptyList())
         )
     }
 }
@@ -48,7 +48,7 @@ fun selectAdjustment(mergeMode: MergeMode, inputFile: InputFile, targetFile: Inp
         Adjustment(
             inputFile,
             stretchFactor,
-            offset
+            Cuts.ofOffset(offset)
         )
     }
     return adj to needsCheck

@@ -5,7 +5,6 @@ import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import com.github.mmauro94.mkvtoolnix_wrapper.hasErrors
 import com.github.mmauro94.mkvtoolnix_wrapper.merge.MkvMergeCommand
 import java.io.File
-import java.math.BigDecimal
 import java.time.Duration
 
 data class SelectedTracks(
@@ -16,7 +15,7 @@ data class SelectedTracks(
     data class TrackWithOptions(
         var track: Track? = null,
         var offset: Duration = Duration.ZERO,
-        var stretchFactor: BigDecimal? = null
+        var stretchFactor: StretchFactor? = null
     ) {
         override fun toString(): String {
             return if (track == null) "None"
@@ -70,9 +69,10 @@ data class SelectedTracks(
                                         Unit
                                     }))
                                 } else {
-                                    it.stretchFactor = adj.stretchFactor.factor
+                                    it.stretchFactor = adj.stretchFactor
                                 }
-                                it.offset = adj.offset
+                                val offset = adj.cuts.optOffset() ?: TODO("Support non-offset cuts")
+                                it.offset = offset
                             }
                     }
                 } else return {}
@@ -238,7 +238,7 @@ fun MkvMergeCommand.addTrack(
             if (track.stretchFactor != null || track.offset > Duration.ZERO) {
                 sync(
                     track.offset,
-                    track.stretchFactor.let { sf -> if (sf == null) null else Pair(sf.toFloat(), null) }
+                    track.stretchFactor.let { sf -> if (sf == null) null else Pair(sf.factor.toFloat(), null) }
                 )
             }
             apply(f)
