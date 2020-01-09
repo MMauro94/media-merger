@@ -1,6 +1,5 @@
 package com.github.mmauro94.shows_merger
 
-import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import com.github.mmauro94.mkvtoolnix_wrapper.merge.MkvMergeCommand
 import java.math.BigDecimal
 import java.time.Duration
@@ -22,7 +21,7 @@ fun <K, V> MutableMap<K, MutableList<V>>.add(key: K, value: V) {
 }
 
 fun <K, V> MutableMap<K, MutableList<V>>.addAll(another: Map<K, List<V>>) {
-    another.forEach { k, v ->
+    another.forEach { (k, v) ->
         if (!containsKey(k)) {
             put(k, ArrayList(v))
         } else {
@@ -43,7 +42,8 @@ fun sameFile(track1: Track, track2: Track) =
 fun <T> Sequence<T>.sortWithPreferences(vararg sorters: (T) -> Boolean) =
     this.sortedWith(compareBy(*sorters).reversed())
 
-fun Duration?.humanStr() = if(this == null) "Unknown" else "${this.toHours()}h${this.toMinutesPart()}m${this.toSecondsPart()}s${this.toMillisPart()}ms"
+fun Duration?.humanStr() =
+    if (this == null) "Unknown" else "${this.toHours()}h${this.toMinutesPart()}m${this.toSecondsPart()}s${this.toMillisPart()}ms"
 
 fun Double.asSecondsDuration() =
     if (this == 0.0) null else Duration.ofSeconds(toLong(), ((this % 1) * 1000000000).toLong())!!

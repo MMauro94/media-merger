@@ -96,9 +96,16 @@ object Main {
             println("No show selected!")
             if (askYesNo("Select show?", true)) selectTvShow()
         }
+        println()
+
+        MergeMode.values().forEachIndexed { i, mm ->
+            println("${i + 1}) ${mm.description}")
+        }
+        val mergeMode = MergeMode.values()[askInt("Select merge mode:", 1, MergeMode.values().size) - 1]
+
         inputFiles()
             .mapNotNull {
-                it.selectTracks()?.operation()
+                it.selectTracks()?.operation(mergeMode)
             }
             .forEach {
                 it()

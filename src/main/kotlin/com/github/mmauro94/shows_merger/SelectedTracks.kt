@@ -55,34 +55,36 @@ data class SelectedTracks(
         }.toSet()
     }
 
-    fun operation(): () -> Unit {
+    fun operation(mergeMode: MergeMode): () -> Unit {
         val audioAdjustments = ArrayList<Pair<AudioAdjustment, (AudioAdjustment) -> Unit>>()
         var needsCheck = false
-        allFiles().forEach { inputFile ->
-            val pair = selectAdjustment(inputFile, videoTrack.inputFile)
-            if (pair != null) {
-                val (adj, userSelected) = pair
-                needsCheck = needsCheck || userSelected
-                if (adj != null) {
-                    allTracks()
-                        .filter { it.track?.inputFile == inputFile }
-                        .forEach {
-                            if (it.track!!.isAudioTrack()) {
-                                audioAdjustments.add(Pair(AudioAdjustment(it.track!!, adj), { aa ->
-                                    val i = InputFile.parse(aa.outputFile)
-                                    require(i.tracks.size == 1 && i.tracks[0].isAudioTrack())
-                                    it.track = i.tracks[0]
-                                    it.stretchFactor = null
-                                    Unit
-                                }))
-                            } else {
-                                it.stretchFactor = adj.stretchFactor.factor
+        allFiles()
+            .filterNot { it == videoTrack.inputFile }
+            .forEach { inputFile ->
+                val pair = selectAdjustment(mergeMode, inputFile, videoTrack.inputFile)
+                if (pair != null) {
+                    val (adj, adjNeedsCheck) = pair
+                    needsCheck = needsCheck || adjNeedsCheck
+                    if (!adj.isEmpty()) {
+                        allTracks()
+                            .filter { it.track?.inputFile == inputFile }
+                            .forEach {
+                                if (it.track!!.isAudioTrack()) {
+                                    audioAdjustments.add(Pair(AudioAdjustment(it.track!!, adj), { aa ->
+                                        val i = InputFile.parse(aa.outputFile)
+                                        require(i.tracks.size == 1 && i.tracks[0].isAudioTrack())
+                                        it.track = i.tracks[0]
+                                        it.stretchFactor = null
+                                        Unit
+                                    }))
+                                } else {
+                                    it.stretchFactor = adj.stretchFactor.factor
+                                }
+                                it.offset = adj.offset
                             }
-                            it.offset = adj.offset
-                        }
-                }
-            } else return {}
-        }
+                    }
+                } else return {}
+            }
         return {
             val size = audioAdjustments.size
             audioAdjustments.forEachIndexed { i, (aa, f) ->
@@ -116,7 +118,7 @@ data class SelectedTracks(
                         it in MergeOptions.MAIN_LANGUAGES ||
                                 it in MergeOptions.OTHER_LANGUAGES_TO_KEEP //Remove non wanted languages
                     }
-                    sortedLanguages.forEach { lang, tracks ->
+                    sortedLanguages.forEach { (lang, tracks) ->
                         addTrack(tracks.audioTrack) {
                             isDefault = lang.iso639_2 == "eng"
                             isForced = false
@@ -124,7 +126,7 @@ data class SelectedTracks(
                             language = lang
                         }
                     }
-                    sortedLanguages.forEach { lang, tracks ->
+                    sortedLanguages.forEach { (lang, tracks) ->
                         addTrack(tracks.subtitleTrack) {
                             isDefault = lang.iso639_2 == "eng"
                             isForced = false

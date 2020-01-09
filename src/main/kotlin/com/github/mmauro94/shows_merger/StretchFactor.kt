@@ -21,7 +21,11 @@ class StretchFactor(val factor: BigDecimal, val name: String? = null) {
     override fun equals(other: Any?) = other is StretchFactor && factor == other.factor
 
     override fun toString(): String {
-        return name ?: "Stretch factor $factor"
+        return if(factor.compareTo(BigDecimal.ONE) == 0) {
+            "No stretch"
+        } else {
+            name ?: "Stretch factor $factor"
+        }
     }
 
     @JvmName("resultingDurationForStretchFactorNotNull")
