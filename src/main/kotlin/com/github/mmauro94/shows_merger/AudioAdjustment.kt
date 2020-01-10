@@ -32,6 +32,15 @@ class AudioAdjustment(
                 ".$outputExtension"
     )
 
+    /**
+     * Example command to cut audio (no blanks yet):
+     * ffmpeg -vn -sn -i file.mkv -filter_complex `
+        "[0:a]atrim=duration=30[aa];`
+         [0:a]atrim=start=40:end=50,asetpts=PTS-STARTPTS[ba];`
+         [aa][ba]concat=v=0:a=1[outa]" `
+       -map [outa] audio.ac3
+     */
+
     fun adjust(progress: String): Boolean {
         val ratio = adjustment.stretchFactor.ratio
         return if (ratio.compareTo(BigDecimal.ONE) != 0) {
