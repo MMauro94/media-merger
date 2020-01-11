@@ -27,16 +27,39 @@ operator fun BlackSegment?.times(stretchFactor: StretchFactor): BlackSegment? {
     return if (this == null) null else BlackSegment(start * stretchFactor, end * stretchFactor)
 }
 
-fun InputFile.detectBlackSegments(minDuration: Duration, limit: Duration?): List<BlackSegment> {
-    val blackframesFile = File(file.parentFile, file.nameWithoutExtension + "_blackframes.txt")
-    if (!blackframesFile.exists()) {
+operator fun List<BlackSegment>.times(stretchFactor: StretchFactor): List<BlackSegment> {
+    return map {
+        (it * stretchFactor)!!
+    }
+}
+
+fun InputFile.detectBlackSegments(minDuration: Duration, secondsLimits: Long? = null): List<BlackSegment> {
+    val fileRegex = (Regex.escape(file.nameWithoutExtension + "_blackframes") + "(?:_([0-9]+))?\\.txt").toRegex()
+    val max = file.parentFile.listFiles()
+        ?.mapNotNull {
+            val match = fileRegex.matchEntire(it.name)
+            if (match != null && it.isFile) {
+                it to (match.groups[1]?.value?.toLong() ?: Long.MAX_VALUE)
+            } else null
+        }
+        ?.maxBy { it.second }
+    val blackFramesFile = if (max != null && max.second >= (secondsLimits ?: Long.MAX_VALUE)) {
+        max.first
+    } else {
+        File(
+            file.parentFile,
+            file.nameWithoutExtension + "_blackframes" + (if (secondsLimits != null) "_$secondsLimits" else "") + ".txt"
+        )
+    }
+
+    if (!blackFramesFile.exists()) {
         val builder = FFmpegBuilder()
             .setVerbosity(FFmpegBuilder.Verbosity.INFO)
             .setInput(file.absolutePath)
             .addStdoutOutput()
             .apply {
-                if (limit != null) {
-                    addExtraArgs("-t", limit.toTotalSeconds())
+                if (secondsLimits != null) {
+                    addExtraArgs("-t", secondsLimits.toString())
                 }
             }
             .addExtraArgs(
@@ -52,11 +75,12 @@ fun InputFile.detectBlackSegments(minDuration: Duration, limit: Duration?): List
         FFmpegExecutor(FFmpeg(), FFprobe()).apply {
             println("Detecting blackframes...")
             val realOut = System.out
-            val ps = PrintStream(blackframesFile)
+            val ps = PrintStream(blackFramesFile)
             try {
                 System.setOut(ps)
                 createJob(builder) { prg ->
-                    val lod = (limit ?: duration)
+                    val lod = if (secondsLimits != null) Duration.ofSeconds(secondsLimits) else duration
+
                     val percentage = if (lod == null) null else prg.out_time_ns / lod.toNanos().toDouble()
                     if (percentage != null) {
                         realOut.println(
@@ -86,12 +110,33 @@ fun InputFile.detectBlackSegments(minDuration: Duration, limit: Duration?): List
 
     val regex =
         "\\[blackdetect @ [0-9a-f]+] black_start:(\\d+(?:\\.\\d+)?) black_end:(\\d+(?:\\.\\d+)?).+".toRegex()
-    return blackframesFile.readLines()
+    return blackFramesFile.readLines()
         .mapNotNull { regex.matchEntire(it) }
         .map {
             BlackSegment(
-                start = Duration.ofNanos(it.groups[1]!!.value.toBigDecimal().setScale(9).unscaledValue().longValueExact()),
-                end = Duration.ofNanos(it.groups[2]!!.value.toBigDecimal().setScale(9).unscaledValue().longValueExact())
+                start = it.groups[1]!!.value.toBigDecimal().asSecondsDuration(),
+                end = it.groups[2]!!.value.toBigDecimal().asSecondsDuration()
             )
         }
+        .filter {
+            if (secondsLimits != null) it.end < Duration.ofSeconds(secondsLimits) else true
+        }
+}
+
+fun List<BlackSegment>.print() {
+    if (isNotEmpty()) {
+        zipWithNext().forEach { (a, b) ->
+            println(a)
+            println("Scene start=" + a.end + ", end=" + b.start + ", duration=" + (b.start-a.end))
+        }
+        println(last())
+    }
+}
+
+fun main() {
+    val eng =
+        InputFile.parse(File("C:\\Users\\molin\\Desktop\\MON\\ENG\\The.Big.Bang.Theory.S05E01.The.Skank.Reflex.Analysis.1080p.BluRay.x264.DTS-HDMA.5.1-LeRalouf.mkv"))
+    val ita =
+        InputFile.parse(File("C:\\Users\\molin\\Desktop\\MON\\ITA\\The.Big.Bang.Theory.5x01.L.analisi.del.riflesso.della.sgualdrina.ITA-ENG.720p.DLMux.h264-DarkSideMux.mkv"))
+    (eng.detectBlackSegments(Duration.ofMillis(250))).print()
 }

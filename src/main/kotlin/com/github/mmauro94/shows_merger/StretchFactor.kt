@@ -9,8 +9,8 @@ private val FPS_25 = BigDecimal("25")
 private val FPS_23_9 = BigDecimal("23.976215")
 
 private val KNOWN_STRETCH_FACTORS = arrayOf(
-    StretchFactor(FPS_25.divide(FPS_23_9, 3, RoundingMode.HALF_UP), "25 fps to 23.976 fps"),
-    StretchFactor(FPS_23_9.divide(FPS_25, 3, RoundingMode.HALF_UP), "23.976 fps to 25 fps")
+    StretchFactor.COMMON_25_TO_23,
+    StretchFactor.COMMON_23_TO_25
 )
 
 class StretchFactor(val factor: BigDecimal, val name: String? = null) {
@@ -35,6 +35,11 @@ class StretchFactor(val factor: BigDecimal, val name: String? = null) {
 
     fun resultingDurationForStretchFactor(duration: Duration?): Duration? {
         return if (duration == null) null else resultingDurationForStretchFactor(duration)
+    }
+
+    companion object {
+        val COMMON_25_TO_23 = StretchFactor(FPS_25.divide(FPS_23_9, 3, RoundingMode.HALF_UP), "25 fps to 23.976 fps")
+        val COMMON_23_TO_25 = StretchFactor(FPS_23_9.divide(FPS_25, 3, RoundingMode.HALF_UP), "23.976 fps to 25 fps")
     }
 
 }

@@ -34,26 +34,35 @@ fun selectAdjustment(mergeMode: MergeMode, inputFile: InputFile, targetFile: Inp
         val (stretchFactor, stretchFromUser) = detectOrAskStretchFactor(inputFile, targetFile) ?: return null
         needsCheck = needsCheck || stretchFromUser
 
-        val offset = if (mergeMode >= MergeMode.ADJUST_STRETCH_AND_OFFSET) {
-            val inputFirstBlackSegment = inputFile.blackSegments?.firstOrNull() * stretchFactor
-            val targetFirstBlackSegment = if (inputFirstBlackSegment != null) {
-                targetFile.blackSegments?.take(2)?.find {
-                    (inputFirstBlackSegment.duration - it.duration).abs() < Duration.ofMillis(100)
-                }
-            } else null
+        val cuts = when (mergeMode) {
+            MergeMode.ADJUST_STRETCH_AND_OFFSET -> {
+                val inputFirstBlackSegment = inputFile.blackSegmentsLimited?.firstOrNull() * stretchFactor
+                val targetFirstBlackSegment = if (inputFirstBlackSegment != null) {
+                    targetFile.blackSegmentsLimited?.take(2)?.find {
+                        (inputFirstBlackSegment.duration - it.duration).abs() < Duration.ofMillis(100)
+                    }
+                } else null
 
-            if (inputFirstBlackSegment != null && targetFirstBlackSegment != null) {
-                targetFirstBlackSegment.end - inputFirstBlackSegment.end
-            } else {
-                needsCheck = true
-                Duration.ZERO
+                val offset = if (inputFirstBlackSegment != null && targetFirstBlackSegment != null) {
+                    targetFirstBlackSegment.end - inputFirstBlackSegment.end
+                } else {
+                    needsCheck = true
+                    Duration.ZERO
+                }
+                Cuts.ofOffset(offset)
             }
-        } else Duration.ZERO
+            MergeMode.ADJUST_STRETCH_AND_CUT -> {
+                val inputBlackSegments= inputFile.blackSegments
+                val targetBlackSegments= targetFile.blackSegments
+                Cuts.empty()
+            }
+            else -> Cuts.empty()
+        }
 
         Adjustment(
             inputFile,
             stretchFactor,
-            Cuts.ofOffset(offset)
+            cuts
         )
     }
     return adj to needsCheck

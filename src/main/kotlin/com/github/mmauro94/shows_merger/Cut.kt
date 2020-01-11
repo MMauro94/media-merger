@@ -65,6 +65,8 @@ data class Cuts(val cuts: List<SilenceOrCut.Cut>) {
     }
 
     companion object {
+        fun empty() = Cuts(emptyList())
+
         fun ofOffset(offset: Duration): Cuts {
             return Cuts(
                 listOf(

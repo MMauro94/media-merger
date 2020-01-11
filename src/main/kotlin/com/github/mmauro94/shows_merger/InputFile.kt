@@ -7,6 +7,9 @@ import net.bramp.ffmpeg.probe.FFmpegProbeResult
 import java.io.File
 import java.time.Duration
 
+private val BLACK_SEGMENTS_MIN_DURATION = Duration.ofMillis(250)!!
+private const val BLACK_SEGMENTS_LIMITED_SECONDS = 30L
+
 class InputFile private constructor(
     val file: File,
     val mkvIdentification: MkvToolnixFileIdentification,
@@ -22,7 +25,13 @@ class InputFile private constructor(
 
     val blackSegments by lazy {
         if (tracks.any { it.isVideoTrack() }) {
-            detectBlackSegments(Duration.ofMillis(250), Duration.ofSeconds(30))
+            detectBlackSegments(BLACK_SEGMENTS_MIN_DURATION)
+        } else null
+    }
+
+    val blackSegmentsLimited by lazy {
+        if (tracks.any { it.isVideoTrack() }) {
+            detectBlackSegments(BLACK_SEGMENTS_MIN_DURATION, BLACK_SEGMENTS_LIMITED_SECONDS)
         } else null
     }
 
