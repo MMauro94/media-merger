@@ -1,6 +1,7 @@
 package com.github.mmauro94.shows_merger
 
 import com.github.mmauro94.mkvtoolnix_wrapper.merge.MkvMergeCommand
+import net.bramp.ffmpeg.FFmpeg
 import java.math.BigDecimal
 import java.time.Duration
 import java.util.*
@@ -48,7 +49,7 @@ fun Duration?.humanStr() =
 fun Double.asSecondsDuration() =
     if (this == 0.0) null else Duration.ofSeconds(toLong(), ((this % 1) * 1000000000).toLong())!!
 
-fun Duration.toTotalSeconds(): BigDecimal = BigDecimal.valueOf(toNanos(), 9)
+fun Duration.toTotalSeconds(): String = BigDecimal.valueOf(toNanos(), 9).toPlainString()
 
 private val DURATION_PATTERN = Pattern.compile("(?:(\\d+)h)?\\s*(?:(\\d+)m)?\\s*(?:(\\d+)s)?")!!
 fun parseDuration(str: String): Duration? {

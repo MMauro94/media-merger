@@ -36,12 +36,12 @@ fun InputFile.detectBlackSegments(minDuration: Duration, limit: Duration?): List
             .addStdoutOutput()
             .apply {
                 if (limit != null) {
-                    addExtraArgs("-t", limit.toTotalSeconds().toPlainString())
+                    addExtraArgs("-t", limit.toTotalSeconds())
                 }
             }
             .addExtraArgs(
                 "-vf",
-                "\"blackdetect=d=" + minDuration.toTotalSeconds().toPlainString() + "\""
+                "\"blackdetect=d=" + minDuration.toTotalSeconds() + "\""
             )
             .addExtraArgs("-an")
 

@@ -71,8 +71,10 @@ data class SelectedTracks(
                                 } else {
                                     it.stretchFactor = adj.stretchFactor
                                 }
-                                val offset = adj.cuts.optOffset() ?: TODO("Support non-offset cuts")
-                                it.offset = offset
+                                val offset = adj.cuts.optOffset()
+                                if(offset != null) {
+                                    it.offset = offset
+                                }
                             }
                     }
                 } else return {}

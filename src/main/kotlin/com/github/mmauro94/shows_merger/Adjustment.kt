@@ -3,10 +3,15 @@ package com.github.mmauro94.shows_merger
 import java.math.BigDecimal
 import java.time.Duration
 
+/**
+ * @param inputFile the file to adjust
+ * @param stretchFactor the stretch factor of the audio file
+ * @param cuts the cuts to apply AFTER the audio has been stretched
+ */
 data class Adjustment(
     val inputFile: InputFile,
     val stretchFactor: StretchFactor,
-    val cuts : Cuts
+    val cuts: Cuts
 ) {
     fun isEmpty() = stretchFactor.factor.compareTo(BigDecimal.ONE) == 0 && cuts.isEmpty()
 
@@ -52,6 +57,4 @@ fun selectAdjustment(mergeMode: MergeMode, inputFile: InputFile, targetFile: Inp
         )
     }
     return adj to needsCheck
-
-    //val moveDuration = Duration.ofMillis(askInt("Select wanted offset (in ms): ").toLong())
 }

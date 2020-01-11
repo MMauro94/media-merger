@@ -34,23 +34,80 @@ class AudioAdjustment(
 
     /**
      * Example command to cut audio (no blanks yet):
-     * ffmpeg -vn -sn -i file.mkv -filter_complex `
-        "[0:a]atrim=duration=30[aa];`
-         [0:a]atrim=start=40:end=50,asetpts=PTS-STARTPTS[ba];`
-         [aa][ba]concat=v=0:a=1[outa]" `
-       -map [outa] audio.ac3
+     * ffmpeg `
+    -vn -sn -i file.mkv `
+    -f lavfi -t 5 -i anullsrc `
+    -filter_complex `
+    "[0:a]atrim=duration=30[aa];`
+    [0:a]atrim=start=40:end=50,asetpts=PTS-STARTPTS[ba];`
+    [aa][1][ba]concat=n=3:v=0:a=1[outa]" `
+    -map [outa] audio.ac3
      */
 
+    private class Filter(val filter: String, val out: String) {
+        override fun toString() = "$filter[$out]"
+    }
+
+    private fun buildCutFilters(input: String): List<Filter> {
+        if (adjustment.cuts.optOffset() != null) {
+            return emptyList()
+        }
+
+        val pieces = adjustment.cuts.getSilenceOrCuts()
+        val ret = mutableListOf<Filter>()
+        val toConcat = mutableListOf<String>()
+
+        for ((i, piece) in pieces.withIndex()) {
+            when (piece) {
+                is SilenceOrCut.Cut -> {
+                    val f = Filter(
+                        "[$input]atrim=start=" + piece.startCut.toTotalSeconds() + ":end=" + piece.endCut.toTotalSeconds() + ",asetpts=PTS-STARTPTS",
+                        "part$i"
+                    )
+                    ret.add(f)
+                    toConcat.add(f.out)
+                }
+                is SilenceOrCut.Silence -> {
+                    toConcat.add(pieces.filterIsInstance<SilenceOrCut.Silence>().indexOf(piece).toString())
+                }
+            }
+        }
+
+        if (toConcat.isNotEmpty()) {
+            ret.add(Filter(
+                toConcat.joinToString(separator = "") { "[$it]" } + "concat=n=${toConcat.size}:v=0:a=1",
+                "outa"
+            ))
+        }
+        return ret
+    }
+
     fun adjust(progress: String): Boolean {
+        val silenceOrCuts = adjustment.cuts.getSilenceOrCuts()
+        val inputTrack = silenceOrCuts.filterIsInstance<SilenceOrCut.Silence>().size.toString() + ":${track.id}"
+
         val ratio = adjustment.stretchFactor.ratio
-        return if (ratio.compareTo(BigDecimal.ONE) != 0) {
+        val filters = sequence {
+            val stretchFilter = if (ratio.compareTo(BigDecimal.ONE) != 0) {
+                Filter("[$inputTrack]atempo=$ratio", "stretched")
+            } else null
+            val input = stretchFilter?.out ?: inputTrack
+            yieldAll(buildCutFilters(input))
+        }.toList()
+
+        return if (filters.isNotEmpty()) {
+            val filtersStr = filters.joinToString("; ")
             val builder = FFmpegBuilder()
-                .setInput(track.file.absolutePath)
+                .setInput(track.file.absolutePath).apply {
+                    silenceOrCuts.forEach {
+                        if (it is SilenceOrCut.Silence) {
+                            addExtraArgs("-f", "lavfi", "-t", it.duration.toTotalSeconds(), "-i", "anullsrc")
+                        }
+                    }
+                }
+                .setComplexFilter("\"$filtersStr\"")
                 .addOutput(outputFile.absolutePath)
-                .disableVideo()
-                .disableSubtitle()
-                .addExtraArgs("-map", "0:${track.id}")
-                .setAudioFilter("atempo=$ratio")
+                .addExtraArgs("-map", "[" + filters.last().out + "]")
                 .done()
 
             println(builder.build().joinToString(" "))
