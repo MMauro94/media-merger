@@ -44,11 +44,11 @@ class AudioAdjustment(
     -map [outa] audio.ac3
      */
 
-    private class Filter(val filter: String, val out: String) {
-        override fun toString() = "$filter[$out]"
+    private class Filter(val filter: String, vararg val outs: String) {
+        override fun toString() = filter + outs.joinToString(separator = "") { "[$it]" }
     }
 
-    private fun buildCutFilters(input: String): List<Filter> {
+    private fun buildCutFilters(): List<Filter> {
         if (adjustment.cuts.optOffset() != null) {
             return emptyList()
         }
@@ -57,18 +57,20 @@ class AudioAdjustment(
         val ret = mutableListOf<Filter>()
         val toConcat = mutableListOf<String>()
 
+        var inIndex = 0
         for ((i, piece) in pieces.withIndex()) {
             when (piece) {
-                is SilenceOrCut.Cut -> {
+                is Cut -> {
+                    val part = "part$i"
                     val f = Filter(
-                        "[$input]atrim=start=" + piece.startCut.toTotalSeconds() + ":end=" + piece.endCut.toTotalSeconds() + ",asetpts=PTS-STARTPTS",
-                        "part$i"
+                        "[in${inIndex++}]atrim=start=" + piece.startCut.toTotalSeconds() + ":end=" + piece.endCut.toTotalSeconds() + ",asetpts=PTS-STARTPTS",
+                        part
                     )
                     ret.add(f)
-                    toConcat.add(f.out)
+                    toConcat.add(part)
                 }
-                is SilenceOrCut.Silence -> {
-                    toConcat.add(pieces.filterIsInstance<SilenceOrCut.Silence>().indexOf(piece).toString())
+                is Silence -> {
+                    toConcat.add(pieces.filterIsInstance<Silence>().indexOf(piece).toString())
                 }
             }
         }
@@ -84,15 +86,19 @@ class AudioAdjustment(
 
     fun adjust(progress: String): Boolean {
         val silenceOrCuts = adjustment.cuts.getSilenceOrCuts()
-        val inputTrack = silenceOrCuts.filterIsInstance<SilenceOrCut.Silence>().size.toString() + ":${track.id}"
+        val inputTrack = silenceOrCuts.filterIsInstance<Silence>().size.toString() + ":${track.id}"
 
         val ratio = adjustment.stretchFactor.ratio
         val filters = sequence {
             val stretchFilter = if (ratio.compareTo(BigDecimal.ONE) != 0) {
-                Filter("[$inputTrack]atempo=$ratio", "stretched")
+                Filter("[$inputTrack]atempo=$ratio", "stretched").apply {
+                    yield(this)
+                }
             } else null
-            val input = stretchFilter?.out ?: inputTrack
-            yieldAll(buildCutFilters(input))
+            val input = stretchFilter?.outs?.single() ?: inputTrack
+            val cutsCount = silenceOrCuts.count { it is Cut }
+            yield(Filter("[$input]asplit=$cutsCount", *Array(cutsCount) { i -> "in$i" }))
+            yieldAll(buildCutFilters())
         }.toList()
 
         return if (filters.isNotEmpty()) {
@@ -100,14 +106,14 @@ class AudioAdjustment(
             val builder = FFmpegBuilder()
                 .setInput(track.file.absolutePath).apply {
                     silenceOrCuts.forEach {
-                        if (it is SilenceOrCut.Silence) {
+                        if (it is Silence) {
                             addExtraArgs("-f", "lavfi", "-t", it.duration.toTotalSeconds(), "-i", "anullsrc")
                         }
                     }
                 }
                 .setComplexFilter("\"$filtersStr\"")
                 .addOutput(outputFile.absolutePath)
-                .addExtraArgs("-map", "[" + filters.last().out + "]")
+                .addExtraArgs("-map", "[" + filters.last().outs.single() + "]")
                 .done()
 
             println(builder.build().joinToString(" "))

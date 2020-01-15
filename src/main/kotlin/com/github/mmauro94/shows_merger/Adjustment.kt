@@ -36,9 +36,10 @@ fun selectAdjustment(mergeMode: MergeMode, inputFile: InputFile, targetFile: Inp
 
         val cuts = when (mergeMode) {
             MergeMode.ADJUST_STRETCH_AND_OFFSET -> {
-                val inputFirstBlackSegment = inputFile.blackSegmentsLimited?.firstOrNull() * stretchFactor
+                val inputFirstBlackSegment =
+                    inputFile.videoPartsLimited?.blackSegments()?.firstOrNull()?.times(stretchFactor)
                 val targetFirstBlackSegment = if (inputFirstBlackSegment != null) {
-                    targetFile.blackSegmentsLimited?.take(2)?.find {
+                    targetFile.videoPartsLimited?.blackSegments()?.take(2)?.find {
                         (inputFirstBlackSegment.duration - it.duration).abs() < Duration.ofMillis(100)
                     }
                 } else null
@@ -52,17 +53,20 @@ fun selectAdjustment(mergeMode: MergeMode, inputFile: InputFile, targetFile: Inp
                 Cuts.ofOffset(offset)
             }
             MergeMode.ADJUST_STRETCH_AND_CUT -> {
-                val inputBlackSegments= inputFile.blackSegments
-                val targetBlackSegments= targetFile.blackSegments
-                Cuts.empty()
+                val inputBlackSegments = inputFile.videoParts?.times(stretchFactor)
+                val targetBlackSegments = targetFile.videoParts
+
+                if (inputBlackSegments != null && targetBlackSegments != null) {
+                    inputBlackSegments.matchWithTarget(targetBlackSegments)?.computeCuts()
+                } else null
             }
-            else -> Cuts.empty()
+            else -> null
         }
 
         Adjustment(
             inputFile,
             stretchFactor,
-            cuts
+            cuts ?: Cuts.empty()
         )
     }
     return adj to needsCheck

@@ -23,15 +23,15 @@ class InputFile private constructor(
 
     val framerate by lazy { detectFramerate() }
 
-    val blackSegments by lazy {
+    val videoParts by lazy {
         if (tracks.any { it.isVideoTrack() }) {
-            detectBlackSegments(BLACK_SEGMENTS_MIN_DURATION)
+            detectVideoParts(BLACK_SEGMENTS_MIN_DURATION)
         } else null
     }
 
-    val blackSegmentsLimited by lazy {
+    val videoPartsLimited by lazy {
         if (tracks.any { it.isVideoTrack() }) {
-            detectBlackSegments(BLACK_SEGMENTS_MIN_DURATION, BLACK_SEGMENTS_LIMITED_SECONDS)
+            detectVideoParts(BLACK_SEGMENTS_MIN_DURATION, BLACK_SEGMENTS_LIMITED_SECONDS)
         } else null
     }
 

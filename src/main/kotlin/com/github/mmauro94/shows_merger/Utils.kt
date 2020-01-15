@@ -5,6 +5,7 @@ import java.math.BigDecimal
 import java.time.Duration
 import java.util.*
 import java.util.regex.Pattern
+import kotlin.math.roundToLong
 
 val scanner = Scanner(System.`in`)
 
@@ -69,3 +70,7 @@ fun parseDuration(str: String): Duration? {
         Duration.ofSeconds(seconds)
     } else null
 }
+
+fun Duration.makeMillisPrecision() = Duration.ofMillis((toNanos() / 1_000_000.0).roundToLong())
+
+fun Duration.requireMillisPrecision() = require(nano % 1_000_000 == 0)
