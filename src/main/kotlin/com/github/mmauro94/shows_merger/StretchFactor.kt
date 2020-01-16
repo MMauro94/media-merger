@@ -17,6 +17,8 @@ class StretchFactor(val factor: BigDecimal, val name: String? = null) {
 
     val ratio = BigDecimal.ONE.divide(factor, 3, RoundingMode.HALF_UP)!!
 
+    fun isEmpty() = factor.compareTo(BigDecimal.ONE) == 0
+
     override fun hashCode() = factor.hashCode()
     override fun equals(other: Any?) = other is StretchFactor && factor == other.factor
 

@@ -4,6 +4,10 @@ import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import com.github.mmauro94.mkvtoolnix_wrapper.hasErrors
 import com.github.mmauro94.mkvtoolnix_wrapper.merge.MkvMergeCommand
+import com.github.mmauro94.shows_merger.audio_adjustment.AbstractAudioAdjustment
+import com.github.mmauro94.shows_merger.audio_adjustment.AudioAdjustments
+import com.github.mmauro94.shows_merger.audio_adjustment.CutsAudioAdjustment
+import com.github.mmauro94.shows_merger.audio_adjustment.StretchAudioAdjustment
 import java.io.File
 import java.time.Duration
 
@@ -47,7 +51,7 @@ data class SelectedTracks(
         .toSet()
 
     fun operation(mergeMode: MergeMode): () -> Unit {
-        val audioAdjustments = ArrayList<Pair<AudioAdjustment, (AudioAdjustment) -> Unit>>()
+        val audioAdjustments = ArrayList<Pair<AudioAdjustments, (InputFile) -> Unit>>()
         var needsCheck = false
         allFiles()
             .filterNot { it == videoTrack.inputFile }
@@ -61,18 +65,29 @@ data class SelectedTracks(
                             .filter { it.track?.inputFile == inputFile }
                             .forEach {
                                 if (it.track!!.isAudioTrack()) {
-                                    audioAdjustments.add(Pair(AudioAdjustment(it.track!!, adj), { aa ->
-                                        val i = InputFile.parse(aa.outputFile)
-                                        require(i.tracks.size == 1 && i.tracks[0].isAudioTrack())
-                                        it.track = i.tracks[0]
-                                        it.stretchFactor = null
-                                        Unit
-                                    }))
+                                    val adjustments = mutableListOf<AbstractAudioAdjustment<*>>(
+                                        StretchAudioAdjustment(adj.stretchFactor)
+                                    )
+                                    if (adj.cuts.optOffset() == null) {
+                                        adjustments.add(CutsAudioAdjustment(adj.cuts))
+                                    }
+                                    audioAdjustments.add(
+                                        Pair(
+                                            AudioAdjustments(
+                                                it.track!!,
+                                                adjustments
+                                            ), { i ->
+                                                require(i.tracks.size == 1 && i.tracks[0].isAudioTrack())
+                                                it.track = i.tracks[0]
+                                                it.stretchFactor = null
+                                                Unit
+                                            })
+                                    )
                                 } else {
                                     it.stretchFactor = adj.stretchFactor
                                 }
                                 val offset = adj.cuts.optOffset()
-                                if(offset != null) {
+                                if (offset != null) {
                                     it.offset = offset
                                 }
                             }
@@ -80,10 +95,9 @@ data class SelectedTracks(
                 } else return {}
             }
         return {
-            val size = audioAdjustments.size
-            audioAdjustments.forEachIndexed { i, (aa, f) ->
-                if (aa.adjust("${i + 1}/$size")) {
-                    f(aa)
+            audioAdjustments.forEach { (aa, f) ->
+                aa.adjustAll()?.let { res ->
+                    f(res)
                 }
             }
 

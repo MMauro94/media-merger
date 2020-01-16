@@ -24,6 +24,16 @@ class Track(
 
     val isOnItsFile by lazy { inputFile.tracks.size == 1 }
 
+    val audioExtension = mkvTrack.codec.toLowerCase().let { c ->
+        when {
+            c.contains("ac-3") -> "ac3"
+            c.contains("aac") -> "aac"
+            c.contains("mp3") -> "mp3"
+            c.contains("flac") -> "flac"
+            else -> "unknown"
+        }
+    }
+
     val isForced by lazy {
         mkvTrack.isForced() == true ||
                 mkvTrack.properties?.trackName?.contains("forced", ignoreCase = true) == true ||

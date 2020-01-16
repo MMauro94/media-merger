@@ -4,7 +4,13 @@ import com.github.mmauro94.shows_merger.VideoPart.Type.BLACK_SEGMENT
 import com.github.mmauro94.shows_merger.VideoPart.Type.SCENE
 import java.time.Duration
 
+/**
+ * Sealed class that represents a part of audio that can either be [Silence] or a [Cut].
+ */
 sealed class SilenceOrCut {
+    /**
+     * The duration
+     */
     abstract val duration: Duration
 }
 

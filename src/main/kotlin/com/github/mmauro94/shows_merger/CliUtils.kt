@@ -132,40 +132,15 @@ fun askString(question: String, defaultValue: String = ""): String {
         print("[$defaultValue] ")
     }
     val l = scanner.nextLine().trim()
-    return if (l.isBlank()) defaultValue
-    else l
+    return if (l.isBlank()) defaultValue else l
 }
 
 fun askEnum(question: String, enums : List<String>, defaultValue: String = ""): String {
     val selection = askString(question + " (" + enums.joinToString(", ")  + ")", defaultValue)
-    if(selection in enums) {
-        return selection
+    return if(selection in enums) {
+        selection
     } else {
         System.err.println("Invalid value! Must be one of " + enums.map { "'$it'" }.joinToString { ", " })
-        return askEnum(question, enums, defaultValue)
+        askEnum(question, enums, defaultValue)
     }
-}
-
-fun askDuration(question: String, defaultValue: Duration?) : Duration {
-    var ret : Duration? = null
-    while(ret == null) {
-        print("$question ")
-        if(defaultValue != null) {
-            print("[${defaultValue.humanStr()}] ")
-        }
-        val l = scanner.nextLine().trim()
-        if (!l.isEmpty()) {
-            ret = parseDuration(l)
-            if (ret == null) {
-                System.err.println("Invalid duration!")
-            }
-        } else {
-            if (defaultValue == null) {
-                System.err.println("No language given")
-            } else {
-                ret = defaultValue
-            }
-        }
-    }
-    return ret
 }
