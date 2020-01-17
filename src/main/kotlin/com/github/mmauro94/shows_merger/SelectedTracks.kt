@@ -51,7 +51,7 @@ data class SelectedTracks(
         .toSet()
 
     fun operation(mergeMode: MergeMode): () -> Unit {
-        val audioAdjustments = ArrayList<Pair<AudioAdjustments, (InputFile) -> Unit>>()
+        val audioAdjustments = ArrayList<Pair<AudioAdjustments, (Track) -> Unit>>()
         var needsCheck = false
         allFiles()
             .filterNot { it == videoTrack.inputFile }
@@ -76,11 +76,9 @@ data class SelectedTracks(
                                             AudioAdjustments(
                                                 it.track!!,
                                                 adjustments
-                                            ), { i ->
-                                                require(i.tracks.size == 1 && i.tracks[0].isAudioTrack())
-                                                it.track = i.tracks[0]
+                                            ), { t ->
+                                                it.track = t
                                                 it.stretchFactor = null
-                                                Unit
                                             })
                                     )
                                 } else {
@@ -96,7 +94,7 @@ data class SelectedTracks(
             }
         return {
             audioAdjustments.forEach { (aa, f) ->
-                aa.adjustAll()?.let { res ->
+                aa.adjust()?.let { res ->
                     f(res)
                 }
             }
@@ -254,7 +252,7 @@ fun MkvMergeCommand.addTrack(
             if (track.stretchFactor != null || track.offset > Duration.ZERO) {
                 sync(
                     track.offset,
-                    track.stretchFactor.let { sf -> if (sf == null) null else Pair(sf.factor.toFloat(), null) }
+                    track.stretchFactor.let { sf -> if (sf == null) null else Pair(sf.durationMultiplier.toFloat(), null) }
                 )
             }
             apply(f)

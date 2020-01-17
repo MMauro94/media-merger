@@ -1,6 +1,9 @@
 package com.github.mmauro94.shows_merger.audio_adjustment
 
 import com.github.mmauro94.shows_merger.*
+import com.github.mmauro94.shows_merger.cuts.Cut
+import com.github.mmauro94.shows_merger.cuts.Cuts
+import com.github.mmauro94.shows_merger.cuts.Silence
 import net.bramp.ffmpeg.builder.FFmpegBuilder
 import net.bramp.ffmpeg.builder.FFmpegOutputBuilder
 import java.time.Duration
@@ -11,10 +14,10 @@ class CutsAudioAdjustment(
 
     override val outputConcat = listOf("cuts" + adjustment.hashCode())
 
-    private val silenceOrCuts = adjustment.getSilenceOrCuts()
+    private val silenceOrCuts = adjustment.getCutParts()
 
     override fun shouldAdjust(): Boolean {
-        return !adjustment.isEmpty()
+        return !adjustment.isEmptyOffset()
     }   
 
     private class Filter(val filter: String, vararg val outs: String) {

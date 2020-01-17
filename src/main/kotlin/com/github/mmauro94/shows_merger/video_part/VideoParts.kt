@@ -1,5 +1,6 @@
-package com.github.mmauro94.shows_merger
+package com.github.mmauro94.shows_merger.video_part
 
+import com.github.mmauro94.shows_merger.*
 import net.bramp.ffmpeg.FFmpeg
 import net.bramp.ffmpeg.FFmpegExecutor
 import net.bramp.ffmpeg.FFmpegUtils
@@ -10,36 +11,11 @@ import java.io.PrintStream
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
-data class VideoPart(val start: Duration, val end: Duration, val type: Type) {
-
-    enum class Type {
-        BLACK_SEGMENT, SCENE;
-    }
-
-    init {
-        start.requireMillisPrecision()
-        end.requireMillisPrecision()
-
-        require(start < end)
-    }
-
-    val duration: Duration = end - start
-    val halfDuration: Duration = duration.dividedBy(2L).makeMillisPrecision()
-    val middle: Duration = start + halfDuration
-
-    fun print() {
-        val type = when (type) {
-            Type.BLACK_SEGMENT -> "BlackSegment"
-            Type.SCENE -> "Scene"
-        }.padEnd(15)
-
-        val start = start.toString().padEnd(15)
-        val end = end.toString().padEnd(15)
-        val duration = duration.toString().padEnd(15)
-        println(type + "start=$start end=$end duration=$duration")
-    }
-}
-
+/**
+ * Class that contains a list of [VideoPart]s.
+ *
+ * It requires and ensures that consecutive parts have different type and that the first part starts at 0:00.
+ */
 data class VideoParts(val parts: List<VideoPart>) {
 
     init {
@@ -48,30 +24,39 @@ data class VideoParts(val parts: List<VideoPart>) {
             require(a.type != b.type)
         }
     }
-
-    fun print() {
-        parts.forEach {
-            it.print()
-        }
-    }
 }
 
-private operator fun Duration.times(stretchFactor: StretchFactor): Duration {
-    return Duration.ofNanos(toNanos().toBigDecimal().multiply(stretchFactor.factor).toBigInteger().longValueExact())
-}
-
-operator fun VideoPart.times(stretchFactor: StretchFactor): VideoPart {
-    return this.copy(start = (start * stretchFactor).makeMillisPrecision(), end = (end * stretchFactor).makeMillisPrecision())
-}
-
+/**
+ * Multiplies all the [VideoPart]s to the provided [stretchFactor].
+ *
+ * @see VideoPart.times
+ */
 operator fun VideoParts.times(stretchFactor: StretchFactor) = VideoParts(parts.map { it * stretchFactor })
 
+/**
+ * Returns only the black segments
+ */
 fun VideoParts.scenes() = parts.filter { it.type == VideoPart.Type.SCENE }
 
+/**
+ * Returns only the scenes
+ */
 fun VideoParts.blackSegments() = parts.filter { it.type == VideoPart.Type.BLACK_SEGMENT }
 
+/**
+ * Detects the [VideoParts] from this [InputFile].
+ *
+ * It also saves the output of the command to a file with the same prefix as the input file. If this file is already
+ * present, it parses it rather than performing the command again.
+ *
+ * Returns `null` if no black segments were found.
+ *
+ * @param minDuration the min duration of the black segments. All black segments with a smaller duration will be ignored
+ * @param secondsLimits if provided, limits the parsing to the first seconds. Useful if we are interesed only in the first black frames
+ */
 fun InputFile.detectVideoParts(minDuration: Duration, secondsLimits: Long? = null): VideoParts? {
-    val fileRegex = (Regex.escape(file.nameWithoutExtension + "_blackframes") + "(?:_([0-9]+))?\\.txt").toRegex()
+    val prefix = file.nameWithoutExtension + "_blackframes_minDuration${minDuration.humanStr()}"
+    val fileRegex = (Regex.escape(prefix) + "(?:_([0-9]+))?\\.txt").toRegex()
     val max = file.parentFile.listFiles()
         ?.mapNotNull {
             val match = fileRegex.matchEntire(it.name)
@@ -85,7 +70,7 @@ fun InputFile.detectVideoParts(minDuration: Duration, secondsLimits: Long? = nul
     } else {
         File(
             file.parentFile,
-            file.nameWithoutExtension + "_blackframes" + (if (secondsLimits != null) "_$secondsLimits" else "") + ".txt"
+            prefix + (if (secondsLimits != null) "_$secondsLimits" else "") + ".txt"
         )
     }
 
@@ -163,59 +148,33 @@ fun InputFile.detectVideoParts(minDuration: Duration, secondsLimits: Long? = nul
     return if (blackSegments.isEmpty()) null
     else {
         val scenes = blackSegments.zipWithNext { a, b ->
-            VideoPart(a.end, b.start, VideoPart.Type.SCENE)
+            VideoPart(
+                a.end,
+                b.start,
+                VideoPart.Type.SCENE
+            )
         }
         val ret = (blackSegments.zip(scenes).flatMap { (a, b) -> listOf(a, b) } + blackSegments.last()).toMutableList()
         if (ret.first().start > Duration.ZERO) {
-            ret.add(0, VideoPart(Duration.ZERO, ret.first().start, VideoPart.Type.SCENE))
+            ret.add(
+                0,
+                VideoPart(
+                    Duration.ZERO,
+                    ret.first().start,
+                    VideoPart.Type.SCENE
+                )
+            )
         }
         val duration = this.duration?.makeMillisPrecision()
         if (duration != null && ret.last().end < duration) {
-            ret.add(VideoPart(ret.last().end, duration, VideoPart.Type.SCENE))
+            ret.add(
+                VideoPart(
+                    ret.last().end,
+                    duration,
+                    VideoPart.Type.SCENE
+                )
+            )
         }
         VideoParts(ret)
     }
-}
-
-fun List<VideoPart>.print() {
-    forEach {
-        println(it)
-    }
-}
-
-data class VideoPartMatch(val input: VideoPart, val target: VideoPart) {
-    init {
-        require(input.type == target.type)
-    }
-
-    val type = input.type
-}
-
-fun VideoParts.matchWithTarget(targets: VideoParts): List<VideoPartMatch>? {
-    if (this.parts.isNotEmpty() && this.parts.size == targets.parts.size && this.parts.first().type == this.parts.first().type) {
-        val zip = this.scenes().zip(targets.scenes())
-        if (zip.count { (input, target) -> (input.duration - target.duration).abs() < Duration.ofMillis(150) } / zip.size.toFloat() > 0.8) {
-            return this.parts.zip(targets.parts).map { (input, target) ->
-                VideoPartMatch(input, target)
-            }
-        }
-    }
-    return null
-}
-
-fun main() {
-    val eng =
-        InputFile.parse(File("C:\\Users\\molin\\Desktop\\MON\\ENG\\The.Big.Bang.Theory.S05E01.The.Skank.Reflex.Analysis.1080p.BluRay.x264.DTS-HDMA.5.1-LeRalouf.mkv"))
-            .detectVideoParts(Duration.ofMillis(250))!!
-    val ita =
-        InputFile.parse(File("C:\\Users\\molin\\Desktop\\MON\\ITA\\The.Big.Bang.Theory.5x01.L.analisi.del.riflesso.della.sgualdrina.ITA-ENG.720p.DLMux.h264-DarkSideMux.mkv"))
-            .detectVideoParts(Duration.ofMillis(250))?.times(StretchFactor.COMMON_25_TO_23)!!
-
-    val max = eng.scenes().zip(ita.scenes()).map {
-        (it.first.duration - it.second.duration).abs()
-    }
-    println(max)
-    println(ita.matchWithTarget(eng)?.forEach {
-        println(it)
-    })
 }

@@ -1,6 +1,10 @@
 package com.github.mmauro94.shows_merger
 
-import java.math.BigDecimal
+import com.github.mmauro94.shows_merger.cuts.Cuts
+import com.github.mmauro94.shows_merger.cuts.computeCuts
+import com.github.mmauro94.shows_merger.video_part.blackSegments
+import com.github.mmauro94.shows_merger.video_part.matchWithTarget
+import com.github.mmauro94.shows_merger.video_part.times
 import java.time.Duration
 
 /**
@@ -13,12 +17,12 @@ data class Adjustment(
     val stretchFactor: StretchFactor,
     val cuts: Cuts
 ) {
-    fun isEmpty() = stretchFactor.factor.compareTo(BigDecimal.ONE) == 0 && cuts.isEmpty()
+    fun isEmpty() = stretchFactor.isEmpty() && cuts.isEmptyOffset()
 
     companion object {
         fun empty(inputFile: InputFile) = Adjustment(
             inputFile,
-            StretchFactor(BigDecimal.ONE),
+            StretchFactor.EMPTY,
             Cuts(emptyList())
         )
     }
@@ -31,7 +35,7 @@ fun selectAdjustment(mergeMode: MergeMode, inputFile: InputFile, targetFile: Inp
     var needsCheck = false
     val adj = if (mergeMode == MergeMode.NO_ADJUSTMENTS) Adjustment.empty(inputFile)
     else {
-        val (stretchFactor, stretchFromUser) = detectOrAskStretchFactor(inputFile, targetFile) ?: return null
+        val (stretchFactor, stretchFromUser) = StretchFactor.detectOrAsk(inputFile, targetFile) ?: return null
         needsCheck = needsCheck || stretchFromUser
 
         val cuts = when (mergeMode) {
@@ -66,7 +70,7 @@ fun selectAdjustment(mergeMode: MergeMode, inputFile: InputFile, targetFile: Inp
         Adjustment(
             inputFile,
             stretchFactor,
-            cuts ?: Cuts.empty()
+            cuts ?: Cuts.EMPTY
         )
     }
     return adj to needsCheck

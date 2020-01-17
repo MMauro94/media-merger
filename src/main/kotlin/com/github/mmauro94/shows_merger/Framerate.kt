@@ -4,6 +4,7 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.Duration
 
+
 /**
  * Class that represents a framerate (e.g. 25.000 fps)
  * @param framerate the framerate that has always exactly 4 decimal digits
@@ -14,6 +15,28 @@ data class Framerate(val framerate: BigDecimal) {
     }
 
     override fun toString() = "${framerate.stripTrailingZeros().toPlainString()} fps"
+
+    /**
+     * Calculates the [StretchFactor] that must be applied to this framerate to comply with [target] timings.
+     */
+    fun calculateStretchTo(target: Framerate): StretchFactor {
+        return StretchFactor.ofDurationMultiplier(
+            framerate.divide(target.framerate, 3, RoundingMode.HALF_UP),
+            "$this to $target"
+        )
+    }
+
+    /**
+     * Calculates the [StretchFactor] that must be applied to [input] framerate to comply with this timings.
+     */
+    fun calculateStretchFrom(input: Framerate): StretchFactor {
+        return input.calculateStretchTo(this)
+    }
+
+    companion object {
+        val FPS_25 = Framerate(BigDecimal("25.000"))
+        val FPS_23_976 = Framerate(BigDecimal("23.976"))
+    }
 }
 
 /**

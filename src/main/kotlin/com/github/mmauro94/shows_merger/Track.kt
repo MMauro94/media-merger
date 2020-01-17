@@ -95,3 +95,6 @@ class Track(
         }
     }
 }
+
+fun sameFile(track1: Track, track2: Track) =
+    track1.file.absolutePath == track2.file.absolutePath

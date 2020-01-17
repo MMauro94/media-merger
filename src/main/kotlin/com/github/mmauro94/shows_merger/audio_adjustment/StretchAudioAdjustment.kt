@@ -5,14 +5,17 @@ import com.github.mmauro94.shows_merger.Track
 import net.bramp.ffmpeg.builder.FFmpegBuilder
 import net.bramp.ffmpeg.builder.FFmpegOutputBuilder
 
+/**
+ * Adjustment to change by a certain stretch factor an audio track
+ */
 class StretchAudioAdjustment(
     adjustment: StretchFactor
 ) : AbstractAudioAdjustment<StretchFactor>(adjustment) {
 
-    override val outputConcat = listOf("stretch${adjustment.factor.toPlainString()}")
+    override val outputConcat = listOf("stretch${adjustment.speedMultiplier.toPlainString()}")
 
     override fun prepare(inputTrack: Track) {
-        targetDuration = adjustment.resultingDurationForStretchFactor(inputTrack.durationOrFileDuration)
+        targetDuration = inputTrack.durationOrFileDuration?.let { adjustment.resultingDurationForStretchFactor(it) }
     }
 
     override fun shouldAdjust(): Boolean {
@@ -24,6 +27,6 @@ class StretchAudioAdjustment(
 
     override fun FFmpegOutputBuilder.fillOutputBuilder(inputTrack: Track) {
         addExtraArgs("-map", "0:${inputTrack.id}")
-        setAudioFilter("atempo=" + adjustment.ratio.toPlainString())
+        setAudioFilter("atempo=" + adjustment.speedMultiplier.toPlainString())
     }
 }

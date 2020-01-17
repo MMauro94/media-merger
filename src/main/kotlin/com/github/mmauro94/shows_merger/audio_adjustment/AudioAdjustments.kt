@@ -1,20 +1,31 @@
 package com.github.mmauro94.shows_merger.audio_adjustment
 
-import com.github.mmauro94.shows_merger.InputFile
 import com.github.mmauro94.shows_merger.Track
 
+/**
+ * Class that contains a list of [AbstractAudioAdjustment] and the starting [inputTrack]
+ */
 data class AudioAdjustments(
     val inputTrack: Track,
     val adjustments: List<AbstractAudioAdjustment<*>>
 ) {
-    fun adjustAll(): InputFile? {
-        var input: Track = this.inputTrack
+
+    /**
+     * Adjusts by starting with the first adjustment in the [adjustments] list with the [inputTrack] as input, then
+     * calls the next one with the output of the previous one until all adjustments are done.
+     *
+     * If an adjustment shouldn't adjust (see [AbstractAudioAdjustment.shouldAdjust]), it is simply skipped.
+     *
+     * Returns the a [Track] for the output of the last adjustment. If no adjustments were made, returns `null`.
+     */
+    fun adjust(): Track? {
+        var track: Track = this.inputTrack
         for ((i, adj) in adjustments.withIndex()) {
-            val newInput = adj.adjust(input, "${i + 1}/${adjustments.size}")
+            val newInput = adj.adjust(track, "${i + 1}/${adjustments.size}")
             if (newInput != null) {
-                input = newInput
+                track = newInput
             }
         }
-        return if(input == inputTrack) null else input.inputFile
+        return if(track == inputTrack) null else track
     }
 }

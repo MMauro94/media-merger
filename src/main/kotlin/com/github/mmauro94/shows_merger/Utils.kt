@@ -4,7 +4,6 @@ import com.github.mmauro94.mkvtoolnix_wrapper.merge.MkvMergeCommand
 import java.math.BigDecimal
 import java.time.Duration
 import java.util.*
-import java.util.regex.Pattern
 import kotlin.math.roundToLong
 
 val scanner = Scanner(System.`in`)
@@ -37,9 +36,6 @@ fun MkvMergeCommand.addTrack(track: Track, f: MkvMergeCommand.InputFile.TrackOpt
         f(this)
     }
 
-fun sameFile(track1: Track, track2: Track) =
-    track1.file.absolutePath == track2.file.absolutePath
-
 fun <T> Sequence<T>.sortWithPreferences(vararg sorters: (T) -> Boolean) =
     this.sortedWith(compareBy(*sorters).reversed())
 
@@ -53,24 +49,6 @@ fun BigDecimal.asSecondsDuration() = Duration.ofNanos(this.setScale(9).unscaledV
 
 fun Duration.toTotalSeconds(): String = BigDecimal.valueOf(toNanos(), 9).toPlainString()
 
-private val DURATION_PATTERN = Pattern.compile("(?:(\\d+)h)?\\s*(?:(\\d+)m)?\\s*(?:(\\d+)s)?")!!
-fun parseDuration(str: String): Duration? {
-    val m = DURATION_PATTERN.matcher(str)
-    return if (m.matches()) {
-        var seconds = 0L
-        m.group(3)?.toLong()?.let {
-            seconds += it
-        }
-        m.group(2)?.toLong()?.let {
-            seconds += it * 60
-        }
-        m.group(1)?.toLong()?.let {
-            seconds += it * 3600
-        }
-        Duration.ofSeconds(seconds)
-    } else null
-}
-
-fun Duration.makeMillisPrecision() = Duration.ofMillis((toNanos() / 1_000_000.0).roundToLong())
+fun Duration.makeMillisPrecision() = Duration.ofMillis((toNanos() / 1_000_000.0).roundToLong())!!
 
 fun Duration.requireMillisPrecision() = require(nano % 1_000_000 == 0)
