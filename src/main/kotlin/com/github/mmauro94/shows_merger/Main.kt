@@ -13,7 +13,19 @@ import java.nio.file.StandardCopyOption
 
 object Main {
 
-    private const val TEST_MODE = true
+    /*
+     * Missing things TODO:
+     *  - Stretch and offset algorithm to use blackframes with new first scene detection
+     *  - Better error handling
+     *  - Detecting stretch factor and cuts from external files (files with same prefix)
+     *  - Cutting ability for subtitles, or at least do not include them if cutting is used
+     *  - Accepting working dir as first parameter
+     *  - Fix target intersection problem
+     *  - [Better output]
+     *  - [Rename language option]
+     */
+
+    private const val TEST_MODE = false
 
     val workingDir: File = File(if(TEST_MODE) "test" else "").absoluteFile
     val outputDir = File(workingDir, "OUTPUT")
