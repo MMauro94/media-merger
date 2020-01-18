@@ -13,7 +13,10 @@ import java.nio.file.StandardCopyOption
 
 object Main {
 
-    val workingDir: File = File("C:\\Users\\molin\\Desktop\\MON").absoluteFile
+    private const val TEST_MODE = true
+
+    val workingDir: File = File(if(TEST_MODE) "test" else "").absoluteFile
+    val outputDir = File(workingDir, "OUTPUT")
     private var inputFiles: List<InputFiles>? = null
     var showProvider: ShowProvider<*>? = null
 

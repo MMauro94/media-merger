@@ -24,6 +24,26 @@ data class VideoParts(val parts: List<VideoPart>) {
             require(a.type != b.type)
         }
     }
+
+    /**
+     * Returns only the black segments
+     */
+    val scenes = parts.filter { it.type == VideoPart.Type.SCENE }
+
+    /**
+     * Returns only the scenes
+     */
+    val blackSegments = parts.filter { it.type == VideoPart.Type.BLACK_SEGMENT }
+
+    /**
+     * Prints all the [parts]
+     * @see VideoPart.println
+     */
+    fun println() {
+        parts.forEach {
+            it.println()
+        }
+    }
 }
 
 /**
@@ -32,16 +52,6 @@ data class VideoParts(val parts: List<VideoPart>) {
  * @see VideoPart.times
  */
 operator fun VideoParts.times(stretchFactor: StretchFactor) = VideoParts(parts.map { it * stretchFactor })
-
-/**
- * Returns only the black segments
- */
-fun VideoParts.scenes() = parts.filter { it.type == VideoPart.Type.SCENE }
-
-/**
- * Returns only the scenes
- */
-fun VideoParts.blackSegments() = parts.filter { it.type == VideoPart.Type.BLACK_SEGMENT }
 
 /**
  * Detects the [VideoParts] from this [InputFile].
@@ -55,7 +65,9 @@ fun VideoParts.blackSegments() = parts.filter { it.type == VideoPart.Type.BLACK_
  * @param secondsLimits if provided, limits the parsing to the first seconds. Useful if we are interesed only in the first black frames
  */
 fun InputFile.detectVideoParts(minDuration: Duration, secondsLimits: Long? = null): VideoParts? {
-    val prefix = file.nameWithoutExtension + "_blackframes_minDuration${minDuration.humanStr()}"
+    minDuration.requireMillisPrecision()
+
+    val prefix = file.nameWithoutExtension + "_blackframes_minDuration${minDuration.toMillis()}"
     val fileRegex = (Regex.escape(prefix) + "(?:_([0-9]+))?\\.txt").toRegex()
     val max = file.parentFile.listFiles()
         ?.mapNotNull {

@@ -112,17 +112,16 @@ fun List<VideoPartMatch>.computeCuts(): Cuts {
                         )
                     )
                 } else {
-                    val halfDuration = it.target.duration.dividedBy(2L).makeMillisPrecision()
                     listOf(
                         Cut(
                             it.input.start,
-                            it.input.start + halfDuration,
+                            it.input.start + it.target.halfDuration,
                             it.target.start
                         ),
                         Cut(
-                            it.input.end - halfDuration,
+                            it.input.end - it.target.halfDuration,
                             it.input.end,
-                            it.target.start + halfDuration
+                            it.target.start + it.target.halfDuration
                         )
                     )
                 }

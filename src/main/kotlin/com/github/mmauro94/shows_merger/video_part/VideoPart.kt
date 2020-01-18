@@ -42,6 +42,21 @@ data class VideoPart(val start: Duration, val end: Duration, val type: Type) {
      * Commodity property that is the middle of the part
      */
     val middle: Duration = start + halfDuration
+
+    /**
+     * Prints a line with this [VideoPart] info
+     */
+    fun println() {
+        val type = when (type) {
+            Type.BLACK_SEGMENT -> "BlackSegment"
+            Type.SCENE -> "Scene"
+        }.padEnd(15)
+
+        val start = start.toString().padEnd(15)
+        val end = end.toString().padEnd(15)
+        val duration = duration.toString().padEnd(15)
+        println(type + "start=$start end=$end duration=$duration")
+    }
 }
 
 /**

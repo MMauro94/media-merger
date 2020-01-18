@@ -100,7 +100,7 @@ data class SelectedTracks(
             }
 
             val outputFile = File(
-                File(Main.workingDir, "OUTPUT"),
+                Main.outputDir,
                 (episode.outputName() ?: videoTrack.file.nameWithoutExtension)
                         + (if (needsCheck) "_needscheck" else "")
                         + ".mkv"

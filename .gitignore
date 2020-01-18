@@ -1,4 +1,5 @@
-tmdb_api_key
+*_api_key
+TEST/
 
 # Created by https://www.gitignore.io/api/kotlin,gradle,intellij+all
 # Edit at https://www.gitignore.io/?templates=kotlin,gradle,intellij+all
@@ -133,4 +134,3 @@ gradle-app.setting
 
 # End of https://www.gitignore.io/api/kotlin,gradle,intellij+all
 
-ENG/

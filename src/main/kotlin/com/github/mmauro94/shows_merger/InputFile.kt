@@ -8,7 +8,7 @@ import net.bramp.ffmpeg.probe.FFmpegProbeResult
 import java.io.File
 import java.time.Duration
 
-private val BLACK_SEGMENTS_MIN_DURATION = Duration.ofMillis(250)!!
+private val BLACK_SEGMENTS_MIN_DURATION = Duration.ofMillis(100)!!
 private const val BLACK_SEGMENTS_LIMITED_SECONDS = 30L
 
 class InputFile private constructor(

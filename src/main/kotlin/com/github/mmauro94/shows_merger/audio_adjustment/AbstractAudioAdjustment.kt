@@ -68,7 +68,7 @@ abstract class AbstractAudioAdjustment<T>(
     fun adjust(inputTrack: Track, progress: String): Track? {
         val outputFile = File(
             inputTrack.file.parentFile,
-            inputTrack.file.nameWithoutExtension + "_" + inputTrack.id + "__" + outputConcat.joinToString(separator = "__") + "." + inputTrack.audioExtension
+            inputTrack.file.nameWithoutExtension + "@adjusted@track:" + inputTrack.id + "__" + outputConcat.joinToString(separator = "_") + "." + inputTrack.audioExtension
         )
 
         val res = when {

@@ -52,3 +52,5 @@ fun Duration.toTotalSeconds(): String = BigDecimal.valueOf(toNanos(), 9).toPlain
 fun Duration.makeMillisPrecision() = Duration.ofMillis((toNanos() / 1_000_000.0).roundToLong())!!
 
 fun Duration.requireMillisPrecision() = require(nano % 1_000_000 == 0)
+
+fun Iterable<Duration>.sum() : Duration = fold(Duration.ZERO) { acc, it -> acc + it }
