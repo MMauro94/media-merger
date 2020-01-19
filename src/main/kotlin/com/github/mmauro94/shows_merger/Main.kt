@@ -15,20 +15,18 @@ object Main {
 
     /*
      * Missing things TODO:
-     *  - Stretch and offset algorithm to use blackframes with new first scene detection
      *  - Better error handling
      *  - Detecting stretch factor and cuts from external files (files with same prefix)
-     *  - Cutting ability for subtitles, or at least do not include them if cutting is used
+     *  - Cutting ability for subtitles
      *  - Accepting working dir as first parameter
      *  - Fix target intersection problem
+     *  - [Option to convert the video if not in suitable format]
      *  - [Better output]
      *  - [Rename language option]
      */
 
-    private const val TEST_MODE = false
-
-    val workingDir: File = File(if(TEST_MODE) "test" else "").absoluteFile
-    val outputDir = File(workingDir, "OUTPUT")
+    lateinit var workingDir: File
+    val outputDir by lazy { File(workingDir, "OUTPUT") }
     private var inputFiles: List<InputFiles>? = null
     var showProvider: ShowProvider<*>? = null
 
@@ -53,6 +51,8 @@ object Main {
 
     @JvmStatic
     fun main(args: Array<String>) {
+        workingDir = File(args.getOrNull(1) ?: System.getProperty("user.dir") ?: "").absoluteFile
+
         println("----- MMAURO's SHOWS MERGER UTILITY -----")
         while (MergeOptions.MAIN_LANGUAGES.isEmpty()) {
             MergeOptions.MAIN_LANGUAGES.addAll(askLanguages("What are the main languages?"))

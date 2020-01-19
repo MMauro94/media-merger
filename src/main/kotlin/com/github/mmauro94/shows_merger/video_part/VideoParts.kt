@@ -8,6 +8,7 @@ import net.bramp.ffmpeg.FFprobe
 import net.bramp.ffmpeg.builder.FFmpegBuilder
 import java.io.File
 import java.io.PrintStream
+import java.lang.StringBuilder
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
@@ -35,15 +36,7 @@ data class VideoParts(val parts: List<VideoPart>) {
      */
     val blackSegments = parts.filter { it.type == VideoPart.Type.BLACK_SEGMENT }
 
-    /**
-     * Prints all the [parts]
-     * @see VideoPart.println
-     */
-    fun println() {
-        parts.forEach {
-            it.println()
-        }
-    }
+    override fun toString() = parts.joinToString(separator = "\n")
 }
 
 /**

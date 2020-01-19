@@ -43,10 +43,7 @@ data class VideoPart(val start: Duration, val end: Duration, val type: Type) {
      */
     val middle: Duration = start + halfDuration
 
-    /**
-     * Prints a line with this [VideoPart] info
-     */
-    fun println() {
+    override fun toString(): String {
         val type = when (type) {
             Type.BLACK_SEGMENT -> "BlackSegment"
             Type.SCENE -> "Scene"
@@ -55,7 +52,7 @@ data class VideoPart(val start: Duration, val end: Duration, val type: Type) {
         val start = start.toString().padEnd(15)
         val end = end.toString().padEnd(15)
         val duration = duration.toString().padEnd(15)
-        println(type + "start=$start end=$end duration=$duration")
+        return type + "start=$start end=$end duration=$duration"
     }
 }
 

@@ -51,24 +51,27 @@ data class SelectedTracks(
         .toSet()
 
     fun operation(mergeMode: MergeMode): () -> Unit {
+        val outputFilenamePrefix = episode.outputName() ?: videoTrack.file.nameWithoutExtension
+
         val audioAdjustments = ArrayList<Pair<AudioAdjustments, (Track) -> Unit>>()
         var needsCheck = false
-        allFiles()
-            .filterNot { it == videoTrack.inputFile }
-            .forEach { inputFile ->
-                val pair = selectAdjustment(mergeMode, inputFile, videoTrack.inputFile)
-                if (pair != null) {
+        try {
+            allFiles()
+                .filterNot { it == videoTrack.inputFile }
+                .forEach { inputFile ->
+                    val pair = selectAdjustment(mergeMode, inputFile, videoTrack.inputFile)
                     val (adj, adjNeedsCheck) = pair
                     needsCheck = needsCheck || adjNeedsCheck
                     if (!adj.isEmpty()) {
                         allTracks()
                             .filter { it.track?.inputFile == inputFile }
                             .forEach {
+                                val offset = adj.cuts.optOffset()
                                 if (it.track!!.isAudioTrack()) {
                                     val adjustments = mutableListOf<AbstractAudioAdjustment<*>>(
                                         StretchAudioAdjustment(adj.stretchFactor)
                                     )
-                                    if (adj.cuts.optOffset() == null) {
+                                    if (offset == null) {
                                         adjustments.add(CutsAudioAdjustment(adj.cuts))
                                     }
                                     audioAdjustments.add(
@@ -83,15 +86,21 @@ data class SelectedTracks(
                                     )
                                 } else {
                                     it.stretchFactor = adj.stretchFactor
+                                    if(offset == null) {
+                                        //Complex cuts need to be done, suppress track for now
+                                        it.track = null //TODO, somehow cut the subtitle track
+                                    }
                                 }
-                                val offset = adj.cuts.optOffset()
                                 if (offset != null) {
                                     it.offset = offset
                                 }
                             }
                     }
-                } else return {}
-            }
+                }
+        } catch (e: OperationCreationException) {
+            e.printTo(File(Main.outputDir, "$outputFilenamePrefix.err.txt"))
+            return {}
+        }
         return {
             audioAdjustments.forEach { (aa, f) ->
                 aa.adjust()?.let { res ->
@@ -101,7 +110,7 @@ data class SelectedTracks(
 
             val outputFile = File(
                 Main.outputDir,
-                (episode.outputName() ?: videoTrack.file.nameWithoutExtension)
+                outputFilenamePrefix
                         + (if (needsCheck) "_needscheck" else "")
                         + ".mkv"
             )
@@ -149,7 +158,7 @@ data class SelectedTracks(
                     }
                 }.executeAndPrint(true)
             if (!result.success) {
-                val part = if (!result.output.hasErrors()) "warn" else "err"
+                val part = if (!result.output.hasErrors()) "mergewarn" else "mergeerr"
                 File(outputFile.parentFile, outputFile.nameWithoutExtension + ".$part.txt").printWriter().use { pw ->
                     result.output.forEach {
                         pw.println(it)
@@ -252,7 +261,12 @@ fun MkvMergeCommand.addTrack(
             if (track.stretchFactor != null || track.offset > Duration.ZERO) {
                 sync(
                     track.offset,
-                    track.stretchFactor.let { sf -> if (sf == null) null else Pair(sf.durationMultiplier.toFloat(), null) }
+                    track.stretchFactor.let { sf ->
+                        if (sf == null) null else Pair(
+                            sf.durationMultiplier.toFloat(),
+                            null
+                        )
+                    }
                 )
             }
             apply(f)
