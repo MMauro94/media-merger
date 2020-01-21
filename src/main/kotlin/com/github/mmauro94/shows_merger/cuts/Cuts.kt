@@ -1,8 +1,8 @@
 package com.github.mmauro94.shows_merger.cuts
 
+import com.github.mmauro94.shows_merger.util.DurationSpan
 import com.github.mmauro94.shows_merger.video_part.VideoPart
 import com.github.mmauro94.shows_merger.video_part.VideoPartMatch
-import com.github.mmauro94.shows_merger.makeMillisPrecision
 import java.time.Duration
 
 /**
@@ -31,7 +31,7 @@ data class Cuts(val cuts: List<Cut>) {
             0 -> Duration.ZERO
             1 -> {
                 val cut = cuts.single()
-                return cut.targetStart - cut.startCut
+                return cut.targetTime.start - cut.time.start
             }
             else -> null
         }
@@ -49,15 +49,15 @@ data class Cuts(val cuts: List<Cut>) {
     fun isEmptyOffset() = optOffset() == Duration.ZERO
 
     /**
-     * Returns a list of [CutPart] by adding between this [cuts] some [Silence]s where appropriate
+     * Returns a list of [CutPart] by adding between this [cuts] some [Empty]s where appropriate
      */
     fun getCutParts(): List<CutPart> {
         var last: Cut? = null
         val ret = mutableListOf<CutPart>()
         for (cut in cuts) {
-            val targetEnd = last?.targetEnd ?: Duration.ZERO
+            val targetEnd = last?.targetTime?.end ?: Duration.ZERO
             if (cut.targetStart > targetEnd) {
-                ret.add(Silence(cut.targetStart - targetEnd))
+                ret.add(Empty(cut.targetStart - targetEnd))
             }
             ret.add(cut)
             last = cut
@@ -77,14 +77,18 @@ data class Cuts(val cuts: List<Cut>) {
                 listOf(
                     if (offset.isNegative) {
                         Cut(
-                            startCut = offset.abs(),
-                            endCut = Duration.ofDays(999),
+                            time = DurationSpan(
+                                offset.abs(),
+                                Duration.ofDays(999)
+                            ),
                             targetStart = Duration.ZERO
                         )
                     } else {
                         Cut(
-                            startCut = Duration.ZERO,
-                            endCut = Duration.ofDays(999),
+                            time = DurationSpan(
+                                Duration.ZERO,
+                                Duration.ofDays(999)
+                            ),
                             targetStart = offset
                         )
                     }
@@ -98,39 +102,40 @@ fun List<VideoPartMatch>.computeCuts(): Cuts {
     return Cuts(flatMap {
         when (it.type) {
             VideoPart.Type.BLACK_SEGMENT -> {
-                if (it.input.duration < it.target.duration) {
+                if (it.input.time.duration < it.target.time.duration) {
                     listOf(
                         Cut(
-                            it.input.start,
-                            it.input.middle,
-                            it.target.start
+                            time = it.input.time.firstHalf(),
+                            targetStart = it.target.time.start
                         ),
                         Cut(
-                            it.input.middle,
-                            it.input.end,
-                            it.target.end - it.input.halfDuration
+                            time = it.input.time.secondHalf(),
+                            targetStart = it.target.time.end - it.input.time.halfDuration
                         )
                     )
                 } else {
                     listOf(
                         Cut(
-                            it.input.start,
-                            it.input.start + it.target.halfDuration,
-                            it.target.start
+                            time = DurationSpan(
+                                it.input.time.start,
+                                it.input.time.start + it.target.time.halfDuration
+                            ),
+                            targetStart = it.target.time.start
                         ),
                         Cut(
-                            it.input.end - it.target.halfDuration,
-                            it.input.end,
-                            it.target.start + it.target.halfDuration
+                            time = DurationSpan(
+                                it.input.time.end - it.target.time.halfDuration,
+                                it.input.time.end
+                            ),
+                            targetStart = it.target.time.start + it.target.time.halfDuration
                         )
                     )
                 }
             }
             VideoPart.Type.SCENE -> listOf(
                 Cut(
-                    it.input.start,
-                    it.input.end,
-                    it.target.start
+                    time = it.input.time,
+                    targetStart = it.target.time.start
                 )
             )
         }

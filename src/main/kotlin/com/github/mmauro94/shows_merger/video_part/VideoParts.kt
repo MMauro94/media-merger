@@ -1,6 +1,7 @@
 package com.github.mmauro94.shows_merger.video_part
 
 import com.github.mmauro94.shows_merger.*
+import com.github.mmauro94.shows_merger.util.DurationSpan
 import net.bramp.ffmpeg.FFmpeg
 import net.bramp.ffmpeg.FFmpegExecutor
 import net.bramp.ffmpeg.FFmpegUtils
@@ -8,7 +9,6 @@ import net.bramp.ffmpeg.FFprobe
 import net.bramp.ffmpeg.builder.FFmpegBuilder
 import java.io.File
 import java.io.PrintStream
-import java.lang.StringBuilder
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit
 data class VideoParts(val parts: List<VideoPart>) {
 
     init {
-        require(parts.first().start == Duration.ZERO)
+        require(parts.first().time.start == Duration.ZERO)
         parts.zipWithNext().forEach { (a, b) ->
             require(a.type != b.type)
         }
@@ -141,41 +141,49 @@ fun InputFile.detectVideoParts(minDuration: Duration, secondsLimits: Long? = nul
         .mapNotNull { regex.matchEntire(it) }
         .map {
             VideoPart(
-                start = it.groups[1]!!.value.toBigDecimal().asSecondsDuration(),
-                end = it.groups[2]!!.value.toBigDecimal().asSecondsDuration(),
+                time = DurationSpan(
+                    start = it.groups[1]!!.value.toBigDecimal().asSecondsDuration(),
+                    end = it.groups[2]!!.value.toBigDecimal().asSecondsDuration()
+                ),
                 type = VideoPart.Type.BLACK_SEGMENT
             )
         }
         .filter {
-            if (secondsLimits != null) it.end < Duration.ofSeconds(secondsLimits) else true
+            if (secondsLimits != null) it.time.end < Duration.ofSeconds(secondsLimits) else true
         }
         .toMutableList()
     return if (blackSegments.isEmpty()) null
     else {
         val scenes = blackSegments.zipWithNext { a, b ->
             VideoPart(
-                a.end,
-                b.start,
+                DurationSpan(
+                    start = a.time.end,
+                    end = b.time.start
+                ),
                 VideoPart.Type.SCENE
             )
         }
         val ret = (blackSegments.zip(scenes).flatMap { (a, b) -> listOf(a, b) } + blackSegments.last()).toMutableList()
-        if (ret.first().start > Duration.ZERO) {
+        if (ret.first().time.start > Duration.ZERO) {
             ret.add(
                 0,
                 VideoPart(
-                    Duration.ZERO,
-                    ret.first().start,
+                    DurationSpan(
+                        Duration.ZERO,
+                        ret.first().time.start
+                    ),
                     VideoPart.Type.SCENE
                 )
             )
         }
         val duration = this.duration?.makeMillisPrecision()
-        if (duration != null && ret.last().end < duration) {
+        if (duration != null && ret.last().time.end < duration) {
             ret.add(
                 VideoPart(
-                    ret.last().end,
-                    duration,
+                    DurationSpan(
+                        ret.last().time.end,
+                        duration
+                    ),
                     VideoPart.Type.SCENE
                 )
             )

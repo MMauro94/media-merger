@@ -1,6 +1,7 @@
 package com.github.mmauro94.shows_merger.cuts
 
 import com.github.mmauro94.shows_merger.requireMillisPrecision
+import com.github.mmauro94.shows_merger.util.DurationSpan
 import java.time.Duration
 
 /**
@@ -19,39 +20,17 @@ sealed class CutPart {
  * @param endCut where to stop cutting from the source file
  * @param targetStart where this piece of cut should be start in the target file
  */
-class Cut(val startCut: Duration, val endCut: Duration, val targetStart: Duration) : CutPart() {
+class Cut(val time: DurationSpan, val targetStart: Duration) : CutPart() {
 
-    init {
-        startCut.requireMillisPrecision()
-        endCut.requireMillisPrecision()
-        targetStart.requireMillisPrecision()
+    val targetTime = DurationSpan(targetStart, targetStart + time.duration)
 
-        require(!startCut.isNegative)
-        require(startCut < endCut)
-        require(!targetStart.isNegative)
-
-        require(endCut < Duration.ofHours(1))
-    }
-
-    override val duration: Duration = endCut - startCut
-    /**
-     * Where this piece of cut should be end in the target file
-     */
-    val targetEnd: Duration = targetStart + duration
-
-    /**
-     * Returns true if this and [cut] intersect at the target file.
-     */
-    fun targetIntersects(cut: Cut): Boolean {
-        return if (targetStart < cut.targetStart) targetEnd > cut.targetStart
-        else targetStart < cut.targetEnd
-    }
+    override val duration: Duration = time.start
 }
 
 /**
- * [CutPart] inheritor that represents a certain amount of silence.
+ * [CutPart] inheritor that represents a certain amount of emptiness.
  */
-class Silence(override val duration: Duration) : CutPart() {
+class Empty(override val duration: Duration) : CutPart() {
     init {
         duration.requireMillisPrecision()
     }

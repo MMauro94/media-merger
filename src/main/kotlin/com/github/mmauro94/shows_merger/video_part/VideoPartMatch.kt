@@ -2,6 +2,7 @@ package com.github.mmauro94.shows_merger.video_part
 
 import com.github.mmauro94.shows_merger.humanStr
 import com.github.mmauro94.shows_merger.sum
+import com.github.mmauro94.shows_merger.util.DurationSpan
 import com.github.mmauro94.shows_merger.video_part.VideoPart.Type.BLACK_SEGMENT
 import com.github.mmauro94.shows_merger.video_part.VideoPart.Type.SCENE
 import java.time.Duration
@@ -20,11 +21,11 @@ data class VideoPartMatch(val input: VideoPart, val target: VideoPart) {
 }
 
 fun VideoPart.acceptableDurationDiff(duration: Duration): Boolean {
-    return (this.duration - duration).abs() < Duration.ofMillis(250)
+    return (this.time.duration - duration).abs() < Duration.ofMillis(250)
 }
 
 fun VideoPart.acceptableDurationDiff(other: VideoPart): Boolean {
-    return acceptableDurationDiff(other.duration)
+    return acceptableDurationDiff(other.time.duration)
 }
 
 class VideoPartsMatchException(message: String, val input: VideoParts, val targets: VideoParts) : Exception(message)
@@ -51,7 +52,7 @@ private fun VideoParts.matchFirstScene(targets: VideoParts): VideoPart? {
 fun VideoParts.matchFirstSceneOffset(targets: VideoParts): Duration? {
     val matchedFirstScene = matchFirstScene(targets) ?: return null
     val firstTargetScene = targets.scenes.first()
-    return matchedFirstScene.start - firstTargetScene.start
+    return matchedFirstScene.time.start - firstTargetScene.time.start
 }
 
 private fun VideoParts.matchWithTargetApprox(targets: VideoParts): List<VideoPartMatch> {
@@ -95,7 +96,7 @@ private fun VideoParts.matchWithTargetApprox(targets: VideoParts): List<VideoPar
             //In this case there might be a mismatch of durations because the last part may have been cut out from the input file
             //We allow it anyway
             matches += VideoPartMatch(nextInputPart, nextTargetPart)
-        } else if (nextInputPart.duration < nextTargetPart.duration) {
+        } else if (nextInputPart.time.duration < nextTargetPart.time.duration) {
             //Here it probably means that in the target file there is no black segment, while in the input there is
             //So I try to accumulate the scenes until a correct duration is found, or I go too far
             val accumulated = mutableListOf(nextInputPart)
@@ -105,44 +106,43 @@ private fun VideoParts.matchWithTargetApprox(targets: VideoParts): List<VideoPar
                 if (next.type == SCENE) {
                     accumulated += next
 
-                    val accumulatedDuration = accumulated.map { it.duration }.sum()
+                    val accumulatedDuration = accumulated.map { it.time.duration }.sum()
                     if (nextTargetPart.acceptableDurationDiff(accumulatedDuration)) {
                         //Match found! Need to split the target in multiple pieces, one for each input part
-                        var start = nextTargetPart.start
+                        var start = nextTargetPart.time.start
                         for (i in accumulated.indices) {
                             val end =
                                 if (i == accumulated.lastIndex)
-                                    nextTargetPart.end
-                                else start + accumulated[i].duration
+                                    nextTargetPart.time.end
+                                else start + accumulated[i].time.duration
                             matches += VideoPartMatch(
                                 accumulated[i],
                                 VideoPart(
-                                    start = start,
-                                    end = end,
+                                    time = DurationSpan(start, end),
                                     type = SCENE
                                 )
                             )
-                            start += accumulated[i].duration
+                            start += accumulated[i].time.duration
                         }
 
                         //After adding the matches matching should continue as normal
                         continue@bigWhile
-                    } else if (accumulatedDuration > nextTargetPart.duration) {
+                    } else if (accumulatedDuration > nextTargetPart.time.duration) {
                         //I overshot with the duration, so no match could be found
                         //I have no other option than to throw
                         throw VideoPartsMatchException(
-                            "Unable to match target scene ending @ ${nextTargetPart.end.humanStr()}: next scenes aren't of the correct length",
+                            "Unable to match target scene ending @ ${nextTargetPart.time.end.humanStr()}: next scenes aren't of the correct length",
                             this,
                             targets
                         )
                     }
                 }
             }
-        } else if (nextInputPart.duration > nextTargetPart.duration) {
+        } else if (nextInputPart.time.duration > nextTargetPart.time.duration) {
             //There is probably a black frame in the target video that is not present in the input video
             //In this case, I cannot possibly know where to cut the input video, so I throw
             throw VideoPartsMatchException(
-                "Black segment in target video @ ${nextTargetPart.end.humanStr()} not present in input video",
+                "Black segment in target video @ ${nextTargetPart.time.end.humanStr()} not present in input video",
                 this,
                 targets
             )
