@@ -1,8 +1,9 @@
-package com.github.mmauro94.shows_merger.adjustment.audio
+package com.github.mmauro94.shows_merger.adjustment.subtitle
 
 import com.github.mmauro94.shows_merger.Track
 import com.github.mmauro94.shows_merger.adjustment.Adjustment
 import com.github.mmauro94.shows_merger.adjustment.TrackAdjuster
+import com.github.mmauro94.shows_merger.subtitles.Subtitle
 import net.bramp.ffmpeg.FFmpeg
 import net.bramp.ffmpeg.FFmpegExecutor
 import net.bramp.ffmpeg.FFmpegUtils
@@ -13,55 +14,24 @@ import java.io.File
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
-abstract class AudioAdjuster<T>(
+abstract class SubtitleAdjuster<T>(
     track: Track,
     adjustment: Adjustment<T>,
     outputFile: File
 ) : TrackAdjuster<T>(track, adjustment, outputFile) {
 
     init {
-        require(track.isAudioTrack())
+        require(track.isSubtitlesTrack())
     }
 
-    /**
-     * Changes the [FFmpegBuilder] with adjustment specific options
-     */
-    protected abstract fun FFmpegBuilder.fillBuilder()
-
-    /**
-     * Changes the [FFmpegOutputBuilder] with adjustment specific options
-     */
-    protected abstract fun FFmpegOutputBuilder.fillOutputBuilder()
-
-    /**
-     * The duration the output file should have, can be null if unknown. Used only for progress
-     */
-    protected abstract val targetDuration: Duration?
+    abstract fun applyTransformations(subtitle: Subtitle<*>): Subtitle<*>
 
     override fun doAdjust(): Boolean {
-        val builder = FFmpegBuilder()
-            .setInput(track.file.absolutePath)
-            .apply { fillBuilder() }
-            .addOutput(outputFile.absolutePath)
-            .apply { fillOutputBuilder() }
-            .done()
-        FFmpegExecutor(FFmpeg(), FFprobe()).apply {
-            createJob(builder) { prg ->
-                val targetTotalNanos = targetDuration?.toNanos()?.toDouble()
-                val percentage = if (targetTotalNanos != null) {
-                    (prg.out_time_ns / targetTotalNanos) * 100.0
-                } else null
-
-                println(
-                    String.format(
-                        "[%s] %s, speed:%.2fx",
-                        if (percentage != null) "%.0f%%".format(percentage) else "N/A",
-                        FFmpegUtils.toTimecode(prg.out_time_ns, TimeUnit.NANOSECONDS),
-                        prg.speed
-                    )
-                )
-            }.run()
-        }
-        return true
+        val file = track.fileOrExtracted()
+        val subtitle = Subtitle.getFactory(file.extension)?.invoke(file)
+        return if(subtitle != null) {
+            applyTransformations(subtitle).save(outputFile)
+            true
+        } else false
     }
 }

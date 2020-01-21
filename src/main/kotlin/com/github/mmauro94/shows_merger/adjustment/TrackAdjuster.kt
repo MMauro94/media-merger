@@ -1,32 +1,47 @@
 package com.github.mmauro94.shows_merger.adjustment
 
+import com.github.mmauro94.shows_merger.InputFile
 import com.github.mmauro94.shows_merger.Track
-import net.bramp.ffmpeg.builder.FFmpegBuilder
-import net.bramp.ffmpeg.builder.FFmpegOutputBuilder
 import java.io.File
 
-abstract class TrackAdjustmer<T : AbstractAdjustment>(val adjustment: T) {
+/**
+ * A class specialized in adjusting [Track]
+ * @param track the track to adjust
+ * @param adjustment the adjustment that has to be done
+ * @param outputFile the output file
+ */
+abstract class TrackAdjuster<T>(
+    val track: Track,
+    val adjustment: Adjustment<T>,
+    val outputFile: File
+) {
 
+    val data = adjustment.data
 
     /**
-     * Changes the [FFmpegBuilder] with adjustment specific options
-     * @param inputTrack the track that is being edited
+     * Performs the adjustment
      */
-    protected abstract fun FFmpegBuilder.fillBuilder(inputTrack: Track)
+    protected abstract fun doAdjust(): Boolean
 
     /**
-     * Changes the [FFmpegOutputBuilder] with adjustment specific options
-     * @param inputTrack the track that is being edited
-     */
-    protected abstract fun FFmpegOutputBuilder.fillOutputBuilder(inputTrack: Track)
-
-    /**
-     * Adjusts the given [inputTrack] with the [adjustment]
+     * Adjusts the given [track] with the [adjustment]
      *
      * Returns a [Track] instance representing the track of the newly adjusted audio file,
-     * or null if the adjustment didn't have to be done.
+     * or null if the adjustment didn't have to be done. (See [Adjustment.isValid])
      *
-     * If a file with the same name is already present, the actual adjustment is not done
+     * If a file with the same name is already present, the actual adjustment is not done, but its [Track] is returned anyway
      */
-    abstract fun adjust(outputFile: File, inputTrack: Track): Track?
+    fun adjust(): Track? {
+        val res = when {
+            outputFile.exists() -> true
+            !adjustment.isValid() -> false
+            else -> doAdjust()
+        }
+        return if (res) {
+            val track = InputFile.parse(outputFile).tracks.single()
+            require(track.isAudioTrack())
+            return track
+        } else null
+
+    }
 }

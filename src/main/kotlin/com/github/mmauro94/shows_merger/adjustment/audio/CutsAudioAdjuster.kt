@@ -1,27 +1,30 @@
 package com.github.mmauro94.shows_merger.adjustment.audio
 
-import com.github.mmauro94.shows_merger.*
-import com.github.mmauro94.shows_merger.adjustment.AbstractAdjustment
-import com.github.mmauro94.shows_merger.adjustment.CutsAdjustment
+import com.github.mmauro94.shows_merger.Track
+import com.github.mmauro94.shows_merger.adjustment.Adjustment
 import com.github.mmauro94.shows_merger.cuts.Cut
 import com.github.mmauro94.shows_merger.cuts.Cuts
 import com.github.mmauro94.shows_merger.cuts.Empty
+import com.github.mmauro94.shows_merger.toTotalSeconds
 import net.bramp.ffmpeg.builder.FFmpegBuilder
 import net.bramp.ffmpeg.builder.FFmpegOutputBuilder
+import java.io.File
 import java.time.Duration
 
-class CutsAudioAdjustmer(
-    adjustment: CutsAdjustment
-) : AudioAdjustmer<CutsAdjustment>(adjustment) {
+class CutsAudioAdjuster(
+    track: Track,
+    adjustment: Adjustment<Cuts>,
+    outputFile: File
+) : AudioAdjuster<Cuts>(track, adjustment, outputFile) {
 
+    private val cutParts = data.getCutParts()
 
-    private val cutParts = adjustment.cuts.getCutParts()
+    override val targetDuration: Duration = cutParts.fold(Duration.ZERO) { acc, it -> acc + it.duration }
+
     private var filters: List<Filter>
 
     init {
-        targetDuration = cutParts.fold(Duration.ZERO) { acc, it -> acc + it.duration }
-
-        val input = cutParts.filterIsInstance<Empty>().size.toString() + ":${inputTrack.id}"
+        val input = cutParts.filterIsInstance<Empty>().size.toString() + ":${track.id}"
         val cutsCount = cutParts.count { it is Cut }
         filters = listOf(
             listOf(
@@ -71,8 +74,7 @@ class CutsAudioAdjustmer(
     }
 
 
-
-    override fun FFmpegBuilder.fillBuilder(inputTrack: Track) {
+    override fun FFmpegBuilder.fillBuilder() {
         cutParts.forEach {
             if (it is Empty) {
                 addExtraArgs("-f", "lavfi", "-t", it.duration.toTotalSeconds(), "-i", "anullsrc")
@@ -84,7 +86,7 @@ class CutsAudioAdjustmer(
         }
     }
 
-    override fun FFmpegOutputBuilder.fillOutputBuilder(inputTrack: Track) {
+    override fun FFmpegOutputBuilder.fillOutputBuilder() {
         addExtraArgs("-map", "[" + filters.last().outs.single() + "]")
     }
 }

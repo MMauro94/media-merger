@@ -1,32 +1,23 @@
 package com.github.mmauro94.shows_merger.adjustment
 
 import com.github.mmauro94.shows_merger.StretchFactor
-import com.github.mmauro94.shows_merger.Track
-import net.bramp.ffmpeg.builder.FFmpegBuilder
-import net.bramp.ffmpeg.builder.FFmpegOutputBuilder
+import com.github.mmauro94.shows_merger.adjustment.audio.StretchAudioAdjuster
+import com.github.mmauro94.shows_merger.adjustment.subtitle.StretchSubtitleAdjuster
 
 /**
  * Adjustment to change by a certain stretch factor an audio track
  */
-class StretchAudioAdjustment(
+class StretchAdjustment(
     adjustment: StretchFactor
-) : AbstractAudioAdjustment<StretchFactor>(adjustment) {
+) : Adjustment<StretchFactor>(adjustment) {
 
     override val outputConcat = listOf("stretch${adjustment.speedMultiplier.toPlainString()}")
 
-    override fun prepare(inputTrack: Track) {
-        targetDuration = inputTrack.durationOrFileDuration?.let { adjustment.resultingDurationForStretchFactor(it) }
+    override fun isValid(): Boolean {
+        return !data.isEmpty()
     }
 
-    override fun shouldAdjust(): Boolean {
-        return !adjustment.isEmpty()
-    }
+    override val audioAdjusterFactory = ::StretchAudioAdjuster
+    override val subtitleAdjusterFactory = ::StretchSubtitleAdjuster
 
-    override fun FFmpegBuilder.fillBuilder(inputTrack: Track) {
-    }
-
-    override fun FFmpegOutputBuilder.fillOutputBuilder(inputTrack: Track) {
-        addExtraArgs("-map", "0:${inputTrack.id}")
-        setAudioFilter("atempo=" + adjustment.speedMultiplier.toPlainString())
-    }
 }
