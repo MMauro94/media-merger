@@ -1,4 +1,4 @@
-package com.github.mmauro94.shows_merger.audio_adjustment
+package com.github.mmauro94.shows_merger.adjustment
 
 import com.github.mmauro94.shows_merger.StretchFactor
 import com.github.mmauro94.shows_merger.Track

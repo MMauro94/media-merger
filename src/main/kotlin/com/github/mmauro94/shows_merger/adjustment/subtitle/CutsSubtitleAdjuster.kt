@@ -1,24 +1,41 @@
-package com.github.mmauro94.shows_merger.audio_adjustment
+package com.github.mmauro94.shows_merger.adjustment.subtitle
 
-import com.github.mmauro94.shows_merger.*
+import com.github.mmauro94.shows_merger.Track
+import com.github.mmauro94.shows_merger.adjustment.Adjustment
 import com.github.mmauro94.shows_merger.cuts.Cut
 import com.github.mmauro94.shows_merger.cuts.Cuts
 import com.github.mmauro94.shows_merger.cuts.Empty
+import com.github.mmauro94.shows_merger.toTotalSeconds
 import net.bramp.ffmpeg.builder.FFmpegBuilder
 import net.bramp.ffmpeg.builder.FFmpegOutputBuilder
+import java.io.File
 import java.time.Duration
 
-class CutsAudioAdjustment(
-    adjustment: Cuts
-) : AbstractAudioAdjustment<Cuts>(adjustment) {
+class CutsAudioAdjuster(
+    track: Track,
+    adjustment: Adjustment<Cuts>,
+    outputFile: File
+) : AudioAdjuster<Cuts>(track, adjustment, outputFile) {
 
-    override val outputConcat = listOf("cuts" + adjustment.hashCode())
+    private val cutParts = data.getCutParts()
 
-    private val cutParts = adjustment.getCutParts()
+    override val targetDuration: Duration = cutParts.fold(Duration.ZERO) { acc, it -> acc + it.duration }
 
-    override fun shouldAdjust(): Boolean {
-        return !adjustment.isEmptyOffset()
-    }   
+    private var filters: List<Filter>
+
+    init {
+        val input = cutParts.filterIsInstance<Empty>().size.toString() + ":${track.id}"
+        val cutsCount = cutParts.count { it is Cut }
+        filters = listOf(
+            listOf(
+                Filter(
+                    "[$input]asplit=$cutsCount",
+                    *Array(cutsCount) { i -> "in$i" })
+            ),
+            buildCutFilters()
+        ).flatten()
+    }
+
 
     private class Filter(val filter: String, vararg val outs: String) {
         override fun toString() = filter + outs.joinToString(separator = "") { "[$it]" }
@@ -33,10 +50,11 @@ class CutsAudioAdjustment(
             when (piece) {
                 is Cut -> {
                     val part = "part$i"
-                    val f = Filter(
-                        "[in${inIndex++}]atrim=start=" + piece.time.start.toTotalSeconds() + ":end=" + piece.time.end.toTotalSeconds() + ",asetpts=PTS-STARTPTS",
-                        part
-                    )
+                    val f =
+                        Filter(
+                            "[in${inIndex++}]atrim=start=" + piece.time.start.toTotalSeconds() + ":end=" + piece.time.end.toTotalSeconds() + ",asetpts=PTS-STARTPTS",
+                            part
+                        )
                     ret.add(f)
                     toConcat.add(part)
                 }
@@ -55,20 +73,8 @@ class CutsAudioAdjustment(
         return ret
     }
 
-    private lateinit var filters: List<Filter>
 
-    override fun prepare(inputTrack: Track) {
-        targetDuration = cutParts.fold(Duration.ZERO) { acc, it -> acc + it.duration }
-
-        val input = cutParts.filterIsInstance<Empty>().size.toString() + ":${inputTrack.id}"
-        val cutsCount = cutParts.count { it is Cut }
-        filters = listOf(
-            listOf(Filter("[$input]asplit=$cutsCount", *Array(cutsCount) { i -> "in$i" })),
-            buildCutFilters()
-        ).flatten()
-    }
-
-    override fun FFmpegBuilder.fillBuilder(inputTrack: Track) {
+    override fun FFmpegBuilder.fillBuilder() {
         cutParts.forEach {
             if (it is Empty) {
                 addExtraArgs("-f", "lavfi", "-t", it.duration.toTotalSeconds(), "-i", "anullsrc")
@@ -80,7 +86,7 @@ class CutsAudioAdjustment(
         }
     }
 
-    override fun FFmpegOutputBuilder.fillOutputBuilder(inputTrack: Track) {
+    override fun FFmpegOutputBuilder.fillOutputBuilder() {
         addExtraArgs("-map", "[" + filters.last().outs.single() + "]")
     }
 }

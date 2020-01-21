@@ -3,14 +3,13 @@ package com.github.mmauro94.shows_merger
 import com.github.mmauro94.shows_merger.cuts.Cuts
 import com.github.mmauro94.shows_merger.cuts.computeCuts
 import com.github.mmauro94.shows_merger.video_part.*
-import java.time.Duration
 
 /**
  * @param inputFile the file to adjust
  * @param stretchFactor the stretch factor of the audio file
  * @param cuts the cuts to apply AFTER the audio has been stretched
  */
-data class Adjustment(
+data class SelectedAdjustments(
     val inputFile: InputFile,
     val stretchFactor: StretchFactor,
     val cuts: Cuts
@@ -18,7 +17,7 @@ data class Adjustment(
     fun isEmpty() = stretchFactor.isEmpty() && cuts.isEmptyOffset()
 
     companion object {
-        fun empty(inputFile: InputFile) = Adjustment(
+        fun empty(inputFile: InputFile) = SelectedAdjustments(
             inputFile,
             StretchFactor.EMPTY,
             Cuts(emptyList())
@@ -29,9 +28,9 @@ data class Adjustment(
 /**
  * @return Adjustment, needsCheck
  */
-fun selectAdjustment(mergeMode: MergeMode, inputFile: InputFile, targetFile: InputFile): Pair<Adjustment, Boolean> {
+fun selectAdjustments(mergeMode: MergeMode, inputFile: InputFile, targetFile: InputFile): Pair<SelectedAdjustments, Boolean> {
     var needsCheck = false
-    val adj = if (mergeMode == MergeMode.NO_ADJUSTMENTS) Adjustment.empty(inputFile)
+    val adj = if (mergeMode == MergeMode.NO_ADJUSTMENTS) SelectedAdjustments.empty(inputFile)
     else {
         val (stretchFactor, stretchFromUser) = StretchFactor.detectOrAsk(inputFile, targetFile)
             ?: throw OperationCreationException("Unable to detect stretch factor")
@@ -75,7 +74,7 @@ fun selectAdjustment(mergeMode: MergeMode, inputFile: InputFile, targetFile: Inp
             else -> null
         }
 
-        Adjustment(
+        SelectedAdjustments(
             inputFile,
             stretchFactor,
             cuts ?: Cuts.EMPTY

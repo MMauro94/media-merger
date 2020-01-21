@@ -34,7 +34,7 @@ data class InputFiles(
             val listFiles: Array<File> = dir.listFiles() ?: emptyArray()
             val files = listFiles
                 .filter { it.extension in EXTENSIONS_TO_IDENTIFY }
-                .filterNot { it.name.contains("@adjusted@") }
+                .filterNot { it.name.contains("@adjusted") || it.name.contains("@extracted") }
                 .groupBy { it.name.detectEpisode(show) }
                 .filterKeys { it != null }
 

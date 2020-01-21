@@ -1,5 +1,6 @@
 package com.github.mmauro94.shows_merger
 
+import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixTrack
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixTrackType
@@ -24,13 +25,22 @@ class Track(
 
     val isOnItsFile by lazy { inputFile.tracks.size == 1 }
 
-    val audioExtension = mkvTrack.codec.toLowerCase().let { c ->
-        when {
-            c.contains("ac-3") -> "ac3"
-            c.contains("aac") -> "aac"
-            c.contains("mp3") -> "mp3"
-            c.contains("flac") -> "flac"
-            else -> "unknown"
+    val extension = mkvTrack.properties?.codecId.let { c ->
+        when (c) {
+            null -> "unknown"
+            "A_DTS" -> "dts"
+            "A_AC3", " A_EAC3" -> "ac3"
+            "A_FLAC" -> "flac"
+            "A_MPEG/L2" -> "mp2"
+            "A_MPEG/L3" -> "mp3"
+            "A_OPUS" -> "opus"
+            "A_PCM/INT/LIT", "A_PCM/INT/BIG" -> "wav"
+            "A_VORBIS" -> "ogg"
+            "S_TEXT/UTF8", "S_TEXT/ASCII" -> "srt"
+            else -> when {
+                c.startsWith("A_AAC") -> "aac"
+                else -> "unknown"
+            }
         }
     }
 
@@ -50,6 +60,20 @@ class Track(
         mkvTrack.type == MkvToolnixTrackType.video && ffprobeStream.codec_type == FFmpegStream.CodecType.VIDEO
 
     fun isSubtitlesTrack() = mkvTrack.type == MkvToolnixTrackType.subtitles
+
+    fun fileOrExtracted(): File {
+        return if (isOnItsFile) inputFile.file
+        else {
+            val extractedFile =
+                File(inputFile.file.parentFile, inputFile.file.nameWithoutExtension + "@extracted@track$id.$extension")
+            if (!extractedFile.exists()) {
+                print("Extracting track...")
+                MkvToolnix.merge(extractedFile).addTrack(mkvTrack).executeAndPrint(true)
+                println("OK")
+            }
+            extractedFile
+        }
+    }
 
     override fun equals(other: Any?) = other is Track && other.inputFile == inputFile && other.id == id
     override fun hashCode() = Objects.hash(inputFile, id)
