@@ -23,8 +23,10 @@ abstract class Subtitle<LINE : SubtitleLine<*>>(val lines: List<LINE>) {
     private fun getLinesForCut(cut: Cut): List<LINE> {
         return lines
             .filter { it.time.intersects(cut.time) }
-            .map {
-                it.changeTime(it.time.restrictIn(cut.time))
+            .mapNotNull {
+                val newTime = it.time.moveBy(cut.offset).restrictIn(cut.targetTime)
+                if(newTime!= null) it.changeTime(newTime)
+                else newTime
             }
     }
 

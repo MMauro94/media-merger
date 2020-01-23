@@ -25,24 +25,50 @@ class Track(
 
     val isOnItsFile by lazy { inputFile.tracks.size == 1 }
 
-    val extension = mkvTrack.properties?.codecId.let { c ->
-        when (c) {
-            null -> "unknown"
-            "A_DTS" -> "dts"
-            "A_AC3", " A_EAC3" -> "ac3"
-            "A_FLAC" -> "flac"
-            "A_MPEG/L2" -> "mp2"
-            "A_MPEG/L3" -> "mp3"
-            "A_OPUS" -> "opus"
-            "A_PCM/INT/LIT", "A_PCM/INT/BIG" -> "wav"
-            "A_VORBIS" -> "ogg"
-            "S_TEXT/UTF8", "S_TEXT/ASCII" -> "srt"
-            else -> when {
-                c.startsWith("A_AAC") -> "aac"
-                else -> "unknown"
+    private val extensionFromCodecId = mkvTrack.properties?.codecId.let { c ->
+        when {
+            c == null -> null
+            c.matches("A_AAC/MPEG(2|4)/.+".toRegex()) -> "aac"
+            else -> when (c) {
+                //Audio
+                "A_DTS" -> "dts"
+                "A_AC3", " A_EAC3" -> "ac3"
+                "A_FLAC" -> "flac"
+                "A_MPEG/L2" -> "mp2"
+                "A_MPEG/L3" -> "mp3"
+                "A_OPUS" -> "opus"
+                "A_PCM/INT/LIT", "A_PCM/INT/BIG" -> "wav"
+                "A_VORBIS" -> "ogg"
+                "A_WAVPACK4" -> "wv"
+                "A_TRUEHD", "A_MLP" -> "mlp"
+                "A_ALAC" -> "caf"
+
+                //Subs
+                "S_TEXT/UTF8", "S_TEXT/ASCII" -> "srt"
+                "S_HDMV/PGS" -> "sup"
+                "S_VOBSUB" -> "sub"
+                "S_TEXT/USF" -> "usf"
+                "S_TEXT/WEBVTT" -> "webvtt"
+                else -> null
             }
         }
     }
+
+    private val extensionFromCodec = mkvTrack.codec.let { c ->
+        when (c) {
+            "AC-3" -> "ac3"
+            "AAC" -> "aac"
+            "MP3" -> "mp3"
+            "FLAC" -> "flac"
+            "Vorbis" -> "ogg"
+            "Opus" -> "opus"
+            "PCM" -> "wav"
+            "SubRip/SRT" -> "srt"
+            else -> null
+        }
+    }
+
+    val extension = extensionFromCodecId ?: extensionFromCodec ?: "unknown"
 
     val isForced by lazy {
         mkvTrack.isForced() == true ||
@@ -68,7 +94,9 @@ class Track(
                 File(inputFile.file.parentFile, inputFile.file.nameWithoutExtension + "@extracted@track$id.$extension")
             if (!extractedFile.exists()) {
                 print("Extracting track...")
-                MkvToolnix.merge(extractedFile).addTrack(mkvTrack).executeAndPrint(true)
+                MkvToolnix.extract(inputFile.file).extractTracks {
+                    addTrack(mkvTrack, extractedFile)
+                }.executeAndPrint()
                 println("OK")
             }
             extractedFile

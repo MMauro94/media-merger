@@ -31,7 +31,7 @@ data class Cuts(val cuts: List<Cut>) {
             0 -> Duration.ZERO
             1 -> {
                 val cut = cuts.single()
-                return cut.targetTime.start - cut.time.start
+                return cut.offset
             }
             else -> null
         }
@@ -56,8 +56,8 @@ data class Cuts(val cuts: List<Cut>) {
         val ret = mutableListOf<CutPart>()
         for (cut in cuts) {
             val targetEnd = last?.targetTime?.end ?: Duration.ZERO
-            if (cut.targetStart > targetEnd) {
-                ret.add(Empty(cut.targetStart - targetEnd))
+            if (cut.targetTime.start > targetEnd) {
+                ret.add(Empty(cut.targetTime.start - targetEnd))
             }
             ret.add(cut)
             last = cut

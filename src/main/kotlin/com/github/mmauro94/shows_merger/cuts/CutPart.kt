@@ -16,15 +16,16 @@ sealed class CutPart {
 
 /**
  * [CutPart] inheritor that "cuts" data from the source.
- * @param startCut where to start cutting from the source file
- * @param endCut where to stop cutting from the source file
- * @param targetStart where this piece of cut should be start in the target file
+ * @param time where to cut from the source file
+ * @param targetStart where this piece of cut should start in the target file
  */
-class Cut(val time: DurationSpan, val targetStart: Duration) : CutPart() {
+class Cut(val time: DurationSpan, targetStart: Duration) : CutPart() {
 
     val targetTime = DurationSpan(targetStart, targetStart + time.duration)
 
     override val duration: Duration = time.start
+
+    val offset = targetTime.start - time.start
 }
 
 /**

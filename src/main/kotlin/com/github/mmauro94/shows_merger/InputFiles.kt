@@ -41,7 +41,11 @@ data class InputFiles(
             files.forEach { (ei, files) ->
                 if (ei != null) {
                     files.forEach { f ->
-                        ret.add(ei, InputFile.parse(f))
+                        try {
+                            ret.add(ei, InputFile.parse(f))
+                        } catch (e: InputFile.ParseException) {
+                            System.err.println("Unable to parse file: ${e.message}")
+                        }
                         print(".")
                     }
                 }

@@ -6,6 +6,7 @@ import com.github.mmauro94.shows_merger.video_part.detectVideoParts
 import net.bramp.ffmpeg.FFprobe
 import net.bramp.ffmpeg.probe.FFmpegProbeResult
 import java.io.File
+import java.io.IOException
 import java.time.Duration
 
 private val BLACK_SEGMENTS_MIN_DURATION = Duration.ofMillis(100)!!
@@ -42,6 +43,8 @@ class InputFile private constructor(
 
     override fun hashCode() = file.hashCode()
 
+    class ParseException(message: String? = null, cause: Throwable? = null) : Exception(message, cause)
+
     companion object {
         private fun new(
             file: File,
@@ -53,7 +56,18 @@ class InputFile private constructor(
             return input
         }
 
-        fun parse(file: File) = new(file, MkvToolnix.identify(file), FFprobe().probe(file.absolutePath))
+        fun parse(file: File): InputFile {
+            val mkvId = MkvToolnix.identify(file)
+            if (!mkvId.container.recognized) {
+                throw ParseException("mkvmerge doesn't recognize the file ${file.absolutePath}")
+            }
+            val probeResult = try {
+                FFprobe().probe(file.absolutePath)
+            } catch (e: IOException) {
+                throw ParseException("Error ffprobing file ${file.absolutePath}", e)
+            }
+            return new(file, mkvId, probeResult)
+        }
 
         private fun tracks(inputFile: InputFile): List<Track> {
             val ret = ArrayList<Track>(inputFile.mkvIdentification.tracks.size)

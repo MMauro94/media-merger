@@ -29,9 +29,9 @@ class SRTSubtitle(lines: List<SRTSubtitleLine>) : Subtitle<SRTSubtitleLine>(line
 
         override val extension = "srt"
 
-        private val NEWLINE = "(?:\\n|\\r|\\r\\n)"
+        private val TIME ="\\s*(\\d{1,2}):(\\d{1,2}):(\\d{1,2}),(\\d{1,3})\\s*"
         private val REGEX =
-            "(\\d+)\\s*$NEWLINE(\\d{1,2}):(\\d{1,2}):(\\d{1,2}),(\\d{1,3})\\s*-->\\s*(\\d{1,2}):(\\d{1,2}):(\\d{1,2}),(\\d{1,3})\\s*$NEWLINE(.*?)(?:$NEWLINE$NEWLINE|\$)".toRegex(
+            "(\\d+)\n$TIME-->$TIME\n(.*?)(?:\n\n|$)".toRegex(
                 RegexOption.DOT_MATCHES_ALL
             )
 
@@ -46,7 +46,7 @@ class SRTSubtitle(lines: List<SRTSubtitleLine>) : Subtitle<SRTSubtitleLine>(line
 
         override fun parse(file: File): SRTSubtitle {
             return SRTSubtitle(
-                REGEX.findAll(file.readText())
+                REGEX.findAll(file.readText().replace("\r\n", "\n").replace('\r', '\n'))
                     .map {
                         SRTSubtitleLine(
                             DurationSpan(

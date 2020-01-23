@@ -4,6 +4,7 @@ import com.github.mmauro94.shows_merger.subtitles.PlainSubtitleLine
 import com.github.mmauro94.shows_merger.util.DurationSpan
 import java.io.OutputStreamWriter
 import java.time.Duration
+import kotlin.math.pow
 
 class SRTSubtitleLine(time: DurationSpan, text: String) : PlainSubtitleLine(time, text) {
 
@@ -16,7 +17,7 @@ class SRTSubtitleLine(time: DurationSpan, text: String) : PlainSubtitleLine(time
 
     fun write(index: Int, osw: OutputStreamWriter) {
         osw.appendln(index.toString())
-        osw.appendln("[${time.start.toSrtString()} --> ${time.end.toSrtString()}")
+        osw.appendln("${time.start.toSrtString()} --> ${time.end.toSrtString()}")
         osw.appendln(text)
         osw.appendln()
     }

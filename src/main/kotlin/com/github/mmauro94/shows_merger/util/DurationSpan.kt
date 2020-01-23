@@ -45,10 +45,21 @@ data class DurationSpan(val start: Duration, val end: Duration) {
         else start < other.end
     }
 
-    fun restrictIn(other: DurationSpan): DurationSpan {
+    fun restrictIn(other: DurationSpan): DurationSpan? {
+        val newStart = maxOf(start, other.start)
+        val newEnd = minOf(end, other.end)
+        return if(newStart >= newEnd) {
+            null
+        } else DurationSpan(
+            start = newStart,
+            end = newEnd
+        )
+    }
+
+    fun moveBy(offset: Duration): DurationSpan {
         return DurationSpan(
-            start = maxOf(start, other.start),
-            end = minOf(end, other.end)
+            start = start + offset,
+            end = end + offset
         )
     }
 

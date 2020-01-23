@@ -38,9 +38,7 @@ abstract class TrackAdjuster<T>(
             else -> doAdjust()
         }
         return if (res) {
-            val track = InputFile.parse(outputFile).tracks.single()
-            require(track.isAudioTrack())
-            return track
+            return InputFile.parse(outputFile).tracks.single()
         } else null
 
     }
