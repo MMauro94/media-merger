@@ -1,7 +1,7 @@
 package com.github.mmauro94.shows_merger
 
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
-import java.time.Duration
+import com.github.mmauro94.shows_merger.util.find
 
 fun askLanguage(defaultLanguage: MkvToolnixLanguage? = null): MkvToolnixLanguage {
     var lang: MkvToolnixLanguage? = null
@@ -12,8 +12,8 @@ fun askLanguage(defaultLanguage: MkvToolnixLanguage? = null): MkvToolnixLanguage
             print("Please give language: ")
         }
         val l = scanner.nextLine().trim()
-        if (!l.isEmpty()) {
-            lang = MkvToolnixLanguage.all[l]
+        if (l.isNotEmpty()) {
+            lang = MkvToolnixLanguage.find(l)
             if (lang == null) {
                 System.err.println("Invalid language code!")
             }
@@ -28,29 +28,56 @@ fun askLanguage(defaultLanguage: MkvToolnixLanguage? = null): MkvToolnixLanguage
     return lang
 }
 
-fun askLanguages(question: String): LinkedHashSet<MkvToolnixLanguage> {
-    var langs: LinkedHashSet<MkvToolnixLanguage>? = null
-    while (langs == null) {
+fun <T, C : MutableCollection<T>> askThings(
+    question: String,
+    parser: (String) -> T?,
+    collectionCreator: () -> C,
+    defaultValue: C? = null,
+    thingToString: (T) -> String = { it.toString() },
+    separator: Pair<String, Regex> = ", " to Regex(",\\s*")
+): C {
+    while (true) {
         print("$question ")
-        val l = scanner.nextLine().trim()
-        if (!l.isEmpty()) {
-            val temp = l.split(Regex(",\\s*"))
-                .asSequence()
-                .map {
-                    val r = MkvToolnixLanguage.all[it]
-                    if (r == null) {
-                        System.err.println("Invalid language $it")
-                    }
-                    r
-                }
-            if (!temp.contains(null)) {
-                langs = temp.filterNotNull().toCollection(LinkedHashSet())
+        if (!defaultValue.isNullOrEmpty()) {
+            print("[" + defaultValue.joinToString(separator = separator.first, transform = thingToString) + "] ")
+        }
+        val l: String = scanner.nextLine()
+        if (l.isEmpty()) {
+            if (defaultValue !== null) {
+                return defaultValue
+            } else {
+                System.err.println("No default value!")
             }
         } else {
-            langs = linkedSetOf()
+            val things: C = collectionCreator()
+            var canRet = true
+            l.split(Regex(",\\s*")).forEach {
+                val thing = parser(it)
+                if (thing == null) {
+                    System.err.println("Invalid value \"$it\"")
+                    canRet = false
+                } else {
+                    things.add(thing)
+                }
+            }
+            if (canRet && things.isNotEmpty()) {
+                return things
+            }
         }
     }
-    return langs
+}
+
+fun askLanguages(
+    question: String = "Select languages",
+    defaultValue: LinkedHashSet<MkvToolnixLanguage>? = null
+): LinkedHashSet<MkvToolnixLanguage> {
+    return askThings(
+        question = question,
+        parser = { MkvToolnixLanguage.find(it) },
+        collectionCreator = { LinkedHashSet() },
+        defaultValue = defaultValue,
+        thingToString = { it.iso639_2 }
+    )
 }
 
 fun menu(
@@ -135,9 +162,9 @@ fun askString(question: String, defaultValue: String = ""): String {
     return if (l.isBlank()) defaultValue else l
 }
 
-fun askEnum(question: String, enums : List<String>, defaultValue: String = ""): String {
-    val selection = askString(question + " (" + enums.joinToString(", ")  + ")", defaultValue)
-    return if(selection in enums) {
+fun askEnum(question: String, enums: List<String>, defaultValue: String = ""): String {
+    val selection = askString(question + " (" + enums.joinToString(", ") + ")", defaultValue)
+    return if (selection in enums) {
         selection
     } else {
         System.err.println("Invalid value! Must be one of " + enums.map { "'$it'" }.joinToString { ", " })

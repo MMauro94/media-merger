@@ -1,6 +1,8 @@
 package com.github.mmauro94.shows_merger
 
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
+import com.github.mmauro94.shows_merger.config.Config
+import com.github.mmauro94.shows_merger.config.ConfigParseException
 import com.github.mmauro94.shows_merger.show_info.ShowInfoException
 import com.github.mmauro94.shows_merger.show_provider.ShowProvider
 import com.github.mmauro94.shows_merger.show_provider.TmdbShowProvider
@@ -16,18 +18,21 @@ object Main {
     /*
      * Missing things TODO:
      *  - Better error handling
-     *  - Detecting stretch factor and cuts from external files (files with same prefix)
-     *  - Cutting ability for subtitles
-     *  - Accepting working dir as first parameter
-     *  - Fix target intersection problem
      *  - [Option to convert the video if not in suitable format]
      *  - [Better output]
      *  - [Rename language option]
+     *  - [Episode name format]
      */
 
     lateinit var workingDir: File
+        private set
+    var config: Config? = null
+        private set
+
     val outputDir by lazy { File(workingDir, "OUTPUT") }
-    private var inputFiles: List<InputFiles>? = null
+
+
+    var inputFiles: List<InputFiles>? = null
     var showProvider: ShowProvider<*>? = null
 
     private fun inputFiles() = inputFiles.let {
@@ -51,12 +56,19 @@ object Main {
 
     @JvmStatic
     fun main(args: Array<String>) {
-        workingDir = File(args.getOrNull(1) ?: System.getProperty("user.dir") ?: "").absoluteFile
+        workingDir = File(args.getOrNull(0) ?: System.getProperty("user.dir") ?: "").absoluteFile
+        config = try {
+            Config.parse()
+        }catch (cpe : ConfigParseException) {
+            System.err.println("config.json error: ${cpe.message}")
+            null
+        }
+
+        MergeOptions.ADDITIONAL_LANGUAGES_TO_KEEP.addAll(config?.defaultAdditionalLanguagesToKeep ?: emptySet())
 
         println("----- MMAURO's SHOWS MERGER UTILITY -----")
-        while (MergeOptions.MAIN_LANGUAGES.isEmpty()) {
-            MergeOptions.MAIN_LANGUAGES.addAll(askLanguages("What are the main languages?"))
-        }
+        println("Working directory: $workingDir")
+        MergeOptions.MAIN_LANGUAGES.addAll(askLanguages("What are the main languages?", config?.defaultLanguages?.toCollection(LinkedHashSet())))
         println()
         mainMenu()
     }
@@ -164,9 +176,9 @@ object Main {
                 val currentShow = MergeOptions.TV_SHOW?.name ?: "N/A"
                 linkedMapOf(
                     "Select TV Show (Current: $currentShow)" to ::selectTvShow,
-                    "Edit other languages to keep (${MergeOptions.OTHER_LANGUAGES_TO_KEEP.map { it.iso639_2 }})" to {
+                    "Edit additional languages to keep (${MergeOptions.ADDITIONAL_LANGUAGES_TO_KEEP.map { it.iso639_2 }})" to {
                         inputFiles = null
-                        editLanguagesSet(MergeOptions.OTHER_LANGUAGES_TO_KEEP)
+                        editLanguagesSet(MergeOptions.ADDITIONAL_LANGUAGES_TO_KEEP)
                     }
                 )
             }

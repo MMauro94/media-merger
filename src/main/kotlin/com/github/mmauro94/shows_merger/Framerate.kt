@@ -1,5 +1,6 @@
 package com.github.mmauro94.shows_merger
 
+import org.apache.commons.lang3.math.Fraction
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.Duration
@@ -7,7 +8,7 @@ import java.time.Duration
 
 /**
  * Class that represents a framerate (e.g. 25.000 fps)
- * @param framerate the framerate that has always exactly 4 decimal digits
+ * @param framerate the framerate that has always exactly 3 decimal digits
  */
 data class Framerate(val framerate: BigDecimal) {
     init {
@@ -45,8 +46,8 @@ data class Framerate(val framerate: BigDecimal) {
  * If unable to detect, returns `null`.
  */
 fun InputFile.detectFramerate(): Framerate? {
-    val frameDuration =
-        tracks.singleOrNull { it.isVideoTrack() }?.mkvTrack?.properties?.defaultDuration?.toNanos()?.toBigDecimal()
+    val videoTrack = tracks.singleOrNull { it.isVideoTrack() } ?: return null
+    val frameDuration = videoTrack.mkvTrack.properties?.defaultDuration?.toNanos()?.toBigDecimal()
     return if (frameDuration != null) {
         Framerate(
             Duration.ofSeconds(1).toNanos().toBigDecimal().setScale(3).divide(
@@ -54,5 +55,12 @@ fun InputFile.detectFramerate(): Framerate? {
                 RoundingMode.HALF_UP
             )
         )
-    } else null
+    } else {
+        val avg: Fraction? = videoTrack.ffprobeStream.avg_frame_rate
+        if (avg != null) {
+            Framerate(
+                avg.numerator.toBigDecimal().divide(avg.denominator.toBigDecimal(), 3, RoundingMode.HALF_UP)
+            )
+        } else null
+    }
 }

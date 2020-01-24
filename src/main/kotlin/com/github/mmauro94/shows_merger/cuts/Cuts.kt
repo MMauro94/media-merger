@@ -15,8 +15,7 @@ data class Cuts(val cuts: List<Cut>) {
         cuts.forEach { c1 ->
             cuts.forEach { c2 ->
                 if (c1 != c2) {
-                    //require(!c1.targetIntersects(c2))
-                    //TODO fix
+                    require(!c1.targetTime.intersects(c2.targetTime))
                 }
             }
         }
@@ -103,6 +102,8 @@ fun List<VideoPartMatch>.computeCuts(): Cuts {
         when (it.type) {
             VideoPart.Type.BLACK_SEGMENT -> {
                 if (it.input.time.duration < it.target.time.duration) {
+                    //If the input black segment is too short I put the first half at the start
+                    //of the target and second half at the end. the middle will be empty
                     listOf(
                         Cut(
                             time = it.input.time.firstHalf(),
@@ -114,6 +115,7 @@ fun List<VideoPartMatch>.computeCuts(): Cuts {
                         )
                     )
                 } else {
+                    //If the input black segment is too long I simply cut the middle of it
                     listOf(
                         Cut(
                             time = DurationSpan(
@@ -127,14 +129,20 @@ fun List<VideoPartMatch>.computeCuts(): Cuts {
                                 it.input.time.end - it.target.time.halfDuration,
                                 it.input.time.end
                             ),
-                            targetStart = it.target.time.start + it.target.time.halfDuration
+                            targetStart = it.target.time.middle
                         )
                     )
                 }
             }
             VideoPart.Type.SCENE -> listOf(
                 Cut(
-                    time = it.input.time,
+                    time = DurationSpan(
+                        start = it.input.time.start,
+                        end = minOf(
+                            it.input.time.end,
+                            it.input.time.start + it.target.time.duration
+                        )
+                    ),
                     targetStart = it.target.time.start
                 )
             )

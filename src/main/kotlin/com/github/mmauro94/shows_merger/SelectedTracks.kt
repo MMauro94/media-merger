@@ -128,7 +128,7 @@ data class SelectedTracks(
                         compareBy(*comparables.toTypedArray())
                     ).filterKeys {
                         it in MergeOptions.MAIN_LANGUAGES ||
-                                it in MergeOptions.OTHER_LANGUAGES_TO_KEEP //Remove non wanted languages
+                                it in MergeOptions.ADDITIONAL_LANGUAGES_TO_KEEP //Remove non wanted languages
                     }
                     sortedLanguages.forEach { (lang, tracks) ->
                         addTrack(tracks.audioTrack) {

@@ -4,6 +4,7 @@ import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixTrack
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixTrackType
+import com.github.mmauro94.shows_merger.util.find
 import net.bramp.ffmpeg.probe.FFmpegStream
 import java.io.File
 import java.util.*
@@ -129,12 +130,11 @@ class Track(
                 val map = f.name.split(Regex("(\\s+|_|\\.)")).asSequence()
                     .filter { it.length in 2..3 }
                     .groupingBy { s ->
-                        MkvToolnixLanguage.all[s.toLowerCase()]
-                            ?: MkvToolnixLanguage.all.values.singleOrNull { it.iso639_1 == s.toLowerCase() }
+                        MkvToolnixLanguage.find(s.toLowerCase())
                     }
                     .eachCount()
                 val max = map.values.max()
-                map.entries.singleOrNull { it.value == max }?.key
+                map.entries.singleOrNull { it.key != null && it.value == max }?.key
             }
         }
 

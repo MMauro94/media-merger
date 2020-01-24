@@ -153,7 +153,7 @@ class StretchFactor private constructor(
                 (if (originalDuration == null) null else sf.resultingDurationForStretchFactor(originalDuration)).humanStr()
             }
 
-            println("$inputFile cannot be adjusted because of unknown duration ratio (duration=${originalDuration.humanStr()}, target=${targetDuration.humanStr()}, possibleOutcomes=$possibleOutcomes)")
+            println("$inputFile cannot be adjusted because of unknown stretch factor (duration=${originalDuration.humanStr()}, target=${targetDuration.humanStr()}, possibleOutcomes=$possibleOutcomes)")
             val provideManually = askYesNo("Provide adjustment manually?", false)
             return if (provideManually) {
                 println("0) No adjustment (${originalDuration.humanStr()})")

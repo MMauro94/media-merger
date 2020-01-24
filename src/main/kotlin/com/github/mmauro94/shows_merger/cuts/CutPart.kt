@@ -23,7 +23,7 @@ class Cut(val time: DurationSpan, targetStart: Duration) : CutPart() {
 
     val targetTime = DurationSpan(targetStart, targetStart + time.duration)
 
-    override val duration: Duration = time.start
+    override val duration: Duration = time.duration
 
     val offset = targetTime.start - time.start
 }

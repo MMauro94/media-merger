@@ -8,6 +8,6 @@ object MergeOptions {
 
     var TV_SHOW: ShowInfo? = null
 
-    val OTHER_LANGUAGES_TO_KEEP = mutableSetOf<MkvToolnixLanguage>()
+    val ADDITIONAL_LANGUAGES_TO_KEEP = mutableSetOf<MkvToolnixLanguage>()
     val MAIN_LANGUAGES = mutableSetOf<MkvToolnixLanguage>()
 }
