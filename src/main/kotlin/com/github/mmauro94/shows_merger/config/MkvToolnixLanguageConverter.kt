@@ -6,6 +6,9 @@ import com.beust.klaxon.KlaxonException
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import com.github.mmauro94.shows_merger.util.find
 
+/**
+ * Converter object needed to parse from a JSON a [MkvToolnixLanguage]
+ */
 object MkvToolnixLanguageConverter : Converter {
 
     override fun canConvert(cls: Class<*>) = cls == MkvToolnixLanguage::class.java

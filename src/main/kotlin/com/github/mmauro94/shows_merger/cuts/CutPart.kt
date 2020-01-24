@@ -1,6 +1,5 @@
 package com.github.mmauro94.shows_merger.cuts
 
-import com.github.mmauro94.shows_merger.requireMillisPrecision
 import com.github.mmauro94.shows_merger.util.DurationSpan
 import java.time.Duration
 
@@ -31,9 +30,5 @@ class Cut(val time: DurationSpan, targetStart: Duration) : CutPart() {
 /**
  * [CutPart] inheritor that represents a certain amount of emptiness.
  */
-class Empty(override val duration: Duration) : CutPart() {
-    init {
-        duration.requireMillisPrecision()
-    }
-}
+class Empty(override val duration: Duration) : CutPart()
 

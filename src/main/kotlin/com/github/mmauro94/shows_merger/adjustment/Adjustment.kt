@@ -25,7 +25,7 @@ abstract class Adjustment<T>(val data : T) {
     protected abstract val outputConcat: List<String>
 
     /**
-     * The output file
+     * Calculates the output file
      */
     private fun outputFile(inputTrack: Track) : File {
         return File(
@@ -35,7 +35,7 @@ abstract class Adjustment<T>(val data : T) {
     }
 
     /**
-     * A function that, given a [Track], an [Adjustment] and a [File], creates an [AudioAdjuster]
+     * A function that, given a [Track], an [Adjustment] and an output [File], creates an [AudioAdjuster]
      */
     protected abstract val audioAdjusterFactory : (Track, Adjustment<T>, File) -> AudioAdjuster<T>
 
@@ -47,7 +47,7 @@ abstract class Adjustment<T>(val data : T) {
     }
 
     /**
-     * A function that, given a [Track], an [Adjustment] and a [File], creates an [SubtitleAdjuster]
+     * A function that, given a [Track], an [Adjustment] and an output [File], creates an [SubtitleAdjuster]
      */
     protected abstract val subtitleAdjusterFactory : (Track, Adjustment<T>, File) -> SubtitleAdjuster<T>
 

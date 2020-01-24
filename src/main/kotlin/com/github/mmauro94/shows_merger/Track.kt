@@ -4,6 +4,7 @@ import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixTrack
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixTrackType
+import com.github.mmauro94.shows_merger.util.asSecondsDuration
 import com.github.mmauro94.shows_merger.util.find
 import net.bramp.ffmpeg.probe.FFmpegStream
 import java.io.File
@@ -29,7 +30,7 @@ class Track(
     private val extensionFromCodecId = mkvTrack.properties?.codecId.let { c ->
         when {
             c == null -> null
-            c.matches("A_AAC/MPEG(2|4)/.+".toRegex()) -> "aac"
+            c.matches("A_AAC/MPEG([24])/.+".toRegex()) -> "aac"
             else -> when (c) {
                 //Audio
                 "A_DTS" -> "dts"

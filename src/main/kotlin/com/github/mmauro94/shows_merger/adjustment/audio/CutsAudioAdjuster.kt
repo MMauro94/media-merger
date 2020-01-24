@@ -5,7 +5,7 @@ import com.github.mmauro94.shows_merger.adjustment.Adjustment
 import com.github.mmauro94.shows_merger.cuts.Cut
 import com.github.mmauro94.shows_merger.cuts.Cuts
 import com.github.mmauro94.shows_merger.cuts.Empty
-import com.github.mmauro94.shows_merger.toTotalSeconds
+import com.github.mmauro94.shows_merger.util.toTotalSeconds
 import net.bramp.ffmpeg.builder.FFmpegBuilder
 import net.bramp.ffmpeg.builder.FFmpegOutputBuilder
 import java.io.File

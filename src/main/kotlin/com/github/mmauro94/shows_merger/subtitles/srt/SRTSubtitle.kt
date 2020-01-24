@@ -6,21 +6,24 @@ import com.github.mmauro94.shows_merger.util.DurationSpan
 import java.io.File
 import java.time.Duration
 
-class SRTSubtitle(lines: List<SRTSubtitleLine>) : Subtitle<SRTSubtitleLine>(lines) {
+/**
+ * An SRT subtitle.
+ */
+class SRTSubtitle(lines: List<SRTSubtitleText>) : Subtitle<SRTSubtitleText>(lines) {
 
-    override fun SRTSubtitleLine.changeTime(time: DurationSpan): SRTSubtitleLine {
-        return SRTSubtitleLine(time, text)
+    override fun SRTSubtitleText.changeTime(time: DurationSpan): SRTSubtitleText {
+        return SRTSubtitleText(time, text)
     }
 
-    override fun withLines(lines: List<SRTSubtitleLine>): Subtitle<SRTSubtitleLine> {
-        return SRTSubtitle(lines)
+    override fun withLines(items: List<SRTSubtitleText>): Subtitle<SRTSubtitleText> {
+        return SRTSubtitle(items)
     }
 
     override fun save(outputFile: File) {
         require(outputFile.extension == "srt")
         outputFile.writer().use { o ->
-            lines.forEachIndexed { i, l ->
-                l.write(i, o)
+            items.forEachIndexed { i, l ->
+                l.write(i + 1, o)
             }
         }
     }
@@ -29,17 +32,20 @@ class SRTSubtitle(lines: List<SRTSubtitleLine>) : Subtitle<SRTSubtitleLine>(line
 
         override val extension = "srt"
 
-        private val TIME ="\\s*(\\d{1,2}):(\\d{1,2}):(\\d{1,2}),(\\d{1,3})\\s*"
+        private val TIME = "\\s*(\\d{1,2}):(\\d{1,2}):(\\d{1,2}),(\\d{1,3})\\s*"
         private val REGEX =
             "(\\d+)\n$TIME-->$TIME\n(.*?)(?:\n\n|$)".toRegex(
                 RegexOption.DOT_MATCHES_ALL
             )
 
-        private fun MatchResult.durationStartingAt(i: Int): Duration {
-            val h = groupValues[i]
-            val m = groupValues[i + 1]
-            val s = groupValues[i + 2]
-            val ms = groupValues[i + 3]
+        /**
+         * Parses a [Duration] using the [MatchResult.groupValues] starting at [index]
+         */
+        private fun MatchResult.durationStartingAt(index: Int): Duration {
+            val h = groupValues[index]
+            val m = groupValues[index + 1]
+            val s = groupValues[index + 2]
+            val ms = groupValues[index + 3]
             return Duration.parse("PT${h}H${m}M${s}.${ms}S")
         }
 
@@ -48,7 +54,7 @@ class SRTSubtitle(lines: List<SRTSubtitleLine>) : Subtitle<SRTSubtitleLine>(line
             return SRTSubtitle(
                 REGEX.findAll(file.readText().replace("\r\n", "\n").replace('\r', '\n'))
                     .map {
-                        SRTSubtitleLine(
+                        SRTSubtitleText(
                             DurationSpan(
                                 it.durationStartingAt(2),
                                 it.durationStartingAt(6)

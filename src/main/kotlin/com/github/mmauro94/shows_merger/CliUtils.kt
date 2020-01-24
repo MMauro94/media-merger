@@ -2,6 +2,11 @@ package com.github.mmauro94.shows_merger
 
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import com.github.mmauro94.shows_merger.util.find
+import java.util.*
+import kotlin.collections.LinkedHashMap
+import kotlin.collections.LinkedHashSet
+
+val CLI_SCANNER = Scanner(System.`in`)
 
 fun askLanguage(defaultLanguage: MkvToolnixLanguage? = null): MkvToolnixLanguage {
     var lang: MkvToolnixLanguage? = null
@@ -11,7 +16,7 @@ fun askLanguage(defaultLanguage: MkvToolnixLanguage? = null): MkvToolnixLanguage
         } else {
             print("Please give language: ")
         }
-        val l = scanner.nextLine().trim()
+        val l = CLI_SCANNER.nextLine().trim()
         if (l.isNotEmpty()) {
             lang = MkvToolnixLanguage.find(l)
             if (lang == null) {
@@ -41,7 +46,7 @@ fun <T, C : MutableCollection<T>> askThings(
         if (!defaultValue.isNullOrEmpty()) {
             print("[" + defaultValue.joinToString(separator = separator.first, transform = thingToString) + "] ")
         }
-        val l: String = scanner.nextLine()
+        val l: String = CLI_SCANNER.nextLine()
         if (l.isEmpty()) {
             if (defaultValue !== null) {
                 return defaultValue
@@ -100,7 +105,7 @@ fun menu(
         }
         println("0) Exit")
         print("Selection: ")
-        selection = scanner.nextLine().toIntOrNull() ?: continue
+        selection = CLI_SCANNER.nextLine().toIntOrNull() ?: continue
         println()
         if (selection != 0) {
             val sel = map.asSequence().drop(selection - 1).firstOrNull()
@@ -122,7 +127,7 @@ fun askYesNo(question: String, default: Boolean): Boolean {
         print(question)
         if (default) print(" [Y/n] ")
         else print(" [y/N] ")
-        val v = scanner.nextLine().trim()
+        val v = CLI_SCANNER.nextLine().trim()
         when {
             v.isEmpty() -> ret = default
             v.toLowerCase() == "y" -> ret = true
@@ -139,7 +144,7 @@ fun askInt(question: String, min: Int? = null, max: Int? = null, default: Int? =
         if (default != null) {
             print("[$default] ")
         }
-        val v = scanner.nextLine().trim()
+        val v = CLI_SCANNER.nextLine().trim()
         if (v.isEmpty() && default != null) {
             ret = default
         } else {
@@ -158,7 +163,7 @@ fun askString(question: String, defaultValue: String = ""): String {
     if (defaultValue.isNotBlank()) {
         print("[$defaultValue] ")
     }
-    val l = scanner.nextLine().trim()
+    val l = CLI_SCANNER.nextLine().trim()
     return if (l.isBlank()) defaultValue else l
 }
 

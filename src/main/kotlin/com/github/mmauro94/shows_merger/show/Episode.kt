@@ -1,11 +1,14 @@
-package com.github.mmauro94.shows_merger
+package com.github.mmauro94.shows_merger.show
 
-import com.github.mmauro94.shows_merger.show_info.EpisodeInfo
-import com.github.mmauro94.shows_merger.show_info.ShowInfo
-import com.github.mmauro94.shows_merger.show_info.ShowInfoException
+import com.github.mmauro94.shows_merger.show.info.EpisodeInfo
+import com.github.mmauro94.shows_merger.show.info.ShowInfo
+import com.github.mmauro94.shows_merger.show.info.ShowInfoException
 import java.util.*
 import java.util.regex.Pattern
 
+/**
+ * Represents an episode, composed of a [season] number and an [episode] number. Can optionally have an [episodeInfo].
+ */
 class Episode(
     val season: Int,
     val episode: Int,
@@ -17,6 +20,10 @@ class Episode(
 
     override fun equals(other: Any?) = other is Episode && season == other.season && episode == other.episode
 
+    /**
+     * The name to output to the file. This function also takes care of stripping invalid characters such as '?' or ':'
+     * by replacing them with similar characters.
+     */
     fun outputName(): String? {
         return episodeInfo?.let { i ->
             String.format(
@@ -41,6 +48,9 @@ class Episode(
     override fun compareTo(other: Episode) = COMPARATOR.compare(this, other)
 
     companion object {
+        /**
+         * Comparator ordering first by season number, than by episode number
+         */
         private val COMPARATOR = compareBy<Episode> { it.season }.thenComparing { ei -> ei.episode }
     }
 }

@@ -1,8 +1,7 @@
 package com.github.mmauro94.shows_merger
 
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
-import com.github.mmauro94.shows_merger.show_info.ShowInfo
-import java.time.Duration
+import com.github.mmauro94.shows_merger.show.info.ShowInfo
 
 object MergeOptions {
 

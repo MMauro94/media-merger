@@ -1,6 +1,6 @@
-package com.github.mmauro94.shows_merger.show_info
+package com.github.mmauro94.shows_merger.show.info
 
-import com.github.mmauro94.shows_merger.show_provider.TvdbShowProvider
+import com.github.mmauro94.shows_merger.show.provider.TvdbShowProvider
 import com.uwetrottmann.thetvdb.entities.Series
 import java.time.LocalDate
 import java.time.Year
@@ -9,6 +9,9 @@ import java.time.format.DateTimeParseException
 import java.time.format.SignStyle
 import java.time.temporal.ChronoField
 
+/**
+ * A show downloaded by THETVDB
+ */
 data class TvdbShow(private val tvdbShow: Series) : ShowInfo {
     val id = tvdbShow.id!!
 

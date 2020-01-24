@@ -5,13 +5,16 @@ import com.github.mmauro94.shows_merger.Track
 import com.github.mmauro94.shows_merger.adjustment.audio.AudioAdjuster
 
 /**
- * Class that contains a list of [Adjustment] and the starting [inputTrack]
+ * Class that contains a list of [Adjustment]s and the starting [inputTrack]
  */
 data class Adjustments(
     val inputTrack: Track,
     val adjustments: List<Adjustment<*>>
 ) {
 
+    /**
+     * Returns the correct adjuster for the given [inputTrack]
+     */
     private fun Adjustment<*>.adjuster(inputTrack: Track): TrackAdjuster<*> {
         return when{
             inputTrack.isAudioTrack() -> audioAdjuster(inputTrack)

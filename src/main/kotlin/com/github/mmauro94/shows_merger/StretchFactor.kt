@@ -3,6 +3,7 @@ package com.github.mmauro94.shows_merger
 import com.github.mmauro94.shows_merger.Framerate.Companion.FPS_23_976
 import com.github.mmauro94.shows_merger.Framerate.Companion.FPS_25
 import com.github.mmauro94.shows_merger.adjustment.StretchAdjustment
+import com.github.mmauro94.shows_merger.util.humanStr
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.Duration
@@ -179,5 +180,5 @@ class StretchFactor private constructor(
  * shrinking it if it's a speedup.
  */
 operator fun Duration.times(stretchFactor: StretchFactor): Duration {
-    return stretchFactor.resultingDurationForStretchFactor(this).makeMillisPrecision()
+    return stretchFactor.resultingDurationForStretchFactor(this)
 }

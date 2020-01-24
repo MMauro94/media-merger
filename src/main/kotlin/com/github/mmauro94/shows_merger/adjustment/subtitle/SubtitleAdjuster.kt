@@ -14,6 +14,9 @@ import java.io.File
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
+/**
+ * Base instance of [TrackAdjuster] for all adjustments to be made on a subtitle track.
+ */
 abstract class SubtitleAdjuster<T>(
     track: Track,
     adjustment: Adjustment<T>,
@@ -28,7 +31,7 @@ abstract class SubtitleAdjuster<T>(
 
     override fun doAdjust(): Boolean {
         val file = track.fileOrExtracted()
-        val subtitle = Subtitle.getFactory(file.extension)?.invoke(file)
+        val subtitle = Subtitle.parse(file)
         return if(subtitle != null) {
             applyTransformations(subtitle).save(outputFile)
             true

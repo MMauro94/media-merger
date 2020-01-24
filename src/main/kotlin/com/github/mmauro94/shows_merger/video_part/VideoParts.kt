@@ -2,6 +2,8 @@ package com.github.mmauro94.shows_merger.video_part
 
 import com.github.mmauro94.shows_merger.*
 import com.github.mmauro94.shows_merger.util.DurationSpan
+import com.github.mmauro94.shows_merger.util.asSecondsDuration
+import com.github.mmauro94.shows_merger.util.toTotalSeconds
 import net.bramp.ffmpeg.FFmpeg
 import net.bramp.ffmpeg.FFmpegExecutor
 import net.bramp.ffmpeg.FFmpegUtils
@@ -27,12 +29,12 @@ data class VideoParts(val parts: List<VideoPart>) {
     }
 
     /**
-     * Returns only the black segments
+     * Returns only the scenes
      */
     val scenes = parts.filter { it.type == VideoPart.Type.SCENE }
 
     /**
-     * Returns only the scenes
+     * Returns only the black segments
      */
     val blackSegments = parts.filter { it.type == VideoPart.Type.BLACK_SEGMENT }
 
@@ -58,8 +60,6 @@ operator fun VideoParts.times(stretchFactor: StretchFactor) = VideoParts(parts.m
  * @param secondsLimits if provided, limits the parsing to the first seconds. Useful if we are interesed only in the first black frames
  */
 fun InputFile.detectVideoParts(minDuration: Duration, secondsLimits: Long? = null): VideoParts? {
-    minDuration.requireMillisPrecision()
-
     val prefix = file.nameWithoutExtension + "_blackframes_minDuration${minDuration.toMillis()}"
     val fileRegex = (Regex.escape(prefix) + "(?:_([0-9]+))?\\.txt").toRegex()
     val max = file.parentFile.listFiles()
@@ -176,7 +176,7 @@ fun InputFile.detectVideoParts(minDuration: Duration, secondsLimits: Long? = nul
                 )
             )
         }
-        val duration = this.duration?.makeMillisPrecision()
+        val duration = this.duration
         if (duration != null && ret.last().time.end < duration) {
             ret.add(
                 VideoPart(

@@ -5,8 +5,7 @@ import com.github.mmauro94.shows_merger.util.DurationSpan
 
 /**
  * Represents a part of video that can be either a black segment or a scene.
- * @param start the start of the part
- * @param end the end of the part
+ * @param time the duration span for this part
  * @param type the type of the part
  */
 data class VideoPart(val time: DurationSpan, val type: Type) {

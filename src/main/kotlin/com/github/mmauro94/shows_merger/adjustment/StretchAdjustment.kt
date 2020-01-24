@@ -6,6 +6,7 @@ import com.github.mmauro94.shows_merger.adjustment.subtitle.StretchSubtitleAdjus
 
 /**
  * Adjustment to change by a certain stretch factor an audio track
+ * @see StretchFactor
  */
 class StretchAdjustment(
     adjustment: StretchFactor

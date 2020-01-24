@@ -66,6 +66,9 @@ data class Cuts(val cuts: List<Cut>) {
 
 
     companion object {
+        /**
+         * A [Cuts] instance representing no action
+         */
         val EMPTY = Cuts(emptyList())
 
         /**

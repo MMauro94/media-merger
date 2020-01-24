@@ -5,10 +5,10 @@ import com.github.mmauro94.shows_merger.Track
 import java.io.File
 
 /**
- * A class specialized in adjusting [Track]
- * @param track the track to adjust
- * @param adjustment the adjustment that has to be done
- * @param outputFile the output file
+ * A class specialized in adjusting a [Track]
+ * @param track The track to adjust
+ * @param adjustment The adjustment that has to be done
+ * @param outputFile The output file
  */
 abstract class TrackAdjuster<T>(
     val track: Track,
@@ -16,7 +16,10 @@ abstract class TrackAdjuster<T>(
     val outputFile: File
 ) {
 
-    val data = adjustment.data
+    /**
+     * Convenience property that exposes [adjustment]'s [Adjustment.data]
+     */
+    protected val data = adjustment.data
 
     /**
      * Performs the adjustment
@@ -26,10 +29,11 @@ abstract class TrackAdjuster<T>(
     /**
      * Adjusts the given [track] with the [adjustment]
      *
-     * Returns a [Track] instance representing the track of the newly adjusted audio file,
+     * Returns a [Track] instance representing the track on the newly adjusted file,
      * or null if the adjustment didn't have to be done. (See [Adjustment.isValid])
      *
-     * If a file with the same name is already present, the actual adjustment is not done, but its [Track] is returned anyway
+     * If a file with the same name is already present, the actual adjustment is not done,
+     * but its [Track] is returned anyway, basically acting as a cache.
      */
     fun adjust(): Track? {
         val res = when {

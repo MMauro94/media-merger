@@ -8,6 +8,9 @@ import com.github.mmauro94.shows_merger.adjustment.Adjustment
 import com.github.mmauro94.shows_merger.adjustment.Adjustments
 import com.github.mmauro94.shows_merger.adjustment.CutsAdjustment
 import com.github.mmauro94.shows_merger.adjustment.StretchAdjustment
+import com.github.mmauro94.shows_merger.show.Episode
+import com.github.mmauro94.shows_merger.util.addTrack
+import com.github.mmauro94.shows_merger.util.sortWithPreferences
 import java.io.File
 import java.time.Duration
 
@@ -183,8 +186,8 @@ fun Sequence<Track>.selectVideoTrack(): Track? {
 }
 
 fun InputFiles.selectTracks(): SelectedTracks? {
-    val videoTrack = allTracks().selectVideoTrack() ?: return null
-    if (videoTrack.durationOrFileDuration == null) {
+    val videoTrack = allTracks().selectVideoTrack()
+    if (videoTrack?.durationOrFileDuration == null) {
         System.err.println("Video track $videoTrack without duration")
         return null
     }

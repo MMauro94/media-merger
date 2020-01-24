@@ -6,6 +6,7 @@ import com.github.mmauro94.shows_merger.cuts.Cuts
 
 /**
  * Adjustment to cut the track according to the provided cuts
+ * @see Cuts
  */
 class CutsAdjustment(data: Cuts) : Adjustment<Cuts>(data) {
 

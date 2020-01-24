@@ -1,5 +1,9 @@
 package com.github.mmauro94.shows_merger
 
+import com.github.mmauro94.shows_merger.show.Episode
+import com.github.mmauro94.shows_merger.show.detectEpisode
+import com.github.mmauro94.shows_merger.util.add
+import com.github.mmauro94.shows_merger.util.addAll
 import java.io.File
 
 data class InputFiles(
@@ -16,6 +20,11 @@ data class InputFiles(
     }
 
     companion object {
+
+        private val VIDEO_EXTENSIONS = listOf("avi", "mp4", "mkv", "mov", "ogv", "mpg", "mpeg", "m4v")
+        private val AUDIO_EXTENSIONS = listOf("mp3", "ac3", "aac", "flac", "m4a", "oga")
+        private val SUBTITLES_EXTENSIONS = listOf("srt", "ssa", "idx", "sub")
+        private val EXTENSIONS_TO_IDENTIFY = VIDEO_EXTENSIONS + AUDIO_EXTENSIONS + SUBTITLES_EXTENSIONS
 
         fun detect(dir: File): List<InputFiles> {
             print("Identifying files")

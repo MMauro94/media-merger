@@ -2,6 +2,7 @@ package com.github.mmauro94.shows_merger
 
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixFileIdentification
+import com.github.mmauro94.shows_merger.util.asSecondsDuration
 import com.github.mmauro94.shows_merger.video_part.VideoParts
 import com.github.mmauro94.shows_merger.video_part.detectVideoParts
 import net.bramp.ffmpeg.FFprobe

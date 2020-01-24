@@ -13,7 +13,7 @@ class CutsSubtitleAdjuster(
 ) : SubtitleAdjuster<Cuts>(track, adjustment, outputFile) {
 
     override fun applyTransformations(subtitle: Subtitle<*>): Subtitle<*> {
-        return subtitle.applyCuts(adjustment.data)
+        return subtitle.withCuts(adjustment.data)
     }
 
 }

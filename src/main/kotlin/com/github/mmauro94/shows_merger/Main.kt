@@ -3,10 +3,10 @@ package com.github.mmauro94.shows_merger
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import com.github.mmauro94.shows_merger.config.Config
 import com.github.mmauro94.shows_merger.config.ConfigParseException
-import com.github.mmauro94.shows_merger.show_info.ShowInfoException
-import com.github.mmauro94.shows_merger.show_provider.ShowProvider
-import com.github.mmauro94.shows_merger.show_provider.TmdbShowProvider
-import com.github.mmauro94.shows_merger.show_provider.TvdbShowProvider
+import com.github.mmauro94.shows_merger.show.info.ShowInfoException
+import com.github.mmauro94.shows_merger.show.provider.ShowProvider
+import com.github.mmauro94.shows_merger.show.provider.TmdbShowProvider
+import com.github.mmauro94.shows_merger.show.provider.TvdbShowProvider
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files

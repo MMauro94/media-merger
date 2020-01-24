@@ -13,6 +13,9 @@ import java.io.File
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
+/**
+ * Base instance of [TrackAdjuster] for all adjustments to be made on an audio track.
+ */
 abstract class AudioAdjuster<T>(
     track: Track,
     adjustment: Adjustment<T>,

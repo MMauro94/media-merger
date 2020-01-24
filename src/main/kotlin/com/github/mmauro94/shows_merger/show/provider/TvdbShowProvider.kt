@@ -1,9 +1,9 @@
-package com.github.mmauro94.shows_merger.show_provider
+package com.github.mmauro94.shows_merger.show.provider
 
 import com.github.mmauro94.shows_merger.MergeOptions
-import com.github.mmauro94.shows_merger.show_info.EpisodeInfo
-import com.github.mmauro94.shows_merger.show_info.ShowInfoException
-import com.github.mmauro94.shows_merger.show_info.TvdbShow
+import com.github.mmauro94.shows_merger.show.info.EpisodeInfo
+import com.github.mmauro94.shows_merger.show.info.ShowInfoException
+import com.github.mmauro94.shows_merger.show.info.TvdbShow
 import com.uwetrottmann.thetvdb.TheTvdb
 
 
@@ -13,7 +13,6 @@ object TvdbShowProvider : ShowProvider<TvdbShow> {
         TheTvdb(ShowProvider.apiKey("TVDB"))
     }
 
-    @Throws(ShowInfoException::class)
     override fun searchShow(query: String): List<TvdbShow> {
         val search = try {
             tvdb
@@ -34,6 +33,10 @@ object TvdbShowProvider : ShowProvider<TvdbShow> {
 
     private val episodes = HashMap<TvdbShow, List<EpisodeInfo>>()
 
+    /**
+     * Downloads all the episodes info
+     * @throws ShowInfoException if they cannot be downloaded
+     */
     fun downloadEpisodes(show: TvdbShow, page: Int = 1): List<EpisodeInfo> {
         val response = try {
             tvdb.series().episodes(
@@ -62,7 +65,10 @@ object TvdbShowProvider : ShowProvider<TvdbShow> {
         } else ret
     }
 
-    @Throws(ShowInfoException::class)
+    /**
+     * Returns the episode info
+     * @throws ShowInfoException if it cannot be downloaded
+     */
     fun episodeInfo(show: TvdbShow, season: Int, episode: Int): EpisodeInfo {
         return episodes
             .getOrPut(show) {

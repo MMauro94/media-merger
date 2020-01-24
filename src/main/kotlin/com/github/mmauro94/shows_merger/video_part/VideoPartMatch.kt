@@ -1,7 +1,7 @@
 package com.github.mmauro94.shows_merger.video_part
 
-import com.github.mmauro94.shows_merger.humanStr
-import com.github.mmauro94.shows_merger.sum
+import com.github.mmauro94.shows_merger.util.humanStr
+import com.github.mmauro94.shows_merger.util.sum
 import com.github.mmauro94.shows_merger.util.DurationSpan
 import com.github.mmauro94.shows_merger.video_part.VideoPart.Type.BLACK_SEGMENT
 import com.github.mmauro94.shows_merger.video_part.VideoPart.Type.SCENE
@@ -20,16 +20,28 @@ data class VideoPartMatch(val input: VideoPart, val target: VideoPart) {
     val type = input.type
 }
 
+/**
+ * Returns whether the different in duration of this video part with the given [duration] is within margin.
+ */
 fun VideoPart.acceptableDurationDiff(duration: Duration): Boolean {
     return (this.time.duration - duration).abs() < Duration.ofMillis(250)
 }
 
-fun VideoPart.acceptableDurationDiff(other: VideoPart): Boolean {
-    return acceptableDurationDiff(other.time.duration)
+/**
+ * Returns whether the different in duration of this video part with the given [videoPart] is within margin.
+ */
+fun VideoPart.acceptableDurationDiff(videoPart: VideoPart): Boolean {
+    return acceptableDurationDiff(videoPart.time.duration)
 }
 
+/**
+ * Exception thrown when a video parts match cannot be found
+ */
 class VideoPartsMatchException(message: String, val input: VideoParts, val targets: VideoParts) : Exception(message)
 
+/**
+ * Matches [this] video parts with [targets] iff they have exactly the same number of scenes and most scenes are of acceptable duration.
+ */
 private fun VideoParts.matchWithTargetExact(targets: VideoParts): List<VideoPartMatch>? {
     return if (this.parts.isNotEmpty() && this.parts.size == targets.parts.size && this.parts.first().type == this.parts.first().type) {
         val zip = this.scenes.zip(targets.scenes)
@@ -44,17 +56,27 @@ private fun VideoParts.matchWithTargetExact(targets: VideoParts): List<VideoPart
     } else null
 }
 
+/**
+ * Returns the scene that should be paired with the first scene of [targets], or `null` if it can't be found.
+ */
 private fun VideoParts.matchFirstScene(targets: VideoParts): VideoPart? {
     val firstScene = targets.scenes.firstOrNull() ?: return null
     return scenes.take(2).firstOrNull { firstScene.acceptableDurationDiff(it) }
 }
 
+/**
+ * Returns the offset between the matched first scene and the first [targets] scene. If no match is found returns `null`.
+ * @see matchFirstScene
+ */
 fun VideoParts.matchFirstSceneOffset(targets: VideoParts): Duration? {
     val matchedFirstScene = matchFirstScene(targets) ?: return null
     val firstTargetScene = targets.scenes.first()
     return matchedFirstScene.time.start - firstTargetScene.time.start
 }
 
+/**
+ * Matches [this] video parts with [targets] using a more lenient and smart algorithm.
+ */
 private fun VideoParts.matchWithTargetApprox(targets: VideoParts): List<VideoPartMatch> {
     val matchedFirstScene =
         matchFirstScene(targets) ?: throw VideoPartsMatchException("Unable to match first scene", this, targets)
