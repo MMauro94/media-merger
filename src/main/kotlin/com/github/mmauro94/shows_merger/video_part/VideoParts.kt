@@ -82,7 +82,11 @@ fun InputFile.detectVideoParts(minDuration: Duration, secondsLimits: Long? = nul
     if (!blackFramesFile.exists()) {
         val builder = FFmpegBuilder()
             .setVerbosity(FFmpegBuilder.Verbosity.INFO)
-            .setInput(file.absolutePath)
+            .setInput(file.absolutePath).apply {
+                Main.config?.ffmpegHardwareAcceleration?.let {
+                    addExtraArgs("-hwaccel", it)
+                }
+            }
             .addStdoutOutput()
             .apply {
                 if (secondsLimits != null) {

@@ -15,7 +15,8 @@ import java.io.IOException
  */
 data class Config(
     val defaultLanguages: List<MkvToolnixLanguage>? = null,
-    val defaultAdditionalLanguagesToKeep: List<MkvToolnixLanguage>? = null
+    val defaultAdditionalLanguagesToKeep: List<MkvToolnixLanguage>? = null,
+    val ffmpegHardwareAcceleration : String? = "auto"
 ) {
     companion object {
 

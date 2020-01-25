@@ -38,9 +38,9 @@ fun selectAdjustments(mergeMode: MergeMode, inputFile: InputFile, targetFile: In
 
         val cuts = when (mergeMode) {
             MergeMode.ADJUST_STRETCH_AND_OFFSET -> {
-                val inputVideoParts = inputFile.videoPartsLimited?.times(stretchFactor)
+                val inputVideoParts = (inputFile.videoPartsLimited ?: inputFile.videoParts)?.times(stretchFactor)
                     ?: throw OperationCreationException("No black segments in file $inputFile")
-                val targetVideoParts = targetFile.videoPartsLimited
+                val targetVideoParts = (targetFile.videoPartsLimited ?: targetFile.videoParts)
                     ?: throw OperationCreationException("No black segments in file $targetFile")
 
                 val offset = inputVideoParts.matchFirstSceneOffset(targetVideoParts)

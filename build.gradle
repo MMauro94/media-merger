@@ -12,13 +12,14 @@ repositories {
 
 }
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 
+    compile 'com.github.mmauro94:mkvtoolnix-wrapper:1.0.1-SNAPSHOT'
 
-    implementation 'com.github.mmauro94:mkvtoolnix-wrapper:1.0.1-SNAPSHOT'
+    compile 'com.uwetrottmann.tmdb2:tmdb-java:2.0.2'
+    compile 'com.uwetrottmann.thetvdb-java:thetvdb-java:2.2.0'
 
-    implementation 'com.uwetrottmann.tmdb2:tmdb-java:2.0.2'
-    implementation 'com.uwetrottmann.thetvdb-java:thetvdb-java:2.2.0'
+    compile 'org.fusesource.jansi:jansi:1.18'
 
     compile 'net.bramp.ffmpeg:ffmpeg:0.6.2'
     compile 'org.slf4j:slf4j-nop:1.7.26'

@@ -7,6 +7,8 @@ import com.github.mmauro94.shows_merger.show.info.ShowInfoException
 import com.github.mmauro94.shows_merger.show.provider.ShowProvider
 import com.github.mmauro94.shows_merger.show.provider.TmdbShowProvider
 import com.github.mmauro94.shows_merger.show.provider.TvdbShowProvider
+import org.fusesource.jansi.Ansi
+import org.fusesource.jansi.AnsiConsole
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
