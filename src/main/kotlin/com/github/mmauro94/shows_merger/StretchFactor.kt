@@ -3,7 +3,7 @@ package com.github.mmauro94.shows_merger
 import com.github.mmauro94.shows_merger.Framerate.Companion.FPS_23_976
 import com.github.mmauro94.shows_merger.Framerate.Companion.FPS_25
 import com.github.mmauro94.shows_merger.adjustment.StretchAdjustment
-import com.github.mmauro94.shows_merger.util.humanStr
+import com.github.mmauro94.shows_merger.util.toTimeStringOrUnknown
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.Duration
@@ -106,7 +106,11 @@ class StretchFactor private constructor(
          * Detects and returns the [StretchFactor] between two [Duration]s using some known stretch factors or `null` if unable to detect.
          * The parameter [maxDurationError] defines the maximum error that the two durations can have.
          */
-        fun detectFromDuration(duration: Duration?, targetDuration: Duration?, maxDurationError : Duration= Duration.ofSeconds(2)): StretchFactor? {
+        fun detectFromDuration(
+            duration: Duration?,
+            targetDuration: Duration?,
+            maxDurationError: Duration = Duration.ofSeconds(2)
+        ): StretchFactor? {
             if (duration != null && targetDuration != null) {
                 KNOWN_STRETCH_FACTORS.forEach { sf ->
                     val resultingDuration = sf.resultingDurationForStretchFactor(duration)
@@ -151,17 +155,17 @@ class StretchFactor private constructor(
             val targetDuration = targetFile.duration
 
             val possibleOutcomes = KNOWN_STRETCH_FACTORS.joinToString(", ") { sf ->
-                (if (originalDuration == null) null else sf.resultingDurationForStretchFactor(originalDuration)).humanStr()
+                (if (originalDuration == null) null else sf.resultingDurationForStretchFactor(originalDuration)).toTimeStringOrUnknown()
             }
 
-            println("$inputFile cannot be adjusted because of unknown stretch factor (duration=${originalDuration.humanStr()}, target=${targetDuration.humanStr()}, possibleOutcomes=$possibleOutcomes)")
+            println("$inputFile cannot be adjusted because of unknown stretch factor (duration=${originalDuration.toTimeStringOrUnknown()}, target=${targetDuration.toTimeStringOrUnknown()}, possibleOutcomes=$possibleOutcomes)")
             val provideManually = askYesNo("Provide adjustment manually?", false)
             return if (provideManually) {
-                println("0) No adjustment (${originalDuration.humanStr()})")
+                println("0) No adjustment (${originalDuration.toTimeStringOrUnknown()})")
                 KNOWN_STRETCH_FACTORS.forEachIndexed { i, sf ->
                     val resultingDuration =
                         if (originalDuration == null) null else sf.resultingDurationForStretchFactor(originalDuration)
-                    println("${i + 1}) ${sf.name} (resulting duration: ${resultingDuration.humanStr()})")
+                    println("${i + 1}) ${sf.name} (resulting duration: ${resultingDuration.toTimeStringOrUnknown()})")
                 }
                 val stretchSelection = askInt(
                     "Select wanted resulting duration: ",

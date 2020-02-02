@@ -4,7 +4,7 @@ import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixFileIdentification
 import com.github.mmauro94.shows_merger.util.asSecondsDuration
 import com.github.mmauro94.shows_merger.video_part.VideoParts
-import com.github.mmauro94.shows_merger.video_part.detectVideoParts
+import com.github.mmauro94.shows_merger.video_part.detectBlackSegments
 import net.bramp.ffmpeg.FFprobe
 import net.bramp.ffmpeg.probe.FFmpegProbeResult
 import java.io.File
@@ -60,14 +60,8 @@ class InputFile private constructor(
 
     val videoParts: VideoParts? by lazy {
         (if (tracks.any { it.isVideoTrack() }) {
-            detectVideoParts(BLACK_SEGMENTS_MIN_DURATION)
+            VideoParts(this, BLACK_SEGMENTS_MIN_DURATION)
         } else null) ?: mainFile?.videoParts
-    }
-
-    val videoPartsLimited: VideoParts? by lazy {
-        (if (tracks.any { it.isVideoTrack() }) {
-            detectVideoParts(BLACK_SEGMENTS_MIN_DURATION, BLACK_SEGMENTS_LIMITED_SECONDS)
-        } else null) ?: mainFile?.videoPartsLimited
     }
 
     override fun toString(): String = file.name
