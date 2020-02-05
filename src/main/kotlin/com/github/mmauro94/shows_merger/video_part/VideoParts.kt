@@ -3,10 +3,7 @@ package com.github.mmauro94.shows_merger.video_part
 import com.github.mmauro94.shows_merger.InputFile
 import com.github.mmauro94.shows_merger.Main
 import com.github.mmauro94.shows_merger.StretchFactor
-import com.github.mmauro94.shows_merger.util.DurationSpan
-import com.github.mmauro94.shows_merger.util.asSecondsDuration
-import com.github.mmauro94.shows_merger.util.toTimeString
-import com.github.mmauro94.shows_merger.util.toTotalSeconds
+import com.github.mmauro94.shows_merger.util.*
 import com.github.mmauro94.shows_merger.video_part.VideoPart.Type.BLACK_SEGMENT
 import com.github.mmauro94.shows_merger.video_part.VideoPart.Type.SCENE
 import net.bramp.ffmpeg.FFmpeg
@@ -20,27 +17,16 @@ import java.io.PrintStream
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
-
 /**
- * Class that is a [Sequence] of [VideoPart]s.
- *
  * It requires and ensures that consecutive parts have different type and that the first part starts at 0:00.
  */
-class LazyVideoParts(
-    inputFile: InputFile,
-    minDuration: Duration,
-    chunkSize: Duration?
-) : Sequence<VideoPart> {
+class VideoPartIterator(
+    private val iterator: Iterator<VideoPart>,
+    private val transform: (DurationSpan) -> DurationSpan = { it }
+) : ListIterator<VideoPart> {
 
-    init {
-        if (chunkSize != null) {
-            require(chunkSize > Duration.ZERO)
-        }
-    }
-
-    private val iterator = inputFile.detectVideoParts(minDuration, chunkSize)
-
-    private val cache: MutableList<VideoPart> = mutableListOf()
+    private val cache = mutableListOf<VideoPart>()
+    private var nextIndex = 0
 
     private fun addToCache(videoPart: VideoPart) {
         if (cache.isEmpty()) {
@@ -52,54 +38,87 @@ class LazyVideoParts(
         cache.add(videoPart)
     }
 
-    override fun iterator(): Iterator<VideoPart> {
-        return iterator {
-            yieldAll(cache)
-
-            iterator.forEach { vp ->
-                addToCache(vp)
-                yield(vp)
-            }
-        }
+    override fun hasNext(): Boolean {
+        return if (nextIndex in cache.indices) true
+        else iterator.hasNext()
     }
 
-    override fun toString() = joinToString(separator = "\n")
+    override fun hasPrevious(): Boolean {
+        return nextIndex > 0
+    }
+
+    override fun next(): VideoPart {
+        val ret = value {
+            val next = iterator.next()
+            next.copy(time = transform(next.time)).also {
+                addToCache(it)
+            }
+            next
+        }
+        nextIndex++
+        return ret
+    }
+
+    private inline fun value(otherwise: () -> VideoPart) =
+        if (nextIndex in cache.indices) cache[nextIndex] else otherwise()
+
+    override fun nextIndex(): Int {
+        return nextIndex
+    }
+
+    override fun previous(): VideoPart {
+        nextIndex--
+        return value { throw NoSuchElementException() }
+    }
+
+    override fun previousIndex(): Int {
+        return nextIndex - 1
+    }
+
+    fun hasNextScenes(): Boolean {
+        return asSequence().any { it.type == SCENE }
+    }
+
+    fun peek(): VideoPart {
+        return next().also { previous() }
+    }
+
+    /**
+     * Multiplies all the [VideoPart]s to the provided [stretchFactor].
+     *
+     * @see VideoPart.times
+     */
+    operator fun times(stretchFactor: StretchFactor) = VideoPartIterator(iterator) { it * stretchFactor }
+
+    fun skipIfBlackFragment() {
+        if (hasNext() && peek().type == BLACK_SEGMENT) {
+            next()
+        }
+    }
 
 }
 
 /**
- * Returns only the scenes
+ * Class that is a [Sequence] of [VideoPart]s.
  */
-val Sequence<VideoPart>.scenes
-    get() = filter { it.type == SCENE }
+class VideoParts(
+    private val iterator: VideoPartIterator
+) : Sequence<VideoPart> {
 
-/**
- * Returns only the black segments
- */
-val Sequence<VideoPart>.blackSegments
-    get() = filter { it.type == BLACK_SEGMENT }
+    override fun iterator(): VideoPartIterator {
+        return iterator
+    }
 
-/**
- * Multiplies all the [VideoPart]s to the provided [stretchFactor].
- *
- * @see VideoPart.times
- */
-operator fun Sequence<VideoPart>.times(stretchFactor: StretchFactor) = map { it * stretchFactor }
+    /**
+     * Multiplies all the [VideoPart]s to the provided [stretchFactor].
+     *
+     * @see VideoPart.times
+     */
+    operator fun times(stretchFactor: StretchFactor) = VideoParts(iterator * stretchFactor)
 
+}
 
-
-
-/**
- * Returns only the scenes
- */
-val Iterable<VideoPart>.scenes
-    get() = filter { it.type == SCENE }
-
-/**
- * Returns only the black segments
- */
-val Iterable<VideoPart>.blackSegments
-    get() = filter { it.type == BLACK_SEGMENT }
+fun Iterable<VideoPart>.sum() = map { it.time.duration }.sum()
 
 /**
  * Multiplies all the [VideoPart]s to the provided [stretchFactor].
@@ -109,17 +128,17 @@ val Iterable<VideoPart>.blackSegments
 operator fun Iterable<VideoPart>.times(stretchFactor: StretchFactor) = map { it * stretchFactor }
 
 
-class VideoParts(
+class VideoPartsProvider(
     private val inputFile: InputFile,
     private val minDuration: Duration
 ) {
 
-    fun lazy(chunkSize: Duration = Duration.ofSeconds(30)): Sequence<VideoPart> {
-        return LazyVideoParts(inputFile, minDuration, chunkSize)
+    fun lazy(chunkSize: Duration = Duration.ofSeconds(30)): VideoParts {
+        return VideoParts(inputFile.detectVideoParts(minDuration, chunkSize))
     }
 
-    fun all(): List<VideoPart> {
-        return (LazyVideoParts(inputFile, minDuration, null).toList())
+    fun all(): VideoParts {
+        return VideoParts(inputFile.detectVideoParts(minDuration, null))
     }
 }
 
@@ -135,8 +154,11 @@ class VideoParts(
 private fun InputFile.detectVideoParts(
     minDuration: Duration,
     chunkSize: Duration?
-): Iterator<VideoPart> {
-    return iterator {
+): VideoPartIterator {
+    if (chunkSize != null) {
+        require(chunkSize > Duration.ZERO)
+    }
+    return VideoPartIterator(iterator {
         var chunk = if (chunkSize == null) null else DurationSpan(Duration.ZERO, chunkSize)
         var blacks = detectBlackSegments(minDuration, chunk)
         var lastBlack: DurationSpan? = null
@@ -187,7 +209,7 @@ private fun InputFile.detectVideoParts(
                 yield(Scene(lastSceneStart, duration))
             }
         }
-    }
+    })
 }
 
 /**

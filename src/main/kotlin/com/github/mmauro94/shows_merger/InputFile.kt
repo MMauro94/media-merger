@@ -3,8 +3,7 @@ package com.github.mmauro94.shows_merger
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixFileIdentification
 import com.github.mmauro94.shows_merger.util.asSecondsDuration
-import com.github.mmauro94.shows_merger.video_part.VideoParts
-import com.github.mmauro94.shows_merger.video_part.detectBlackSegments
+import com.github.mmauro94.shows_merger.video_part.VideoPartsProvider
 import net.bramp.ffmpeg.FFprobe
 import net.bramp.ffmpeg.probe.FFmpegProbeResult
 import java.io.File
@@ -58,9 +57,9 @@ class InputFile private constructor(
 
     val framerate by lazy { detectFramerate() ?: mainFile?.detectFramerate() }
 
-    val videoParts: VideoParts? by lazy {
+    val videoParts: VideoPartsProvider? by lazy {
         (if (tracks.any { it.isVideoTrack() }) {
-            VideoParts(this, BLACK_SEGMENTS_MIN_DURATION)
+            VideoPartsProvider(this, BLACK_SEGMENTS_MIN_DURATION)
         } else null) ?: mainFile?.videoParts
     }
 

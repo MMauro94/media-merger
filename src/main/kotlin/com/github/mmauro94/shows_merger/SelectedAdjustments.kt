@@ -60,7 +60,10 @@ fun selectAdjustments(mergeMode: MergeMode, inputFile: InputFile, targetFile: In
                     ?: throw OperationCreationException("No black segments in file $targetFile")
 
                 try {
-                    inputVideoParts.matchWithTarget(targetVideoParts)?.computeCuts()
+                    val (matches, accuracy) = inputVideoParts.matchWithTarget(targetVideoParts)
+                    if(accuracy.accuracy < 90) {
+                        throw VideoPartsMatchException("Accuracy too low (${accuracy.accuracy}%)", inputVideoParts.toList(), targetVideoParts.toList())
+                    } else matches.computeCuts()
                 } catch (e: VideoPartsMatchException) {
                     throw OperationCreationException("Unable to match scenes: ${e.message}", StringBuilder().apply {
                         appendln("TARGET VIDEO PARTS ($targetFile):")
