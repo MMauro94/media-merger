@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit
  * It requires and ensures that consecutive parts have different type and that the first part starts at 0:00.
  */
 class VideoPartIterator(
-    private val cache : MutableList<VideoPart>,
+    private val cache: MutableList<VideoPart>,
     private val iterator: Iterator<VideoPart>,
     private val transform: (DurationSpan) -> DurationSpan = { it }
 ) : ListIterator<VideoPart> {
@@ -52,10 +52,9 @@ class VideoPartIterator(
     override fun next(): VideoPart {
         val ret = value {
             val next = iterator.next()
-            next.copy(time = transform(next.time)).also {
+            next.copy(time = transform.invoke(next.time)).also {
                 addToCache(it)
             }
-            next
         }
         nextIndex++
         return ret
@@ -92,7 +91,7 @@ class VideoPartIterator(
      */
     operator fun times(stretchFactor: StretchFactor) = VideoPartIterator(mutableListOf(), this) { it * stretchFactor }
 
-    fun copy() : VideoPartIterator = VideoPartIterator(cache, iterator)
+    fun copy(): VideoPartIterator = VideoPartIterator(cache, iterator, transform)
 
     fun skipIfBlackFragment() {
         if (hasNext() && peek().type == BLACK_SEGMENT) {
