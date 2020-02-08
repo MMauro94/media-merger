@@ -46,10 +46,10 @@ fun selectAdjustments(mergeMode: MergeMode, inputFile: InputFile, targetFile: In
                 val offset = inputVideoParts.matchFirstSceneOffset(targetVideoParts)
                     ?: throw OperationCreationException("Unable to detect matching first scene", StringBuilder().apply {
                         appendln("TARGET VIDEO PARTS (not complete) ($targetFile):")
-                        appendln(targetVideoParts)
+                        appendln(targetVideoParts.readOnly().joinToString(separator = "\n"))
                         appendln()
                         appendln("INPUT VIDEO PARTS (not complete), ALREADY STRETCHED BY $stretchFactor ($inputFile):")
-                        appendln(inputVideoParts)
+                        appendln(inputVideoParts.readOnly().joinToString(separator = "\n"))
                     }.toString())
                 Cuts.ofOffset(offset)
             }
@@ -61,16 +61,16 @@ fun selectAdjustments(mergeMode: MergeMode, inputFile: InputFile, targetFile: In
 
                 try {
                     val (matches, accuracy) = inputVideoParts.matchWithTarget(targetVideoParts)
-                    if(accuracy.accuracy < 90) {
+                    if(accuracy.accuracy < 50) {
                         throw VideoPartsMatchException("Accuracy too low (${accuracy.accuracy}%)", inputVideoParts.toList(), targetVideoParts.toList())
                     } else matches.computeCuts()
                 } catch (e: VideoPartsMatchException) {
                     throw OperationCreationException("Unable to match scenes: ${e.message}", StringBuilder().apply {
                         appendln("TARGET VIDEO PARTS ($targetFile):")
-                        appendln(e.targets.toString())
+                        appendln(e.targets.joinToString(separator = "\n"))
                         appendln()
                         appendln("INPUT VIDEO PARTS, ALREADY STRETCHED BY $stretchFactor ($inputFile):")
-                        appendln(e.input.toString())
+                        appendln(e.input.joinToString(separator = "\n"))
                     }.toString(), e)
                 }
             }

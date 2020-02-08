@@ -5,7 +5,6 @@ import com.github.mmauro94.shows_merger.Main
 import com.github.mmauro94.shows_merger.StretchFactor
 import com.github.mmauro94.shows_merger.util.*
 import com.github.mmauro94.shows_merger.video_part.VideoPart.Type.BLACK_SEGMENT
-import com.github.mmauro94.shows_merger.video_part.VideoPart.Type.SCENE
 import net.bramp.ffmpeg.FFmpeg
 import net.bramp.ffmpeg.FFmpegExecutor
 import net.bramp.ffmpeg.FFmpegUtils
@@ -21,12 +20,15 @@ import java.util.concurrent.TimeUnit
  * It requires and ensures that consecutive parts have different type and that the first part starts at 0:00.
  */
 class VideoPartIterator(
+    private val cache : MutableList<VideoPart>,
     private val iterator: Iterator<VideoPart>,
     private val transform: (DurationSpan) -> DurationSpan = { it }
 ) : ListIterator<VideoPart> {
 
-    private val cache = mutableListOf<VideoPart>()
-    private var nextIndex = 0
+    var nextIndex = 0
+        private set
+
+    fun cache(): List<VideoPart> = cache
 
     private fun addToCache(videoPart: VideoPart) {
         if (cache.isEmpty()) {
@@ -75,12 +77,12 @@ class VideoPartIterator(
         return nextIndex - 1
     }
 
-    fun hasNextScenes(): Boolean {
-        return asSequence().any { it.type == SCENE }
-    }
-
     fun peek(): VideoPart {
         return next().also { previous() }
+    }
+
+    fun reset() {
+        nextIndex = 0
     }
 
     /**
@@ -88,12 +90,19 @@ class VideoPartIterator(
      *
      * @see VideoPart.times
      */
-    operator fun times(stretchFactor: StretchFactor) = VideoPartIterator(iterator) { it * stretchFactor }
+    operator fun times(stretchFactor: StretchFactor) = VideoPartIterator(mutableListOf(), this) { it * stretchFactor }
+
+    fun copy() : VideoPartIterator = VideoPartIterator(cache, iterator)
 
     fun skipIfBlackFragment() {
         if (hasNext() && peek().type == BLACK_SEGMENT) {
             next()
         }
+    }
+
+    fun goTo(nextIndex: Int) {
+        require(nextIndex in 0..cache.size)
+        this.nextIndex = nextIndex
     }
 
 }
@@ -106,8 +115,10 @@ class VideoParts(
 ) : Sequence<VideoPart> {
 
     override fun iterator(): VideoPartIterator {
-        return iterator
+        return iterator.copy()
     }
+
+    fun readOnly(): List<VideoPart> = iterator.cache()
 
     /**
      * Multiplies all the [VideoPart]s to the provided [stretchFactor].
@@ -118,7 +129,7 @@ class VideoParts(
 
 }
 
-fun Iterable<VideoPart>.sum() = map { it.time.duration }.sum()
+fun Iterable<VideoPart>.sumDurations() = map { it.time.duration }.sum()
 
 /**
  * Multiplies all the [VideoPart]s to the provided [stretchFactor].
@@ -158,7 +169,7 @@ private fun InputFile.detectVideoParts(
     if (chunkSize != null) {
         require(chunkSize > Duration.ZERO)
     }
-    return VideoPartIterator(iterator {
+    return VideoPartIterator(mutableListOf(), iterator {
         var chunk = if (chunkSize == null) null else DurationSpan(Duration.ZERO, chunkSize)
         var blacks = detectBlackSegments(minDuration, chunk)
         var lastBlack: DurationSpan? = null
@@ -170,7 +181,7 @@ private fun InputFile.detectVideoParts(
                         //This is the first black we encounter
                         if (!black.start.isZero) {
                             //Video starts with a scene
-                            yield(Scene(Duration.ZERO, black.end))
+                            yield(Scene(Duration.ZERO, black.start))
                         }
                         lastBlack = black
                     }

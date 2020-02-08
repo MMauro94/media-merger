@@ -19,9 +19,9 @@ data class VideoPartMatch(val input: VideoPart, val target: VideoPart) {
     val type = input.type
 }
 
-data class Accuracy(val accuracy: Double, val offset : Duration?) {
+data class Accuracy(val accuracy: Double, val offset: Duration?) {
     init {
-        require(accuracy > 0 && accuracy <= 100)
+        require(accuracy >= 0 && accuracy <= 100)
     }
 
     companion object {
@@ -29,7 +29,7 @@ data class Accuracy(val accuracy: Double, val offset : Duration?) {
     }
 }
 
-fun Collection<Accuracy>.avg() : Accuracy = Accuracy(sumByDouble { it.accuracy } / size, null)
+fun Collection<Accuracy>.avg(): Accuracy = Accuracy(sumByDouble { it.accuracy } / size, null)
 
 /**
  * Returns whether the different in duration of this video part with the given [duration] is within margin.
@@ -51,33 +51,36 @@ fun VideoPart.acceptableDurationDiff(videoPart: VideoPart): Boolean {
 class VideoPartsMatchException(message: String, val input: List<VideoPart>, val targets: List<VideoPart>) :
     Exception(message)
 
-
-/**
- * Returns the offset between the matched first scene and the first [targets] scene. If no match is found returns `null`.
- */
 fun VideoParts.matchFirstSceneOffset(targets: VideoParts): Duration? {
-    val inputsIterator = iterator()
-    val targetsIterator = targets.iterator()
+    return matchFirstScene(iterator(), targets.iterator())?.second?.offset
+}
 
-    //We don't care about first black segments
+private fun matchFirstScene(
+    inputsIterator: VideoPartIterator,
+    targetsIterator: VideoPartIterator
+): Pair<List<VideoPartMatch>, Accuracy>? {
+    inputsIterator.reset()
     inputsIterator.skipIfBlackFragment()
-    targetsIterator.skipIfBlackFragment()
 
-    val candidates = mutableListOf<Accuracy>()
+    val candidates = mutableListOf<Pair<Pair<List<VideoPartMatch>, Accuracy>, Pair<Int,Int>>>()
 
     var max = 3
-    while(max > 0 && targetsIterator.hasNext()) {
+    while (max > 0 && targetsIterator.hasNext()) {
         val target = targetsIterator.next()
-        if(target.type == SCENE) {
-            val match = matchNext(inputsIterator, target)
-            candidates += match.second
+        if (target.type == SCENE) {
+            val match = matchNext(inputsIterator, target) to (inputsIterator.nextIndex to targetsIterator.nextIndex)
+            inputsIterator.reset()
+            inputsIterator.skipIfBlackFragment()
+            candidates += match
             max--
         }
     }
-    return candidates
-        .sortedByDescending { it.accuracy }
-        .mapNotNull { it.offset }
-        .firstOrNull()
+    val (detected, indexes) = candidates.maxBy { it.first.second.accuracy } ?: return null
+    val (inputNextIndex, targetNextIndex) = indexes
+    inputsIterator.goTo(inputNextIndex)
+    targetsIterator.goTo(targetNextIndex)
+
+    return detected
 }
 
 private fun matchNext(
@@ -98,20 +101,25 @@ private fun matchNext(
 
         //If we have a scene I accumulate the scenes until the duration becomes too big, then I match the closest one
         val accumulated = mutableListOf(nextInputPart)
-        while (inputsIterator.hasNext() && accumulated.sum() < targetPart.time.duration) {
+        while (inputsIterator.hasNext() && accumulated.sumDurations() < targetPart.time.duration) {
             val next = inputsIterator.next()
             //Discard black segments
             if (next.type == SCENE) {
                 accumulated += next
             }
         }
-        val diff = (targetPart.time.duration - accumulated.sum()).abs()
-        val diffWithoutLast = (targetPart.time.duration - accumulated.dropLast(1).sum()).abs()
-        if (diff > diffWithoutLast) {
-            //The last input part doesn't belong: remove it from the accumulated and go back with the iterator
-            accumulated.removeAt(accumulated.lastIndex)
-            inputsIterator.previous()
-        }
+        val diff = (targetPart.time.duration - accumulated.sumDurations()).abs()
+        val offset = if (accumulated.size > 1) {
+            val diffWithoutLast = (targetPart.time.duration - accumulated.dropLast(1).sumDurations()).abs()
+            if (diff > diffWithoutLast) {
+                //The last input part doesn't belong: remove it from the accumulated and go back with the iterator
+                accumulated.removeAt(accumulated.lastIndex)
+                //Need to go back two times because we also need to rewind the black segment
+                inputsIterator.previous()
+                inputsIterator.previous()
+                diffWithoutLast
+            } else diff
+        } else diff
 
         var start = targetPart.time.start
         for (i in accumulated.indices) {
@@ -131,7 +139,10 @@ private fun matchNext(
         }
 
         //Loses 1% accuracy every 500ms
-        return matches to Accuracy(max(0.0, 100.0 - (minOf(diff, diffWithoutLast).toNanos() / 1_000_000_000_000.0) * 2), targetPart.time.start - accumulated.first().time.start)
+        return matches to Accuracy(
+            max(0.0, 100.0 - (offset.toNanos() / 1_000_000_000.0) * 2),
+            targetPart.time.start - accumulated.first().time.start
+        )
     }
 }
 
@@ -142,25 +153,14 @@ fun VideoParts.matchWithTarget(targets: VideoParts): Pair<List<VideoPartMatch>, 
     val inputParts = iterator()
     val targetParts = targets.iterator()
 
-    //TODO first scene detection
+    val matches = mutableListOf<Pair<List<VideoPartMatch>, Accuracy>>()
+    val firstSceneMatch = matchFirstScene(inputParts, targetParts)
+        ?: throw VideoPartsMatchException("Unable to detect first scene!", readOnly(), targets.readOnly())
+    matches += firstSceneMatch
 
-    //Skip the first black segment if the other file doesn't have it
-    if (inputParts.hasNext() && targetParts.hasNext()) {
-        val firstInput = inputParts.peek()
-        val firstTarget = targetParts.peek()
-        if (firstInput.type !== firstTarget.type) {
-            inputParts.skipIfBlackFragment()
-            targetParts.skipIfBlackFragment()
-        }
-    }
-
-    val matches = mutableListOf<VideoPartMatch>()
-    val accuracies = mutableListOf<Accuracy>()
-    //For a match to exist, both parts must exist
-    bigWhile@ while (inputParts.hasNext() && targetParts.hasNext()) {
+    while (inputParts.hasNext() && targetParts.hasNext()) {
         val match = matchNext(inputParts, targetParts.next())
-        matches += match.first
-        accuracies += match.second
+        matches += match
     }
-    return matches to accuracies.avg()
+    return matches.flatMap { it.first } to matches.map { it.second }.avg()
 }
