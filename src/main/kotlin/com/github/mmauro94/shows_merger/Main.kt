@@ -19,6 +19,7 @@ object Main {
 
     /*
      * Missing things TODO:
+     *  - Add a mode that calculates offset based only on the first black fragment
      *  - Better error handling
      *  - [Option to convert the video if not in suitable format]
      *  - [Better output]
