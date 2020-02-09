@@ -40,8 +40,8 @@ fun String.parseTimeString(separator: Char = ':'): Duration? {
 /**
  * Converts [this] double as a number of seconds and coverts it to a [Duration]
  */
-fun Double.asSecondsDuration() =
-    if (this == 0.0) null else Duration.ofSeconds(toLong(), ((this % 1) * 1000000000).toLong())!!
+fun Double.asSecondsDuration(onZero : Duration? = null) =
+    if (this == 0.0) onZero else Duration.ofSeconds(toLong(), ((this % 1) * 1000000000).toLong())!!
 
 /**
  * Converts [this] BigDecimal as a number of seconds and coverts it to a [Duration]

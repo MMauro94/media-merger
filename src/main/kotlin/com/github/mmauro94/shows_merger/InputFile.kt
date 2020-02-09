@@ -58,8 +58,9 @@ class InputFile private constructor(
     val framerate by lazy { detectFramerate() ?: mainFile?.detectFramerate() }
 
     val videoParts: VideoPartsProvider? by lazy {
+        val videoTrack = tracks.singleOrNull { it.isVideoTrack() } ?: return@lazy null
         (if (tracks.any { it.isVideoTrack() }) {
-            VideoPartsProvider(this, BLACK_SEGMENTS_MIN_DURATION)
+            VideoPartsProvider(this, BLACK_SEGMENTS_MIN_DURATION, videoTrack.startTime)
         } else null) ?: mainFile?.videoParts
     }
 

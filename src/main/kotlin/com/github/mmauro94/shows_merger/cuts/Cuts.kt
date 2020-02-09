@@ -64,7 +64,6 @@ data class Cuts(val cuts: List<Cut>) {
         return ret
     }
 
-
     companion object {
         /**
          * A [Cuts] instance representing no action

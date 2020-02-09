@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit
 class VideoPartIterator(
     private val cache: MutableList<VideoPart>,
     private val iterator: Iterator<VideoPart>,
-    private val transform: (DurationSpan) -> DurationSpan = { it }
+    private val transform: VideoPartIterator.(VideoPart) -> List<VideoPart> = { listOf(it) }
 ) : ListIterator<VideoPart> {
 
     var nextIndex = 0
@@ -52,9 +52,10 @@ class VideoPartIterator(
     override fun next(): VideoPart {
         val ret = value {
             val next = iterator.next()
-            next.copy(time = transform.invoke(next.time)).also {
-                addToCache(it)
-            }
+            val transformed = transform(this, next)
+            check(transformed.isNotEmpty())
+            transformed.forEach(::addToCache)
+            transformed.first()
         }
         nextIndex++
         return ret
@@ -89,7 +90,27 @@ class VideoPartIterator(
      *
      * @see VideoPart.times
      */
-    operator fun times(stretchFactor: StretchFactor) = VideoPartIterator(mutableListOf(), this) { it * stretchFactor }
+    operator fun times(stretchFactor: StretchFactor) = VideoPartIterator(mutableListOf(), this) { listOf(it * stretchFactor) }
+
+    operator fun plus(offset: Duration): VideoPartIterator {
+        check(!offset.isNegative)
+        return if(offset.isZero) copy()
+        else VideoPartIterator(mutableListOf(), this) {
+            if (nextIndex == 0) {
+                if(it.type == BLACK_SEGMENT) {
+                    listOf(it.copy(time = DurationSpan(
+                        it.time.start,
+                        it.time.end + offset
+                    )))
+                } else {
+                    listOf(
+                        BlackSegment(Duration.ZERO, offset),
+                        it + offset
+                    )
+                }
+            } else listOf(it + offset)
+        }
+    }
 
     fun copy(): VideoPartIterator = VideoPartIterator(cache, iterator, transform)
 
@@ -126,6 +147,8 @@ class VideoParts(
      */
     operator fun times(stretchFactor: StretchFactor) = VideoParts(iterator * stretchFactor)
 
+    operator fun plus(offset: Duration) = VideoParts(iterator + offset)
+
 }
 
 fun Iterable<VideoPart>.sumDurations() = map { it.time.duration }.sum()
@@ -140,15 +163,21 @@ operator fun Iterable<VideoPart>.times(stretchFactor: StretchFactor) = map { it 
 
 class VideoPartsProvider(
     private val inputFile: InputFile,
-    private val minDuration: Duration
+    private val minDuration: Duration,
+    private val offset: Duration
 ) {
 
+    private fun videoParts(chunkSize: Duration?): VideoParts {
+        return VideoParts(inputFile.detectVideoParts(minDuration, chunkSize)) + offset
+    }
+
+
     fun lazy(chunkSize: Duration = Duration.ofSeconds(30)): VideoParts {
-        return VideoParts(inputFile.detectVideoParts(minDuration, chunkSize))
+        return videoParts(chunkSize)
     }
 
     fun all(): VideoParts {
-        return VideoParts(inputFile.detectVideoParts(minDuration, null))
+        return videoParts(null)
     }
 }
 
