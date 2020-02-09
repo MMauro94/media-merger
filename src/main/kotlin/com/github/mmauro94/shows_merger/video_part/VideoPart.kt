@@ -2,6 +2,7 @@ package com.github.mmauro94.shows_merger.video_part
 
 import com.github.mmauro94.shows_merger.StretchFactor
 import com.github.mmauro94.shows_merger.util.DurationSpan
+import java.time.Duration
 
 /**
  * Represents a part of video that can be either a black segment or a scene.
@@ -29,11 +30,23 @@ data class VideoPart(val time: DurationSpan, val type: Type) {
         val duration = time.duration.toString().padEnd(15)
         return type + "start=$start end=$end duration=$duration"
     }
+
+
+    /**
+     * Multiplies this [VideoPart] by the given [stretchFactor]
+     */
+    operator fun times(stretchFactor: StretchFactor): VideoPart {
+        return this.copy(time = time * stretchFactor)
+    }
+
+    operator fun plus(offset: Duration): VideoPart {
+        return this.copy(time = time + offset)
+    }
 }
 
-/**
- * Multiplies this [VideoPart] by the given [stretchFactor]
- */
-operator fun VideoPart.times(stretchFactor: StretchFactor): VideoPart {
-    return this.copy(time = time * stretchFactor)
-}
+
+fun Scene(time: DurationSpan) = VideoPart(time, VideoPart.Type.SCENE)
+fun BlackSegment(time: DurationSpan) = VideoPart(time, VideoPart.Type.BLACK_SEGMENT)
+
+fun Scene(start: Duration, end: Duration) = Scene(DurationSpan(start, end))
+fun BlackSegment(start: Duration, end: Duration) = BlackSegment(DurationSpan(start, end))

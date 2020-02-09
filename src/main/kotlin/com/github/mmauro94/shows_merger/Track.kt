@@ -8,6 +8,7 @@ import com.github.mmauro94.shows_merger.util.asSecondsDuration
 import com.github.mmauro94.shows_merger.util.find
 import net.bramp.ffmpeg.probe.FFmpegStream
 import java.io.File
+import java.time.Duration
 import java.util.*
 
 class Track(
@@ -26,6 +27,8 @@ class Track(
     val durationOrFileDuration = duration ?: inputFile.duration
 
     val isOnItsFile by lazy { inputFile.tracks.size == 1 }
+
+    val startTime by lazy { ffprobeStream.start_time.asSecondsDuration(Duration.ZERO)!! }
 
     private val extensionFromCodecId = mkvTrack.properties?.codecId.let { c ->
         when {

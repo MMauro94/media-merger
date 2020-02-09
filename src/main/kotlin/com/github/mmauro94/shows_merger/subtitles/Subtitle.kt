@@ -46,7 +46,7 @@ abstract class Subtitle<TEXT : SubtitleText<*>>(val items: List<TEXT>) {
         return items
             .filter { it.time.intersects(cut.time) }
             .mapNotNull {
-                val newTime = it.time.moveBy(cut.offset).restrictIn(cut.targetTime)
+                val newTime = (it.time + cut.offset).restrictIn(cut.targetTime)
                 if (newTime != null) it.changeTime(newTime)
                 else newTime
             }

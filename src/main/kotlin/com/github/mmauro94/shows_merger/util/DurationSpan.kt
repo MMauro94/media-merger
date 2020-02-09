@@ -48,6 +48,25 @@ data class DurationSpan(val start: Duration, val end: Duration) {
     )
 
     /**
+     * Returns if [other] duration span is directly after this span
+     */
+    fun isConsecutiveOf(other: DurationSpan): Boolean {
+        return start == other.end
+    }
+
+    /**
+     * Returns the consecutive [DurationSpan] with the given [length]
+     */
+    fun consecutiveOfLength(length: Duration): DurationSpan {
+        require(!length.isNegative && !length.isZero)
+        return DurationSpan(end, end + length)
+    }
+
+    fun consecutiveOfSameLength(): DurationSpan {
+        return consecutiveOfLength(duration)
+    }
+
+    /**
      * Returns whether this span and [other] intersect.
      */
     fun intersects(other: DurationSpan): Boolean {
@@ -62,7 +81,7 @@ data class DurationSpan(val start: Duration, val end: Duration) {
     fun restrictIn(other: DurationSpan): DurationSpan? {
         val newStart = maxOf(start, other.start)
         val newEnd = minOf(end, other.end)
-        return if(newStart >= newEnd) {
+        return if (newStart >= newEnd) {
             null
         } else DurationSpan(
             start = newStart,
@@ -73,7 +92,7 @@ data class DurationSpan(val start: Duration, val end: Duration) {
     /**
      * Moves this span by the given [offset].
      */
-    fun moveBy(offset: Duration): DurationSpan {
+    operator fun plus(offset: Duration): DurationSpan {
         return DurationSpan(
             start = start + offset,
             end = end + offset

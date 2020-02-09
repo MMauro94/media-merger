@@ -60,30 +60,3 @@ fun MkvMergeCommand.addTrack(track: Track, f: MkvMergeCommand.InputFile.TrackOpt
  */
 fun <T> Sequence<T>.sortWithPreferences(vararg sorters: (T) -> Boolean) =
     this.sortedWith(compareBy(*sorters).reversed())
-
-/**
- * Formats in a more humanly readable format a [Duration]
- */
-fun Duration?.humanStr() =
-    if (this == null) "Unknown" else "${this.toHours()}h${this.toMinutesPart()}m${this.toSecondsPart()}s${this.toMillisPart()}ms"
-
-/**
- * Converts [this] double as a number of seconds and coverts it to a [Duration]
- */
-fun Double.asSecondsDuration() =
-    if (this == 0.0) null else Duration.ofSeconds(toLong(), ((this % 1) * 1000000000).toLong())!!
-
-/**
- * Converts [this] BigDecimal as a number of seconds and coverts it to a [Duration]
- */
-fun BigDecimal.asSecondsDuration() = Duration.ofNanos(this.setScale(9).unscaledValue().longValueExact())!!
-
-/**
- * Converts this duration to a [BigDecimal] in seconds and returns its plain string representation.
- */
-fun Duration.toTotalSeconds(): String = BigDecimal.valueOf(toNanos(), 9).toPlainString()
-
-/**
- * Sums this iterable of [Duration]s.
- */
-fun Iterable<Duration>.sum(): Duration = fold(Duration.ZERO) { acc, it -> acc + it }
