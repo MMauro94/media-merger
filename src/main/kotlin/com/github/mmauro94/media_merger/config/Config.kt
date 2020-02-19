@@ -2,7 +2,7 @@ package com.github.mmauro94.media_merger.config
 
 import com.beust.klaxon.Klaxon
 import com.beust.klaxon.KlaxonException
-import com.github.mmauro94.media_merger.askString
+import com.github.mmauro94.media_merger.strategy.StretchAdjustmentStrategy
 import com.github.mmauro94.media_merger.util.JAR_LOCATION
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import java.io.File
@@ -18,7 +18,8 @@ data class Config(
     val defaultLanguages: List<MkvToolnixLanguage>? = null,
     val defaultAdditionalLanguagesToKeep: List<MkvToolnixLanguage> = emptyList(),
     val ffmpegHardwareAcceleration: String? = "auto",
-    val apiKeys: Map<String, String> = emptyMap()
+    val apiKeys: Map<String, String> = emptyMap(),
+    val defaultStretchAdjustmentStrategy: StretchAdjustmentStrategy = StretchAdjustmentStrategy.KNOWN_ONLY
 ) {
 
     /**

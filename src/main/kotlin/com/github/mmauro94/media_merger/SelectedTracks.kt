@@ -5,6 +5,7 @@ import com.github.mmauro94.media_merger.adjustment.Adjustments
 import com.github.mmauro94.media_merger.adjustment.CutsAdjustment
 import com.github.mmauro94.media_merger.adjustment.StretchAdjustment
 import com.github.mmauro94.media_merger.group.Group
+import com.github.mmauro94.media_merger.strategy.AdjustmentStrategies
 import com.github.mmauro94.media_merger.util.addTrack
 import com.github.mmauro94.media_merger.util.sortWithPreferences
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
@@ -52,18 +53,15 @@ data class SelectedTracks<G : Group<G>>(
         .mapNotNull { it.track?.inputFile }
         .toSet()
 
-    fun operation(mergeMode: MergeMode): () -> Unit {
+    fun operation(adjustmentStrategies: AdjustmentStrategies): () -> Unit {
         val outputFilenamePrefix = group.outputName() ?: videoTrack.file.nameWithoutExtension
 
         val allAdjustments = ArrayList<Pair<Adjustments, (Track) -> Unit>>()
-        var needsCheck = false
         try {
             allFiles()
                 .filterNot { it == videoTrack.inputFile }
                 .forEach { inputFile ->
-                    val pair = selectAdjustments(mergeMode, inputFile, videoTrack.inputFile)
-                    val (adj, adjNeedsCheck) = pair
-                    needsCheck = needsCheck || adjNeedsCheck
+                    val adj = selectAdjustments(adjustmentStrategies, inputFile, videoTrack.inputFile)
                     if (!adj.isEmpty()) {
                         allTracks()
                             .filter { it.track?.inputFile == inputFile }
@@ -108,12 +106,7 @@ data class SelectedTracks<G : Group<G>>(
                 }
             }
 
-            val outputFile = File(
-                Main.outputDir,
-                outputFilenamePrefix
-                        + (if (needsCheck) "_needscheck" else "")
-                        + ".mkv"
-            )
+            val outputFile = File(Main.outputDir, "$outputFilenamePrefix.mkv")
 
             val result = MkvToolnix.merge(outputFile)
                 .addTrack(videoTrack) {

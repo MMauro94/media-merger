@@ -89,7 +89,7 @@ inline fun menu(
     onSelection: (Int) -> Unit,
     premenu: () -> Unit = {},
     exitAfterSelection: (Int) -> Boolean = { true },
-    exitName : String = "Exit"
+    exitName: String = "Exit"
 ) {
     var selection = -1
     while (selection != 0) {
@@ -118,12 +118,12 @@ fun menu(
     map: LinkedHashMap<String, () -> Unit>,
     premenu: () -> Unit = {},
     exitAfterSelection: (Int) -> Boolean = { true },
-    exitName : String = "Exit"
+    exitName: String = "Exit"
 ) {
     menu(
         items = map.keys,
         onSelection = {
-          map.values.elementAt(it)()
+            map.values.elementAt(it)()
         },
         premenu = premenu,
         exitAfterSelection = exitAfterSelection,
@@ -187,12 +187,29 @@ fun askOption(question: String, enums: List<String>, defaultValue: String = ""):
     }
 }
 
-inline fun <reified E : Enum<E>> askEnum(question: String, enum: E): E {
+inline fun <reified E : Enum<E>> askEnum(
+    question: String,
+    defaultValue: E? = null,
+    long: Boolean = false,
+    nameProvider: (E) -> String = { it.name.toLowerCase() }
+): E {
     val values = enumValues<E>()
-    val selected = askOption(
-        question,
-        values.map { it.name.toLowerCase() },
-        enum.name.toLowerCase()
-    )
-    return values.single { it.name.toLowerCase() == selected }
+    return if (long) {
+        val selected = askOption(
+            question,
+            values.map { nameProvider(it) },
+            defaultValue?.let { nameProvider(it) } ?: ""
+        )
+        values.single { nameProvider(it) == selected }
+    } else {
+        values.forEachIndexed { i, e ->
+            println("${i + 1}) ${nameProvider(e)}")
+        }
+        values[askInt(
+            question = question,
+            min = 1,
+            max = values.size + 1,
+            default = defaultValue?.ordinal
+        )]
+    }
 }

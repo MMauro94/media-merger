@@ -3,13 +3,15 @@ package com.github.mmauro94.media_merger
 import com.github.mmauro94.media_merger.Framerate.Companion.FPS_23_976
 import com.github.mmauro94.media_merger.Framerate.Companion.FPS_25
 import com.github.mmauro94.media_merger.adjustment.StretchAdjustment
-import com.github.mmauro94.media_merger.util.toTimeStringOrUnknown
+import com.github.mmauro94.media_merger.strategy.StretchAdjustmentStrategy
+import com.github.mmauro94.media_merger.strategy.StretchAdjustmentStrategy.KNOWN_ONLY
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.Duration
 
 
-private val KNOWN_STRETCH_FACTORS = arrayOf(
+val KNOWN_STRETCH_FACTORS = arrayOf(
+    StretchFactor.NONE,
     FPS_25.calculateStretchTo(FPS_23_976),
     FPS_23_976.calculateStretchTo(FPS_25)
 )
@@ -56,7 +58,11 @@ class StretchFactor private constructor(
 
     companion object {
 
-        val NONE = StretchFactor(BigDecimal.ONE, BigDecimal.ONE, null)
+        val NONE = StretchFactor(
+            BigDecimal.ONE,
+            BigDecimal.ONE,
+            null
+        )
 
         //region FACTORY METHODS
         /**
@@ -96,17 +102,24 @@ class StretchFactor private constructor(
         /**
          * Detects and returns the [StretchFactor] between two [Framerate]s, or `null` if unable to detect.
          */
-        fun detectFromFramerate(framerate: Framerate?, targetFramerate: Framerate?): StretchFactor? {
-            return if (framerate != null && targetFramerate != null) {
+        private fun detectFromFramerate(
+            framerate: Framerate?,
+            targetFramerate: Framerate?,
+            knownOnly: Boolean
+        ): StretchFactor? {
+            val calculated = if (framerate != null && targetFramerate != null) {
                 framerate.calculateStretchTo(targetFramerate)
-            } else null
+            } else return null
+            return if(knownOnly) {
+                KNOWN_STRETCH_FACTORS.minBy { (it.speedMultiplier - calculated.speedMultiplier).abs() }
+            } else calculated
         }
 
         /**
          * Detects and returns the [StretchFactor] between two [Duration]s using some known stretch factors or `null` if unable to detect.
          * The parameter [maxDurationError] defines the maximum error that the two durations can have.
          */
-        fun detectFromDuration(
+        private fun detectFromDuration(
             duration: Duration?,
             targetDuration: Duration?,
             maxDurationError: Duration = Duration.ofSeconds(2)
@@ -114,9 +127,9 @@ class StretchFactor private constructor(
             if (duration != null && targetDuration != null) {
                 KNOWN_STRETCH_FACTORS.forEach { sf ->
                     val resultingDuration = sf.resultingDurationForStretchFactor(duration)
-                    if (resultingDuration > targetDuration.minus(maxDurationError) && resultingDuration < targetDuration.plus(
-                            maxDurationError
-                        )
+                    if (
+                        resultingDuration > targetDuration - maxDurationError &&
+                        resultingDuration < targetDuration + maxDurationError
                     ) {
                         return sf
                     }
@@ -126,61 +139,35 @@ class StretchFactor private constructor(
         }
 
         /**
-         * Detects (or asks) and returns the [StretchFactor] between two [InputFile]s, or `null` if unable to detect.
+         * Detects and returns the [StretchFactor] between two [InputFile]s according to the given [strategy], or `null` if unable to detect.
          *
          * Prioritizes the detection using framerates and duration. If both fails, resorts to asking the user.
          *
          * Returns a [Pair] of [StretchFactor] and a [Boolean] that is true if the factor was asked to the user.
          * Returns `null` if the user doesn't want to provide stretch manually.
          */
-        fun detectOrAsk(inputFile: InputFile, targetFile: InputFile): Pair<StretchFactor, Boolean>? {
-            val fromFramerate = detectFromFramerate(inputFile.framerate, targetFile.framerate)
-            if (fromFramerate != null) return fromFramerate to false
+        fun detect(strategy: StretchAdjustmentStrategy, inputFile: InputFile, targetFile: InputFile): StretchFactor? {
+            if (strategy == StretchAdjustmentStrategy.NONE) return NONE
 
-            val fromDuration = detectFromDuration(inputFile.duration, targetFile.duration)
-            if (fromDuration != null) return fromDuration to false
+            detectFromFramerate(
+                inputFile.framerate,
+                targetFile.framerate,
+                strategy == KNOWN_ONLY
+            )?.let { return it }
+
+            detectFromDuration(
+                inputFile.duration,
+                targetFile.duration
+            )?.let { return it }
 
             //TODO: better handling of this case
-            if(inputFile.file.extension in InputFiles.SUBTITLES_EXTENSIONS) {
-                return StretchFactor.NONE to false
+            if (inputFile.file.extension in InputFiles.SUBTITLES_EXTENSIONS) {
+                return NONE
             }
 
-            val fromUser = askStretchFactor(inputFile, targetFile)
-            return if (fromUser != null) fromUser to true
-            else null
+            return null
         }
         //endregion
-
-        /**
-         * Asks the user for a stretch factor to adjust the files.
-         * Returns the [StretchFactor] or `null` if the user decided not to provide one.
-         */
-        fun askStretchFactor(inputFile: InputFile, targetFile: InputFile): StretchFactor? {
-            val originalDuration = inputFile.duration
-            val targetDuration = targetFile.duration
-
-            val possibleOutcomes = KNOWN_STRETCH_FACTORS.joinToString(", ") { sf ->
-                (if (originalDuration == null) null else sf.resultingDurationForStretchFactor(originalDuration)).toTimeStringOrUnknown()
-            }
-
-            println("$inputFile cannot be adjusted because of unknown stretch factor (duration=${originalDuration.toTimeStringOrUnknown()}, target=${targetDuration.toTimeStringOrUnknown()}, possibleOutcomes=$possibleOutcomes)")
-            val provideManually = askYesNo("Provide adjustment manually?", false)
-            return if (provideManually) {
-                println("0) No adjustment (${originalDuration.toTimeStringOrUnknown()})")
-                KNOWN_STRETCH_FACTORS.forEachIndexed { i, sf ->
-                    val resultingDuration =
-                        if (originalDuration == null) null else sf.resultingDurationForStretchFactor(originalDuration)
-                    println("${i + 1}) ${sf.name} (resulting duration: ${resultingDuration.toTimeStringOrUnknown()})")
-                }
-                val stretchSelection = askInt(
-                    "Select wanted resulting duration: ",
-                    0,
-                    KNOWN_STRETCH_FACTORS.size
-                )
-                if (stretchSelection == 0) NONE
-                else KNOWN_STRETCH_FACTORS[stretchSelection - 1]
-            } else null
-        }
     }
 }
 

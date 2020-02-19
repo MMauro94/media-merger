@@ -2,6 +2,8 @@ package com.github.mmauro94.media_merger
 
 import com.github.mmauro94.media_merger.config.Config
 import com.github.mmauro94.media_merger.config.ConfigParseException
+import com.github.mmauro94.media_merger.strategy.AdjustmentStrategies
+import com.github.mmauro94.media_merger.strategy.CutsAdjustmentStrategy
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import java.io.File
 import java.io.IOException
@@ -14,7 +16,6 @@ object Main {
     /*
      * Missing things TODO:
      *  - Add a mode that calculates offset based only on the first black fragment
-     *  - Add a stretch adjustment strategy (precise, known_only)
      *  - Add a way to specify adjustment for subtitles only once
      *  - Better error handling
      *  - [Option to convert the video if not in suitable format]
@@ -60,7 +61,7 @@ object Main {
 
         val mediaType = askEnum(
             question = "What do you need to merge?",
-            enum = MediaType.ANY
+            defaultValue = MediaType.ANY
         )
         println()
 
@@ -91,14 +92,11 @@ object Main {
 
 
     private fun mergeFiles() {
-        MergeMode.values().forEachIndexed { i, mm ->
-            println("${i + 1}) ${mm.description}")
-        }
-        val mergeMode = MergeMode.values()[askInt("Select merge mode:", 1, MergeMode.values().size) - 1]
+        val adjustmentStrategies = AdjustmentStrategies.ask()
 
         inputFilesDetector.getOrReadInputFiles()
             .mapNotNull {
-                it.selectTracks()?.operation(mergeMode)
+                it.selectTracks()?.operation(adjustmentStrategies)
             }
             .forEach {
                 it()
