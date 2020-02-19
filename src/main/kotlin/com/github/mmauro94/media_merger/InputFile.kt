@@ -48,9 +48,9 @@ class InputFile private constructor(
                 ?.minBy { it.nameWithoutExtension.length } //Take the one with the shorter name
             if (f != null) {
                 //If we found a worthy file, it should have already been parsed, so we search it in the input files
-                Main.inputFiles
-                    ?.flatMap { it.inputFiles }
-                    ?.find { it.file.absolutePath == f.absolutePath }
+                Main.inputFilesDetector.inputFiles()
+                    .flatMap { it.inputFiles }
+                    .find { it.file.absolutePath == f.absolutePath }
             } else null
         } else null
     }

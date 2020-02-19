@@ -1,21 +1,20 @@
 package com.github.mmauro94.media_merger
 
-import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
-import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
-import com.github.mmauro94.mkvtoolnix_wrapper.hasErrors
-import com.github.mmauro94.mkvtoolnix_wrapper.merge.MkvMergeCommand
 import com.github.mmauro94.media_merger.adjustment.Adjustment
 import com.github.mmauro94.media_merger.adjustment.Adjustments
 import com.github.mmauro94.media_merger.adjustment.CutsAdjustment
 import com.github.mmauro94.media_merger.adjustment.StretchAdjustment
-import com.github.mmauro94.media_merger.show.Episode
 import com.github.mmauro94.media_merger.util.addTrack
 import com.github.mmauro94.media_merger.util.sortWithPreferences
+import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
+import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
+import com.github.mmauro94.mkvtoolnix_wrapper.hasErrors
+import com.github.mmauro94.mkvtoolnix_wrapper.merge.MkvMergeCommand
 import java.io.File
 import java.time.Duration
 
-data class SelectedTracks(
-    val episode: Episode,
+data class SelectedTracks<G : Group<G>>(
+    val group: G,
     val videoTrack: Track,
     val languageTracks: Map<MkvToolnixLanguage, LanguageTracks>
 ) {
@@ -53,7 +52,7 @@ data class SelectedTracks(
         .toSet()
 
     fun operation(mergeMode: MergeMode): () -> Unit {
-        val outputFilenamePrefix = episode.outputName() ?: videoTrack.file.nameWithoutExtension
+        val outputFilenamePrefix = group.outputName() ?: videoTrack.file.nameWithoutExtension
 
         val allAdjustments = ArrayList<Pair<Adjustments, (Track) -> Unit>>()
         var needsCheck = false
@@ -123,15 +122,15 @@ data class SelectedTracks(
                 }
                 .apply {
                     val comparables = mutableListOf<(MkvToolnixLanguage) -> Comparable<*>>()
-                    MergeOptions.MAIN_LANGUAGES.forEach { l ->
+                    Main.mainLanguages.forEach { l ->
                         comparables.add { it != l } //First all main languages
                     }
                     comparables.add { it.iso639_2 } //Then sorted by iso code
                     val sortedLanguages = languageTracks.toSortedMap(
                         compareBy(*comparables.toTypedArray())
                     ).filterKeys {
-                        it in MergeOptions.MAIN_LANGUAGES ||
-                                it in MergeOptions.ADDITIONAL_LANGUAGES_TO_KEEP //Remove non wanted languages
+                        it in Main.mainLanguages ||
+                                it in Main.additionalLanguagesToKeep //Remove non wanted languages
                     }
                     sortedLanguages.forEach { (lang, tracks) ->
                         addTrack(tracks.audioTrack) {
@@ -183,73 +182,6 @@ fun Sequence<Track>.selectVideoTrack(): Track? {
                 System.err.println("No video tracks found")
             }
         }
-}
-
-fun InputFiles.selectTracks(): SelectedTracks? {
-    val videoTrack = allTracks().selectVideoTrack()
-    if (videoTrack?.durationOrFileDuration == null) {
-        System.err.println("Video track $videoTrack without duration")
-        return null
-    }
-
-
-    val languageTracks = allTracks()
-        .groupBy { it.language } //Group by language
-        .mapValues { (_, tracks) ->
-            val audioTrack = tracks
-                .asSequence()
-                .filter { it.isAudioTrack() }
-                .sortWithPreferences({
-                    it.mkvTrack.codec.contains("DTS", true)
-                }, {
-                    it.mkvTrack.codec.contains("AC-3", true)
-                }, {
-                    it.mkvTrack.codec.contains("AAC", true)
-                }, {
-                    it.mkvTrack.codec.contains("FLAC", true)
-                }, {
-                    it.isOnItsFile
-                }, {
-                    sameFile(it, videoTrack)
-                })
-                .firstOrNull()
-
-            val subtitleTracks = tracks
-                .asSequence()
-                .filter { it.isSubtitlesTrack() }
-                .sortWithPreferences({
-                    it.mkvTrack.properties?.textSubtitles == true
-                }, {
-                    it.isOnItsFile
-                }, {
-                    it.mkvTrack.properties?.trackName?.contains("SDH", ignoreCase = true) == true
-                }, {
-                    sameFile(it, videoTrack)
-                })
-
-            val subtitleTrack = subtitleTracks
-                .filter { !it.isForced }
-                .firstOrNull()
-
-            val forcedSubtitleTrack = subtitleTracks
-                .filter { it.isForced }
-                .firstOrNull()
-
-            if (audioTrack == null && subtitleTrack == null) {
-                null
-            } else {
-                SelectedTracks.LanguageTracks().apply {
-                    this.audioTrack.track = audioTrack
-                    this.subtitleTrack.track = subtitleTrack
-                    this.forcedSubtitleTrack.track = forcedSubtitleTrack
-                }
-            }
-        }
-        .filterValues { it != null }
-        .mapValues { it.value as SelectedTracks.LanguageTracks }
-        .toMap()
-
-    return SelectedTracks(episode, videoTrack, languageTracks)
 }
 
 fun MkvMergeCommand.addTrack(

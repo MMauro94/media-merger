@@ -1,9 +1,8 @@
 package com.github.mmauro94.media_merger
 
-import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import com.github.mmauro94.media_merger.util.find
+import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import java.util.*
-import kotlin.collections.LinkedHashMap
 import kotlin.collections.LinkedHashSet
 
 val CLI_SCANNER = Scanner(System.`in`)
@@ -85,40 +84,51 @@ fun askLanguages(
     )
 }
 
-fun menu(
-    map: LinkedHashMap<String, () -> Unit>,
+inline fun menu(
+    items: Collection<String>,
+    onSelection: (Int) -> Unit,
     premenu: () -> Unit = {},
-    exitAfterSelection: (Int) -> Boolean = { true }
-) = menu({ map }, premenu, exitAfterSelection)
-
-fun menu(
-    mapF: () -> LinkedHashMap<String, () -> Unit>,
-    premenu: () -> Unit = {},
-    exitAfterSelection: (Int) -> Boolean = { true }
+    exitAfterSelection: (Int) -> Boolean = { true },
+    exitName : String = "Exit"
 ) {
     var selection = -1
     while (selection != 0) {
         premenu()
-        val map = mapF()
-        map.keys.forEachIndexed { i, str ->
+        items.forEachIndexed { i, str ->
             println("${i + 1}) $str")
         }
-        println("0) Exit")
+        println("0) $exitName")
         print("Selection: ")
         selection = CLI_SCANNER.nextLine().toIntOrNull() ?: continue
         println()
         if (selection != 0) {
-            val sel = map.asSequence().drop(selection - 1).firstOrNull()
-            if (sel == null) {
+            if (selection < 0 || selection >= items.size) {
                 System.err.println("Invalid selection!")
             } else {
-                sel.value()
+                onSelection(selection - 1)
                 if (exitAfterSelection(selection)) {
                     return
                 }
             }
         }
     }
+}
+
+fun menu(
+    map: LinkedHashMap<String, () -> Unit>,
+    premenu: () -> Unit = {},
+    exitAfterSelection: (Int) -> Boolean = { true },
+    exitName : String = "Exit"
+) {
+    menu(
+        items = map.keys,
+        onSelection = {
+          map.values.elementAt(it)()
+        },
+        premenu = premenu,
+        exitAfterSelection = exitAfterSelection,
+        exitName = exitName
+    )
 }
 
 fun askYesNo(question: String, default: Boolean): Boolean {
@@ -167,12 +177,22 @@ fun askString(question: String, defaultValue: String = ""): String {
     return if (l.isBlank()) defaultValue else l
 }
 
-fun askEnum(question: String, enums: List<String>, defaultValue: String = ""): String {
+fun askOption(question: String, enums: List<String>, defaultValue: String = ""): String {
     val selection = askString(question + " (" + enums.joinToString(", ") + ")", defaultValue)
     return if (selection in enums) {
         selection
     } else {
-        System.err.println("Invalid value! Must be one of " + enums.map { "'$it'" }.joinToString { ", " })
-        askEnum(question, enums, defaultValue)
+        System.err.println("Invalid value! Must be one of " + enums.joinToString(", ") { "'$it'" })
+        askOption(question, enums, defaultValue)
     }
+}
+
+inline fun <reified E : Enum<E>> askEnum(question: String, enum: E): E {
+    val values = enumValues<E>()
+    val selected = askOption(
+        question,
+        values.map { it.name.toLowerCase() },
+        enum.name.toLowerCase()
+    )
+    return values.single { it.name.toLowerCase() == selected }
 }

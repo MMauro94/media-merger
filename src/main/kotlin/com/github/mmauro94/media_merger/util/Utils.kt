@@ -10,10 +10,13 @@ import java.util.*
 /**
  * Finds an [MkvToolnixLanguage] that has [language] as its ISO63-2 code.
  * If it cannot be found, it falls back to the ISO639-1 code.
+ * If it cannot be found, it falls back to the name.
  * Returns `null` if no language is found.
  */
 fun MkvToolnixLanguage.Companion.find(language: String): MkvToolnixLanguage? {
-    return all[language] ?: all.values.singleOrNull { it.iso639_1 == language }
+    return all[language]
+        ?: all.values.singleOrNull { it.iso639_1 == language }
+        ?: all.values.singleOrNull { it.name.toLowerCase() == language.toLowerCase() }
 }
 
 /**

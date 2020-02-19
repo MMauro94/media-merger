@@ -1,6 +1,6 @@
 package com.github.mmauro94.media_merger.show.provider
 
-import com.github.mmauro94.media_merger.MergeOptions
+import com.github.mmauro94.media_merger.Main
 import com.github.mmauro94.media_merger.show.info.EpisodeInfo
 import com.github.mmauro94.media_merger.show.info.ShowInfoException
 import com.github.mmauro94.media_merger.show.info.TvdbShow
@@ -17,7 +17,7 @@ object TvdbShowProvider : ShowProvider<TvdbShow> {
         val search = try {
             tvdb
                 .search()
-                .series(query, null, null, null, MergeOptions.MAIN_LANGUAGES.first().iso639_1 ?: "en")
+                .series(query, null, null, null, Main.mainLanguages.first().iso639_1 ?: "en")
                 .execute()
         } catch (e: Exception) {
             throw ShowInfoException(e.message)
@@ -42,7 +42,7 @@ object TvdbShowProvider : ShowProvider<TvdbShow> {
             tvdb.series().episodes(
                 show.id,
                 page,
-                MergeOptions.MAIN_LANGUAGES.first().iso639_1 ?: "en"
+                Main.mainLanguages.first().iso639_1 ?: "en"
             ).execute()
         } catch (e: Exception) {
             throw ShowInfoException(e.message)

@@ -1,15 +1,14 @@
 package com.github.mmauro94.media_merger
 
-import com.github.mmauro94.media_merger.show.Episode
-import com.github.mmauro94.media_merger.show.detectEpisode
 import com.github.mmauro94.media_merger.util.add
 import com.github.mmauro94.media_merger.util.addAll
+import com.github.mmauro94.media_merger.util.sortWithPreferences
 import java.io.File
 
-data class InputFiles(
-    val episode: Episode,
+data class InputFiles<G : Group<G>>(
+    val group: G,
     val inputFiles: List<InputFile>
-) : Iterable<InputFile>, Comparable<InputFiles> {
+) : Iterable<InputFile>, Comparable<InputFiles<G>> {
 
     override fun iterator() = inputFiles.iterator()
 
@@ -26,9 +25,9 @@ data class InputFiles(
         val SUBTITLES_EXTENSIONS = listOf("srt", "ssa", "idx", "sub")
         val EXTENSIONS_TO_IDENTIFY = VIDEO_EXTENSIONS + AUDIO_EXTENSIONS + SUBTITLES_EXTENSIONS
 
-        fun detect(dir: File): List<InputFiles> {
+        fun <G : Group<G>> detect(grouper: Grouper<G>, dir: File): List<InputFiles<G>> {
             print("Identifying files")
-            val ret = detectInner(dir)
+            val ret = detectInner(grouper, dir)
             if (ret.isEmpty()) {
                 println()
                 System.err.println("No files identified!")
@@ -36,15 +35,13 @@ data class InputFiles(
             return ret.map { InputFiles(it.key, it.value) }
         }
 
-        private fun detectInner(dir: File): Map<Episode, List<InputFile>> {
-            val show = MergeOptions.TV_SHOW
-
-            val ret = HashMap<Episode, MutableList<InputFile>>()
+        private fun <G : Group<G>> detectInner(grouper: Grouper<G>, dir: File): Map<G, List<InputFile>> {
+            val ret = HashMap<G, MutableList<InputFile>>()
             val listFiles: Array<File> = dir.listFiles() ?: emptyArray()
             val files = listFiles
                 .filter { it.extension in EXTENSIONS_TO_IDENTIFY }
                 .filterNot { it.name.contains("@adjusted") || it.name.contains("@extracted") }
-                .groupBy { it.name.detectEpisode(show) }
+                .groupBy { grouper.detectGroup(it.name) }
                 .filterKeys { it != null }
 
             files.forEach { (ei, files) ->
@@ -62,11 +59,77 @@ data class InputFiles(
             listFiles.asSequence()
                 .filter { it.isDirectory }
                 .forEach {
-                    ret.addAll(detectInner(it))
+                    ret.addAll(detectInner(grouper, it))
                 }
             return ret
         }
     }
 
-    override fun compareTo(other: InputFiles) = episode.compareTo(other.episode)
+    fun selectTracks(): SelectedTracks<G>? {
+        val videoTrack = allTracks().selectVideoTrack()
+        if (videoTrack?.durationOrFileDuration == null) {
+            System.err.println("Video track $videoTrack without duration")
+            return null
+        }
+
+        val languageTracks = allTracks()
+            .groupBy { it.language } //Group by language
+            .mapValues { (_, tracks) ->
+                val audioTrack = tracks
+                    .asSequence()
+                    .filter { it.isAudioTrack() }
+                    .sortWithPreferences({
+                        it.mkvTrack.codec.contains("DTS", true)
+                    }, {
+                        it.mkvTrack.codec.contains("AC-3", true)
+                    }, {
+                        it.mkvTrack.codec.contains("AAC", true)
+                    }, {
+                        it.mkvTrack.codec.contains("FLAC", true)
+                    }, {
+                        it.isOnItsFile
+                    }, {
+                        sameFile(it, videoTrack)
+                    })
+                    .firstOrNull()
+
+                val subtitleTracks = tracks
+                    .asSequence()
+                    .filter { it.isSubtitlesTrack() }
+                    .sortWithPreferences({
+                        it.mkvTrack.properties?.textSubtitles == true
+                    }, {
+                        it.isOnItsFile
+                    }, {
+                        it.mkvTrack.properties?.trackName?.contains("SDH", ignoreCase = true) == true
+                    }, {
+                        sameFile(it, videoTrack)
+                    })
+
+                val subtitleTrack = subtitleTracks
+                    .filter { !it.isForced }
+                    .firstOrNull()
+
+                val forcedSubtitleTrack = subtitleTracks
+                    .filter { it.isForced }
+                    .firstOrNull()
+
+                if (audioTrack == null && subtitleTrack == null) {
+                    null
+                } else {
+                    SelectedTracks.LanguageTracks().apply {
+                        this.audioTrack.track = audioTrack
+                        this.subtitleTrack.track = subtitleTrack
+                        this.forcedSubtitleTrack.track = forcedSubtitleTrack
+                    }
+                }
+            }
+            .filterValues { it != null }
+            .mapValues { it.value as SelectedTracks.LanguageTracks }
+            .toMap()
+
+        return SelectedTracks(group, videoTrack, languageTracks)
+    }
+
+    override fun compareTo(other: InputFiles<G>) = group.compareTo(other.group)
 }

@@ -1,16 +1,9 @@
 package com.github.mmauro94.media_merger
 
-import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import com.github.mmauro94.media_merger.config.Config
 import com.github.mmauro94.media_merger.config.ConfigParseException
-import com.github.mmauro94.media_merger.show.info.ShowInfoException
-import com.github.mmauro94.media_merger.show.provider.ShowProvider
-import com.github.mmauro94.media_merger.show.provider.TmdbShowProvider
-import com.github.mmauro94.media_merger.show.provider.TvdbShowProvider
+import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import java.io.File
-import java.io.IOException
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
 
 
 object Main {
@@ -27,52 +20,50 @@ object Main {
      *  - [Episode name format]
      */
 
-    lateinit var workingDir: File
-        private set
-    var config: Config? = null
-        private set
+    var config: Config? = null; private set
+    lateinit var workingDir: File; private set
+    lateinit var mainLanguages: LinkedHashSet<MkvToolnixLanguage>; private set
+    lateinit var additionalLanguagesToKeep: Set<MkvToolnixLanguage>; private set
+    lateinit var inputFilesDetector: InputFilesDetector<*>; private set
 
     val outputDir by lazy { File(workingDir, "OUTPUT") }
 
-
-    var inputFiles: List<InputFiles>? = null
-    var showProvider: ShowProvider<*>? = null
-
-    private fun inputFiles() = inputFiles.let {
-        it ?: InputFiles.detect(workingDir).sorted().apply {
-            inputFiles = this
-        }
-    }
-
-    private fun changeShowProvider() {
-        showProvider = when (askEnum("Select show info provider", listOf("tmdb", "tvdb"))) {
-            "tmdb" -> TmdbShowProvider
-            "tvdb" -> TvdbShowProvider
-            else -> throw IllegalStateException()
-        }
-    }
-
-    private fun reloadFiles() {
-        inputFiles = null
-        inputFiles()
-    }
 
     @JvmStatic
     fun main(args: Array<String>) {
         workingDir = File(args.getOrNull(0) ?: System.getProperty("user.dir") ?: "").absoluteFile
         config = try {
             Config.parse()
-        }catch (cpe : ConfigParseException) {
+        } catch (cpe: ConfigParseException) {
             System.err.println("config.json error: ${cpe.message}")
             null
         }
 
-        MergeOptions.ADDITIONAL_LANGUAGES_TO_KEEP.addAll(config?.defaultAdditionalLanguagesToKeep ?: emptySet())
-
-        println("----- MMAURO's SHOWS MERGER UTILITY -----")
+        println("----- MMAURO's MEDIA MERGER UTILITY -----")
         println("Working directory: $workingDir")
-        MergeOptions.MAIN_LANGUAGES.addAll(askLanguages("What are the main languages?", config?.defaultLanguages?.toCollection(LinkedHashSet())))
         println()
+
+        mainLanguages =askLanguages(
+            question = "What are the main languages?",
+            defaultValue = config?.defaultLanguages?.toCollection(LinkedHashSet())
+        )
+        println()
+
+        additionalLanguagesToKeep = askLanguages(
+            question = "What are the additional languages to keep?",
+            defaultValue = config?.defaultAdditionalLanguagesToKeep?.toCollection(LinkedHashSet()) ?: LinkedHashSet()
+        )
+        println()
+
+        val mediaType = askEnum(
+            question = "What do you need to merge?",
+            enum = MediaType.ANY
+        )
+        println()
+
+        inputFilesDetector = mediaType.inputFileDetectorFactory()
+        println()
+
         mainMenu()
     }
 
@@ -86,54 +77,22 @@ object Main {
                 "Just rename files" to ::justRenameFiles,
                 "See detected files" to ::seeDetectedFiles,
                 "See selected tracks" to ::seeSelectedTracks,
-                "Edit merge options" to ::editMergeOptions,
-                "Reload files" to ::reloadFiles
+                "Reload files" to {
+                    inputFilesDetector.reloadFiles()
+                }
             ),
             exitAfterSelection = { false }
         )
     }
 
 
-    fun selectTvShow() {
-        val q = askString("Name of TV show to search:")
-        val results = try {
-            if (showProvider == null) {
-                changeShowProvider()
-            }
-            showProvider!!.searchShow(q)
-        } catch (e: ShowInfoException) {
-            System.err.println("Error searching for show")
-            if (e.message != null && e.message.isNotBlank()) {
-                System.err.println(e.message)
-            }
-            return
-        }
-        val map = results.associate {
-            it.name to {
-                inputFiles = null
-                MergeOptions.TV_SHOW = it
-                Unit
-            }
-        }.toMap(LinkedHashMap())
-        map["-- Search again --"] = {
-            selectTvShow()
-        }
-        menu(map)
-    }
-
     private fun mergeFiles() {
-        if (MergeOptions.TV_SHOW == null) {
-            println("No show selected!")
-            if (askYesNo("Select show?", true)) selectTvShow()
-        }
-        println()
-
         MergeMode.values().forEachIndexed { i, mm ->
             println("${i + 1}) ${mm.description}")
         }
         val mergeMode = MergeMode.values()[askInt("Select merge mode:", 1, MergeMode.values().size) - 1]
 
-        inputFiles()
+        inputFilesDetector.getOrReadInputFiles()
             .mapNotNull {
                 it.selectTracks()?.operation(mergeMode)
             }
@@ -143,6 +102,7 @@ object Main {
     }
 
     fun justRenameFiles() {
+        TODO()/*
         if (MergeOptions.TV_SHOW == null) {
             System.out.println("Must select show!")
             selectTvShow()
@@ -167,25 +127,7 @@ object Main {
                     }
                 }
             }
-        }
-    }
-
-    private fun editMergeOptions() {
-        menu(
-            premenu = {
-                println("--- Edit merge options ---")
-            },
-            mapF = {
-                val currentShow = MergeOptions.TV_SHOW?.name ?: "N/A"
-                linkedMapOf(
-                    "Select TV Show (Current: $currentShow)" to ::selectTvShow,
-                    "Edit additional languages to keep (${MergeOptions.ADDITIONAL_LANGUAGES_TO_KEEP.map { it.iso639_2 }})" to {
-                        inputFiles = null
-                        editLanguagesSet(MergeOptions.ADDITIONAL_LANGUAGES_TO_KEEP)
-                    }
-                )
-            }
-        )
+        }*/
     }
 
     private fun editLanguagesSet(set: MutableSet<MkvToolnixLanguage>) {
@@ -217,8 +159,8 @@ object Main {
     }
 
     private fun seeDetectedFiles() {
-        inputFiles().forEach {
-            println("${it.episode}:")
+        inputFilesDetector.getOrReadInputFiles().forEach {
+            println("${it.group}:")
             it.forEach { f ->
                 println("\t${f.file.name}")
             }
@@ -227,8 +169,8 @@ object Main {
     }
 
     private fun seeSelectedTracks() {
-        inputFiles().forEach {
-            println("${it.episode}:")
+        inputFilesDetector.getOrReadInputFiles().forEach {
+            println("${it.group}:")
             val selectedTracks = it.selectTracks()
             if (selectedTracks == null) {
                 println("\tSkipped")

@@ -132,7 +132,6 @@ class Track(
         private fun File.findLanguage(): MkvToolnixLanguage? {
             return find { f ->
                 val map = f.name.split(Regex("(\\s+|_|\\.)")).asSequence()
-                    .filter { it.length in 2..3 }
                     .groupingBy { s ->
                         MkvToolnixLanguage.find(s.toLowerCase())
                     }
