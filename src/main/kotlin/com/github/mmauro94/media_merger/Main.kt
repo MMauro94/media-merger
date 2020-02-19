@@ -51,19 +51,16 @@ object Main {
             question = "What are the main languages?",
             defaultValue = config.defaultLanguages?.toCollection(LinkedHashSet())
         )
-        println()
 
         additionalLanguagesToKeep = askLanguages(
             question = "What are the additional languages to keep?",
             defaultValue = config.defaultAdditionalLanguagesToKeep.toCollection(LinkedHashSet())
         )
-        println()
 
         val mediaType = askEnum(
             question = "What do you need to merge?",
             defaultValue = MediaType.ANY
         )
-        println()
 
         inputFilesDetector = mediaType.inputFileDetectorFactory()
         println()

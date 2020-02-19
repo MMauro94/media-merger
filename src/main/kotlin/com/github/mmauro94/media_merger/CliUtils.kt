@@ -48,6 +48,7 @@ fun <T, C : MutableCollection<T>> askThings(
         val l: String = CLI_SCANNER.nextLine()
         if (l.isEmpty()) {
             if (defaultValue !== null) {
+                println()
                 return defaultValue
             } else {
                 System.err.println("No default value!")
@@ -65,6 +66,7 @@ fun <T, C : MutableCollection<T>> askThings(
                 }
             }
             if (canRet && things.isNotEmpty()) {
+                println()
                 return things
             }
         }
@@ -202,14 +204,15 @@ inline fun <reified E : Enum<E>> askEnum(
         )
         values.single { nameProvider(it) == selected }
     } else {
+        println(question)
         values.forEachIndexed { i, e ->
             println("${i + 1}) ${nameProvider(e)}")
         }
         values[askInt(
-            question = question,
+            question = "Selection:",
             min = 1,
             max = values.size + 1,
-            default = defaultValue?.ordinal
+            default = defaultValue?.ordinal?.plus(1)
         )]
-    }
+    }.also { println() }
 }

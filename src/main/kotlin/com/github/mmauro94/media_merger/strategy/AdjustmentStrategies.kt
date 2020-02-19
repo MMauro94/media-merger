@@ -8,7 +8,7 @@ data class AdjustmentStrategies(
     val cuts: CutsAdjustmentStrategy
 ) {
     companion object {
-        fun ask() : AdjustmentStrategies{
+        fun ask(): AdjustmentStrategies {
             return AdjustmentStrategies(
                 stretch = askEnum(
                     question = "Select stretch adjustment strategy:",
@@ -19,7 +19,7 @@ data class AdjustmentStrategies(
                 cuts = askEnum(
                     question = "Select cuts adjustment strategy:",
                     long = true,
-                    nameProvider = {it.description}
+                    nameProvider = { it.description }
                 )
             )
         }
