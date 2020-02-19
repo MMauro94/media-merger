@@ -4,9 +4,11 @@ import com.github.mmauro94.media_merger.cuts.Cuts
 import com.github.mmauro94.media_merger.cuts.computeCuts
 import com.github.mmauro94.media_merger.strategy.AdjustmentStrategies
 import com.github.mmauro94.media_merger.strategy.CutsAdjustmentStrategy.*
+import com.github.mmauro94.media_merger.video_part.VideoPart.Type.SCENE
 import com.github.mmauro94.media_merger.video_part.VideoPartsMatchException
 import com.github.mmauro94.media_merger.video_part.matchFirstSceneOffset
 import com.github.mmauro94.media_merger.video_part.matchWithTarget
+import java.time.Duration
 
 /**
  * @param inputFile the file to adjust
@@ -39,6 +41,20 @@ fun selectAdjustments(
 
     val cuts = when (adjustmentStrategies.cuts) {
         NONE -> Cuts.EMPTY
+        FIRST_BLACK_SEGMENT_OFFSET -> {
+            val inputVideoParts = inputFile.videoParts?.lazy()?.times(stretchFactor)
+                ?: throw OperationCreationException("No black segments in file $inputFile")
+            val targetVideoParts = targetFile.videoParts?.lazy()
+                ?: throw OperationCreationException("No black segments in file $targetFile")
+
+            val firstInputPart = inputVideoParts.first()
+            val firstTargetPart = targetVideoParts.first()
+
+            val inputFirstSceneOffset = if (firstInputPart.type == SCENE) Duration.ZERO!! else firstInputPart.time.duration
+            val targetFirstSceneOffset = if (firstTargetPart.type == SCENE) Duration.ZERO!! else firstTargetPart.time.duration
+
+            Cuts.ofOffset(targetFirstSceneOffset - inputFirstSceneOffset)
+        }
         FIRST_SCENE_OFFSET -> {
             val inputVideoParts = inputFile.videoParts?.lazy()?.times(stretchFactor)
                 ?: throw OperationCreationException("No black segments in file $inputFile")
