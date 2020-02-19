@@ -12,6 +12,8 @@ data class InputFiles<G : Group<G>>(
 
     override fun iterator() = inputFiles.iterator()
 
+    fun outputName() = group.outputName()
+
     fun allTracks() = sequence {
         inputFiles.forEach {
             yieldAll(it.tracks)

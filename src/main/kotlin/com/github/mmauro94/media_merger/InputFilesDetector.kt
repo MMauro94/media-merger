@@ -12,8 +12,8 @@ class InputFilesDetector<G : Group<G>>(val grouper: Grouper<G>) {
         }
     }
 
-    fun reloadFiles() {
+    fun reloadFiles(): List<InputFiles<G>> {
         inputFiles = null
-        getOrReadInputFiles()
+        return getOrReadInputFiles()
     }
 }

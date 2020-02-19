@@ -4,6 +4,9 @@ import com.github.mmauro94.media_merger.config.Config
 import com.github.mmauro94.media_merger.config.ConfigParseException
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import java.io.File
+import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 
 object Main {
@@ -43,7 +46,7 @@ object Main {
         println("Working directory: $workingDir")
         println()
 
-        mainLanguages =askLanguages(
+        mainLanguages = askLanguages(
             question = "What are the main languages?",
             defaultValue = config?.defaultLanguages?.toCollection(LinkedHashSet())
         )
@@ -79,6 +82,7 @@ object Main {
                 "See selected tracks" to ::seeSelectedTracks,
                 "Reload files" to {
                     inputFilesDetector.reloadFiles()
+                    Unit
                 }
             ),
             exitAfterSelection = { false }
@@ -101,61 +105,25 @@ object Main {
             }
     }
 
-    fun justRenameFiles() {
-        TODO()/*
-        if (MergeOptions.TV_SHOW == null) {
-            System.out.println("Must select show!")
-            selectTvShow()
-        }
-        if (MergeOptions.TV_SHOW == null) {
-            System.err.println("Cannot rename if show not selected!")
-        } else {
-            inputFiles = null
-            inputFiles().forEach {
-                val outputName = it.episode.outputName()
-                if (outputName != null) {
-                    it.inputFiles.forEach { f ->
-                        try {
-                            Files.move(
-                                f.file.toPath(),
-                                File(f.file.parentFile, outputName + "." + f.file.extension).toPath(),
-                                StandardCopyOption.ATOMIC_MOVE
-                            )
-                        } catch (ioe: IOException) {
-                            System.err.println(ioe.message)
-                        }
+    private fun justRenameFiles() {
+        inputFilesDetector.inputFiles().forEach {
+            val outputName = it.outputName()
+            if (outputName != null) {
+                it.inputFiles.forEach { f ->
+                    try {
+                        Files.move(
+                            f.file.toPath(),
+                            File(f.file.parentFile, outputName + "." + f.file.extension).toPath(),
+                            StandardCopyOption.ATOMIC_MOVE
+                        )
+                    } catch (ioe: IOException) {
+                        System.err.println(ioe.message)
                     }
                 }
-            }
-        }*/
-    }
-
-    private fun editLanguagesSet(set: MutableSet<MkvToolnixLanguage>) {
-        menu(linkedMapOf(
-            "Add" to {
-                set.add(askLanguage())
-                Unit
-            },
-            "Remove" to {
-                set.remove(askLanguage())
-                Unit
-            },
-            "Set" to {
-                set.clear()
-                set.addAll(askLanguages("Languages:"))
-                Unit
-            }
-        ), premenu = {
-            if (set.isEmpty()) {
-                println("Currently NO languages")
             } else {
-                println("Current languages:")
-                set.forEachIndexed { i, it ->
-                    println("${i + 1}) $it")
-                }
+                System.err.println("Cannot rename group ${it.group}")
             }
-            println()
-        }, exitAfterSelection = { it == 3 })
+        }
     }
 
     private fun seeDetectedFiles() {
@@ -191,5 +159,4 @@ object Main {
             println()
         }
     }
-
 }

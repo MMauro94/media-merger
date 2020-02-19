@@ -42,7 +42,7 @@ fun <T, C : MutableCollection<T>> askThings(
 ): C {
     while (true) {
         print("$question ")
-        if (!defaultValue.isNullOrEmpty()) {
+        if (defaultValue != null) {
             print("[" + defaultValue.joinToString(separator = separator.first, transform = thingToString) + "] ")
         }
         val l: String = CLI_SCANNER.nextLine()
