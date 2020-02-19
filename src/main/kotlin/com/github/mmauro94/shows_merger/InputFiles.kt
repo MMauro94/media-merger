@@ -21,10 +21,10 @@ data class InputFiles(
 
     companion object {
 
-        private val VIDEO_EXTENSIONS = listOf("avi", "mp4", "mkv", "mov", "ogv", "mpg", "mpeg", "m4v")
-        private val AUDIO_EXTENSIONS = listOf("mp3", "ac3", "aac", "flac", "m4a", "oga")
-        private val SUBTITLES_EXTENSIONS = listOf("srt", "ssa", "idx", "sub")
-        private val EXTENSIONS_TO_IDENTIFY = VIDEO_EXTENSIONS + AUDIO_EXTENSIONS + SUBTITLES_EXTENSIONS
+        val VIDEO_EXTENSIONS = listOf("avi", "mp4", "mkv", "mov", "ogv", "mpg", "mpeg", "m4v")
+        val AUDIO_EXTENSIONS = listOf("mp3", "ac3", "aac", "flac", "m4a", "oga")
+        val SUBTITLES_EXTENSIONS = listOf("srt", "ssa", "idx", "sub")
+        val EXTENSIONS_TO_IDENTIFY = VIDEO_EXTENSIONS + AUDIO_EXTENSIONS + SUBTITLES_EXTENSIONS
 
         fun detect(dir: File): List<InputFiles> {
             print("Identifying files")

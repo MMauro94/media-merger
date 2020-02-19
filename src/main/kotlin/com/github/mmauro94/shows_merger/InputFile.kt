@@ -44,7 +44,7 @@ class InputFile private constructor(
                 .listFiles() //List all the files in the same directory
                 ?.filter { file.nameWithoutExtension.startsWith(it.nameWithoutExtension) } //Keep only files with the right prefix
                 ?.filterNot { it.name == file.name } //Remove itself
-                ?.sortedBy { it.name } //Sorts so that we avoid loops (two files with the same name, each main of eachother)
+                ?.sortedBy { it.name } //Sorts so that we avoid loops (two files with the same name, each main of each other)
                 ?.minBy { it.nameWithoutExtension.length } //Take the one with the shorter name
             if (f != null) {
                 //If we found a worthy file, it should have already been parsed, so we search it in the input files
@@ -58,8 +58,8 @@ class InputFile private constructor(
     val framerate by lazy { detectFramerate() ?: mainFile?.detectFramerate() }
 
     val videoParts: VideoPartsProvider? by lazy {
-        val videoTrack = tracks.singleOrNull { it.isVideoTrack() } ?: return@lazy null
-        (if (tracks.any { it.isVideoTrack() }) {
+        val videoTrack = tracks.singleOrNull { it.isVideoTrack() }
+        (if(videoTrack != null) {
             VideoPartsProvider(this, BLACK_SEGMENTS_MIN_DURATION, videoTrack.startTime)
         } else null) ?: mainFile?.videoParts
     }

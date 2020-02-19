@@ -56,7 +56,7 @@ class StretchFactor private constructor(
 
     companion object {
 
-        val EMPTY = StretchFactor(BigDecimal.ONE, BigDecimal.ONE, null)
+        val NONE = StretchFactor(BigDecimal.ONE, BigDecimal.ONE, null)
 
         //region FACTORY METHODS
         /**
@@ -140,6 +140,11 @@ class StretchFactor private constructor(
             val fromDuration = detectFromDuration(inputFile.duration, targetFile.duration)
             if (fromDuration != null) return fromDuration to false
 
+            //TODO: better handling of this case
+            if(inputFile.file.extension in InputFiles.SUBTITLES_EXTENSIONS) {
+                return StretchFactor.NONE to false
+            }
+
             val fromUser = askStretchFactor(inputFile, targetFile)
             return if (fromUser != null) fromUser to true
             else null
@@ -172,7 +177,7 @@ class StretchFactor private constructor(
                     0,
                     KNOWN_STRETCH_FACTORS.size
                 )
-                if (stretchSelection == 0) EMPTY
+                if (stretchSelection == 0) NONE
                 else KNOWN_STRETCH_FACTORS[stretchSelection - 1]
             } else null
         }

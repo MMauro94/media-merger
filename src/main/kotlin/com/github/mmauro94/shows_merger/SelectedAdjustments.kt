@@ -19,7 +19,7 @@ data class SelectedAdjustments(
     companion object {
         fun empty(inputFile: InputFile) = SelectedAdjustments(
             inputFile,
-            StretchFactor.EMPTY,
+            StretchFactor.NONE,
             Cuts(emptyList())
         )
     }

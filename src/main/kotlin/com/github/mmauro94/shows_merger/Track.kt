@@ -137,8 +137,9 @@ class Track(
                         MkvToolnixLanguage.find(s.toLowerCase())
                     }
                     .eachCount()
+                    .filterKeys { it != null }
                 val max = map.values.max()
-                map.entries.singleOrNull { it.key != null && it.value == max }?.key
+                map.entries.singleOrNull { it.value == max }?.key
             }
         }
 
