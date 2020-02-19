@@ -1,11 +1,9 @@
-package com.github.mmauro94.media_merger.show
+package com.github.mmauro94.media_merger.group.show
 
-import com.github.mmauro94.media_merger.Group
-import com.github.mmauro94.media_merger.show.info.EpisodeInfo
-import com.github.mmauro94.media_merger.show.info.ShowInfo
-import com.github.mmauro94.media_merger.show.info.ShowInfoException
+import com.github.mmauro94.media_merger.group.Group
+import com.github.mmauro94.media_merger.group.show.info.EpisodeInfo
+import com.github.mmauro94.media_merger.util.filesystemCharReplace
 import java.util.*
-import java.util.regex.Pattern
 
 /**
  * Represents an episode, composed of a [season] number and an [episode] number. Can optionally have an [episodeInfo].
@@ -15,6 +13,7 @@ class Episode(
     val episode: Int,
     val episodeInfo: EpisodeInfo?
 ) : Group<Episode> {
+
     override fun toString() = outputName() ?: "Season $season, Episode $episode"
 
     override fun hashCode() = Objects.hash(season, episode)
@@ -26,23 +25,14 @@ class Episode(
      * by replacing them with similar characters.
      */
     override fun outputName(): String? {
-        return episodeInfo?.let { i ->
+        return episodeInfo?.let {
             String.format(
                 "%s %02dx%02d - %s",
-                i.show.givenName,
-                i.seasonNumber,
-                i.episodeNumber,
-                i.name ?: "Episode ${i.episodeNumber}"
-            )
-                .replace(':', '꞉')
-                .replace('/', '／')
-                .replace('\\', '＼')
-                .replace('?', '？')
-                .replace(Regex("\"([^\"]+)\""), "‟$1”")
-                .replace('\"', '＂')
-                .replace('*', '∗')
-                .replace('<', '❮')
-                .replace('>', '❯')
+                it.show.givenName,
+                it.seasonNumber,
+                it.episodeNumber,
+                it.name ?: "Episode ${it.episodeNumber}"
+            ).filesystemCharReplace()
         }
     }
 

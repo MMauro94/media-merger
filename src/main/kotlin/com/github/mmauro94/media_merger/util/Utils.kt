@@ -61,3 +61,19 @@ fun MkvMergeCommand.addTrack(track: Track, f: MkvMergeCommand.InputFile.TrackOpt
  */
 fun <T> Sequence<T>.sortWithPreferences(vararg sorters: (T) -> Boolean) =
     this.sortedWith(compareBy(*sorters).reversed())
+
+
+/**
+ * Replaces invalid chars for filenames with close unicode matches
+ */
+fun String.filesystemCharReplace(): String {
+    return replace(':', '꞉')
+        .replace('/', '／')
+        .replace('\\', '＼')
+        .replace('?', '？')
+        .replace(Regex("\"([^\"]+)\""), "‟$1”")
+        .replace('\"', '＂')
+        .replace('*', '∗')
+        .replace('<', '❮')
+        .replace('>', '❯')
+}

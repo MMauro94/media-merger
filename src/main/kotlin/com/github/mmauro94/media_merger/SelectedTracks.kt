@@ -4,6 +4,7 @@ import com.github.mmauro94.media_merger.adjustment.Adjustment
 import com.github.mmauro94.media_merger.adjustment.Adjustments
 import com.github.mmauro94.media_merger.adjustment.CutsAdjustment
 import com.github.mmauro94.media_merger.adjustment.StretchAdjustment
+import com.github.mmauro94.media_merger.group.Group
 import com.github.mmauro94.media_merger.util.addTrack
 import com.github.mmauro94.media_merger.util.sortWithPreferences
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix

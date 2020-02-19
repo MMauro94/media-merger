@@ -1,27 +1,30 @@
-package com.github.mmauro94.media_merger.show.info
+package com.github.mmauro94.media_merger.group.show.info
 
 import java.time.Year
+import com.github.mmauro94.media_merger.group.GroupInfoException
 
 /**
  * Interface that holds the info of a shot
  */
-interface ShowInfo {
+abstract class ShowInfo {
 
     /**
      * The raw name given by the show info provider
      */
-    val givenName: String
+    abstract val givenName: String
 
     /**
      * A smart name generated that should include more info (e.g. the year) and that is displayed to the user in the CLI
      */
-    val name: String
+    abstract val name: String
 
     /**
      * Returns the information about a particular episode
-     * @throws ShowInfoException if the info cannot be returned
+     * @throws GroupInfoException if the info cannot be returned
      */
-    fun episodeInfo(season: Int, episode: Int): EpisodeInfo
+    abstract fun episodeInfo(season: Int, episode: Int): EpisodeInfo
+
+    override fun toString() = name
 
     companion object {
 

@@ -1,9 +1,10 @@
-package com.github.mmauro94.media_merger.show.provider
+package com.github.mmauro94.media_merger.group.show.provider
 
 import com.github.mmauro94.media_merger.Main
-import com.github.mmauro94.media_merger.show.info.EpisodeInfo
-import com.github.mmauro94.media_merger.show.info.ShowInfoException
-import com.github.mmauro94.media_merger.show.info.TmdbShow
+import com.github.mmauro94.media_merger.group.GroupInfoException
+import com.github.mmauro94.media_merger.group.Service
+import com.github.mmauro94.media_merger.group.show.info.EpisodeInfo
+import com.github.mmauro94.media_merger.group.show.info.TmdbShow
 import com.uwetrottmann.tmdb2.Tmdb
 
 /**
@@ -11,24 +12,24 @@ import com.uwetrottmann.tmdb2.Tmdb
  */
 object TmdbShowProvider : ShowProvider<TmdbShow> {
 
-    private val tmdb by lazy {
-        Tmdb(ShowProvider.apiKey("TMDB"))
-    }
+    override val service = Service.TMDB
 
-    override fun searchShow(query: String): List<TmdbShow> {
+    private val tmdb by lazy { Tmdb(service.apiKey()) }
+
+    override fun search(query: String): List<TmdbShow> {
         val search = try {
             tmdb
                 .searchService()
                 .tv(query, 1, Main.mainLanguages.first().iso639_1 ?: "en", null, null)
                 .execute()
         } catch (e: Exception) {
-            throw ShowInfoException(e.message)
+            throw GroupInfoException(e.message)
         }
         val body = search.body()
 
         return body?.results?.map {
             TmdbShow(it)
-        } ?: throw ShowInfoException(
+        } ?: throw GroupInfoException(
             search.errorBody()?.string() ?: ""
         )
     }
@@ -37,7 +38,7 @@ object TmdbShowProvider : ShowProvider<TmdbShow> {
 
     /**
      * Downloads a season
-     * @throws ShowInfoException if the season cannot be downloaded
+     * @throws GroupInfoException if the season cannot be downloaded
      */
     private fun downloadSeason(show: TmdbShow, season: Int): List<EpisodeInfo> {
         val response = try {
@@ -47,7 +48,7 @@ object TmdbShowProvider : ShowProvider<TmdbShow> {
                 Main.mainLanguages.first().iso639_1 ?: "en"
             ).execute()
         } catch (e: Exception) {
-            throw ShowInfoException(e.message)
+            throw GroupInfoException(e.message)
         }
         return response
             .body()
@@ -60,14 +61,14 @@ object TmdbShowProvider : ShowProvider<TmdbShow> {
                     it.name
                 )
             }
-            ?: throw ShowInfoException(
+            ?: throw GroupInfoException(
                 response.errorBody()?.string() ?: ""
             )
     }
 
     /**
      * Returns the episode info
-     * @throws ShowInfoException if it cannot be downloaded
+     * @throws GroupInfoException if it cannot be downloaded
      */
     fun episodeInfo(show: TmdbShow, season: Int, episode: Int): EpisodeInfo {
         return seasons
@@ -75,7 +76,7 @@ object TmdbShowProvider : ShowProvider<TmdbShow> {
                 downloadSeason(show, season)
             }
             .singleOrNull { it.episodeNumber == episode }
-            ?: throw ShowInfoException("Cannot find episode S${season}E$episode")
+            ?: throw GroupInfoException("Cannot find episode S${season}E$episode")
     }
 
 }

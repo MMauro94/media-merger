@@ -1,4 +1,4 @@
-package com.github.mmauro94.media_merger.show.info
+package com.github.mmauro94.media_merger.group.show.info
 
 /**
  * Info for an episode

@@ -293,7 +293,7 @@ fun InputFile.detectBlackSegments(
                 }
             }
             .setInput(file.absolutePath).apply {
-                Main.config?.ffmpegHardwareAcceleration?.let {
+                Main.config.ffmpegHardwareAcceleration?.let {
                     addExtraArgs("-hwaccel", it)
                 }
             }

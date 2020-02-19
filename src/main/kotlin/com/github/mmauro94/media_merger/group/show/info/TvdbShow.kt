@@ -1,6 +1,7 @@
-package com.github.mmauro94.media_merger.show.info
+package com.github.mmauro94.media_merger.group.show.info
 
-import com.github.mmauro94.media_merger.show.provider.TvdbShowProvider
+import com.github.mmauro94.media_merger.group.GroupInfoException
+import com.github.mmauro94.media_merger.group.show.provider.TvdbShowProvider
 import com.uwetrottmann.thetvdb.entities.Series
 import java.time.LocalDate
 import java.time.Year
@@ -12,7 +13,7 @@ import java.time.temporal.ChronoField
 /**
  * A show downloaded by THETVDB
  */
-data class TvdbShow(private val tvdbShow: Series) : ShowInfo {
+data class TvdbShow(private val tvdbShow: Series) : ShowInfo() {
     val id = tvdbShow.id!!
 
     val firstAired: LocalDate? = tvdbShow.firstAired?.let {
@@ -32,7 +33,9 @@ data class TvdbShow(private val tvdbShow: Series) : ShowInfo {
         firstAired?.let { Year.from(it) }
     )
 
-    @Throws(ShowInfoException::class)
+    override fun toString() = super.toString()
+
+    @Throws(GroupInfoException::class)
     override fun episodeInfo(season: Int, episode: Int): EpisodeInfo {
         return TvdbShowProvider.episodeInfo(this, season, episode)
     }

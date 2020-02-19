@@ -1,5 +1,7 @@
 package com.github.mmauro94.media_merger
 
+import com.github.mmauro94.media_merger.group.Group
+import com.github.mmauro94.media_merger.group.Grouper
 import com.github.mmauro94.media_merger.util.add
 import com.github.mmauro94.media_merger.util.addAll
 import com.github.mmauro94.media_merger.util.sortWithPreferences

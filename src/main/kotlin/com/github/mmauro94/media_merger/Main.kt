@@ -23,7 +23,7 @@ object Main {
      *  - [Episode name format]
      */
 
-    var config: Config? = null; private set
+    lateinit var config: Config; private set
     lateinit var workingDir: File; private set
     lateinit var mainLanguages: LinkedHashSet<MkvToolnixLanguage>; private set
     lateinit var additionalLanguagesToKeep: Set<MkvToolnixLanguage>; private set
@@ -39,7 +39,7 @@ object Main {
             Config.parse()
         } catch (cpe: ConfigParseException) {
             System.err.println("config.json error: ${cpe.message}")
-            null
+            Config()
         }
 
         println("----- MMAURO's MEDIA MERGER UTILITY -----")
@@ -48,13 +48,13 @@ object Main {
 
         mainLanguages = askLanguages(
             question = "What are the main languages?",
-            defaultValue = config?.defaultLanguages?.toCollection(LinkedHashSet())
+            defaultValue = config.defaultLanguages?.toCollection(LinkedHashSet())
         )
         println()
 
         additionalLanguagesToKeep = askLanguages(
             question = "What are the additional languages to keep?",
-            defaultValue = config?.defaultAdditionalLanguagesToKeep?.toCollection(LinkedHashSet()) ?: LinkedHashSet()
+            defaultValue = config.defaultAdditionalLanguagesToKeep.toCollection(LinkedHashSet())
         )
         println()
 

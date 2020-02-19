@@ -1,5 +1,8 @@
 package com.github.mmauro94.media_merger
 
+import com.github.mmauro94.media_merger.group.Group
+import com.github.mmauro94.media_merger.group.Grouper
+
 class InputFilesDetector<G : Group<G>>(val grouper: Grouper<G>) {
 
     private var inputFiles: List<InputFiles<G>>? = null
