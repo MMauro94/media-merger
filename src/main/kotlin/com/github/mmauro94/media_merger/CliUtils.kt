@@ -194,7 +194,7 @@ inline fun <reified E : Enum<E>> askEnum(
     nameProvider: (E) -> String = { it.name.toLowerCase() }
 ): E {
     val values = enumValues<E>()
-    return if (long) {
+    return if (!long) {
         val selected = askOption(
             question,
             values.map { nameProvider(it) },

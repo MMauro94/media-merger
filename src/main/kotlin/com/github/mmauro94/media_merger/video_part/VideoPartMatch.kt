@@ -147,7 +147,7 @@ private fun matchNext(
 }
 
 /**
- * Matches [this] video parts with [targets] using a more lenient and smart algorithm.
+ * Matches [this] video parts with [targets]
  */
 fun VideoParts.matchWithTarget(targets: VideoParts): Pair<List<VideoPartMatch>, Accuracy> {
     val inputParts = iterator()

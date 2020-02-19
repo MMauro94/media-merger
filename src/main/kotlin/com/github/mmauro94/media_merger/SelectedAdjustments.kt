@@ -39,7 +39,7 @@ fun selectAdjustments(
 
     val cuts = when (adjustmentStrategies.cuts) {
         NONE -> Cuts.EMPTY
-        OFFSET -> {
+        FIRST_SCENE_OFFSET -> {
             val inputVideoParts = inputFile.videoParts?.lazy()?.times(stretchFactor)
                 ?: throw OperationCreationException("No black segments in file $inputFile")
             val targetVideoParts = targetFile.videoParts?.lazy()

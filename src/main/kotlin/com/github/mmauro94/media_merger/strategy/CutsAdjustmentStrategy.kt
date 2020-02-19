@@ -7,12 +7,12 @@ enum class CutsAdjustmentStrategy(val description : String) {
     NONE("No cuts"),
 
     /**
-     * The tracks will be offset by a value calculated using the first black frames of the videos
+     * The tracks will be offset by a value calculated using the matched first scene of the videos, detected using black frames
      */
-    OFFSET("Adjust offset using black frames"),
+    FIRST_SCENE_OFFSET("Adjust offset using first matching scene"),
 
     /**
      * The scenes will be detected using black frames, cutting the tracks appropriately.
      */
-    SCENES("Cut scenes using black frames")
+    SCENES("Cut by matching scenes")
 }
