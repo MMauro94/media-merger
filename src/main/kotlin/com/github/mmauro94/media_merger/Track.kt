@@ -6,6 +6,7 @@ import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixTrack
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixTrackType
 import com.github.mmauro94.media_merger.util.asSecondsDuration
 import com.github.mmauro94.media_merger.util.find
+import com.github.mmauro94.media_merger.util.findWalkingUp
 import net.bramp.ffmpeg.probe.FFmpegStream
 import java.io.File
 import java.time.Duration
@@ -78,7 +79,7 @@ class Track(
     val isForced by lazy {
         mkvTrack.isForced() == true ||
                 mkvTrack.properties?.trackName?.contains("forced", ignoreCase = true) == true ||
-                (isOnItsFile && inputFile.file.find {
+                (isOnItsFile && inputFile.file.findWalkingUp(false) {
                     it.name.contains("forced", ignoreCase = true)
                 } ?: false) ||
                 (isOnItsFile && inputFile.file.length() in 1..(1024 * 10)) //< 10KiB
@@ -130,7 +131,7 @@ class Track(
         }
 
         private fun File.findLanguage(): MkvToolnixLanguage? {
-            return find { f ->
+            return findWalkingUp(false) { f ->
                 val map = f.name.split(Regex("(\\s+|_|\\.)")).asSequence()
                     .groupingBy { s ->
                         MkvToolnixLanguage.find(s.toLowerCase())
@@ -140,14 +141,6 @@ class Track(
                 val max = map.values.max()
                 map.entries.singleOrNull { it.value == max }?.key
             }
-        }
-
-        private fun <T> File.find(finder: (File) -> T?): T? {
-            val found = finder(this)
-            val parent = absoluteFile.parentFile?.absoluteFile
-            return if (found == null && parent != null && parent != Main.workingDir) {
-                parent.find(finder)
-            } else found
         }
     }
 }

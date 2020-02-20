@@ -1,9 +1,9 @@
 package com.github.mmauro94.media_merger.util
 
-import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
-import com.github.mmauro94.mkvtoolnix_wrapper.merge.MkvMergeCommand
 import com.github.mmauro94.media_merger.Main
 import com.github.mmauro94.media_merger.Track
+import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
+import com.github.mmauro94.mkvtoolnix_wrapper.merge.MkvMergeCommand
 import java.io.File
 import java.util.*
 
@@ -76,4 +76,23 @@ fun String.filesystemCharReplace(): String {
         .replace('*', '∗')
         .replace('<', '❮')
         .replace('>', '❯')
+}
+
+fun <T> File.findWalkingUp(allowWorkingDir: Boolean, finder: (File) -> T?): T? {
+    return if (absoluteFile == Main.workingDir) {
+        //If current if working dir we must stop recursion
+        //We either return null or allow one last finder call, base on allowWorkingDir
+        if (allowWorkingDir) finder(this)
+        else null
+    } else {
+        //If the current directory is not the working dir, we can keep finding and bubbling up
+        require(absolutePath.contains(Main.workingDir.absolutePath))
+
+        val found = finder(this)
+        val parent = absoluteFile.parentFile?.absoluteFile
+        if (found == null && parent != null) {
+            //Keep recursing up if not found anything and parent exists
+            parent.findWalkingUp(allowWorkingDir, finder)
+        } else found
+    }
 }

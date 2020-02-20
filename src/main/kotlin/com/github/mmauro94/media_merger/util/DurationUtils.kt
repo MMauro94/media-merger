@@ -6,19 +6,15 @@ import java.util.concurrent.TimeUnit
 
 
 fun Duration.toTimeString(separator: Char = ':'): String {
-    return if (this.isZero) {
-        "0"
-    } else {
-        mutableListOf<String>().apply {
-            fun add(i: Int, pad: Int = 2) {
-                add(i.toString().padStart(pad, '0'))
-            }
-            add(toHoursPart())
-            add(toMinutesPart())
-            add(toSecondsPart())
-            add(toNanosPart(), 9)
-        }.joinToString(separator = separator.toString())
-    }
+    return mutableListOf<String>().apply {
+        fun add(i: Int, pad: Int = 2) {
+            add(i.toString().padStart(pad, '0'))
+        }
+        add(toHoursPart())
+        add(toMinutesPart())
+        add(toSecondsPart())
+        add(toNanosPart(), 9)
+    }.joinToString(separator = separator.toString())
 }
 
 fun Duration?.toTimeStringOrUnknown(separator: Char = ':'): String = this?.toTimeString(separator) ?: "Unknown"
@@ -40,8 +36,10 @@ fun String.parseTimeString(separator: Char = ':'): Duration? {
 /**
  * Converts [this] double as a number of seconds and coverts it to a [Duration]
  */
-fun Double.asSecondsDuration(onZero : Duration? = null) =
-    if (this == 0.0) onZero else Duration.ofSeconds(toLong(), ((this % 1) * 1000000000).toLong())!!
+fun Double.asSecondsDuration(onZero: Duration? = null): Duration? {
+    check(this >= 0)
+    return if (this == 0.0) onZero else Duration.ofSeconds(toLong(), ((this % 1) * 1000000000).toLong())!!
+}
 
 /**
  * Converts [this] BigDecimal as a number of seconds and coverts it to a [Duration]

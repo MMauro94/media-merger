@@ -22,13 +22,13 @@ interface Grouper<G : Group<G>> {
                 defaultValue = providers.singleOrNull()?.service?.name?.toLowerCase() ?: ""
             )
             val provider = providers.single { it.service.name.toLowerCase() == serviceName }
-            return select(provider) {
+            return select(type, provider) {
                 select(type, *providers)
             }
         }
 
-        private fun <INFO> select(provider: GroupInfoProvider<INFO>, reselect: () -> INFO?): INFO? {
-            val q = askString("Name of movie to search:")
+        private fun <INFO> select(type: String, provider: GroupInfoProvider<INFO>, reselect: () -> INFO?): INFO? {
+            val q = askString("Name of $type to search:")
             val results = try {
                 provider.search(q)
             } catch (e: GroupInfoException) {
@@ -42,7 +42,7 @@ interface Grouper<G : Group<G>> {
                 items = results.map { it.toString() } + "-- Search again --",
                 onSelection = {
                     return if (it == results.size) {
-                        select(provider, reselect)
+                        select(type, provider, reselect)
                     } else results[it]
                 },
                 exitName = "None"

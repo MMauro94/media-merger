@@ -213,6 +213,6 @@ inline fun <reified E : Enum<E>> askEnum(
             min = 1,
             max = values.size + 1,
             default = defaultValue?.ordinal?.plus(1)
-        )]
+        ) - 1]
     }.also { println() }
 }

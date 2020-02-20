@@ -15,7 +15,6 @@ object Main {
 
     /*
      * Missing things TODO:
-     *  - Add a way to specify adjustment for subtitles only once
      *  - Better error handling
      *  - [Option to convert the video if not in suitable format]
      *  - [Better output]
@@ -35,13 +34,13 @@ object Main {
     @JvmStatic
     fun main(args: Array<String>) {
         workingDir = File(args.getOrNull(0) ?: System.getProperty("user.dir") ?: "").absoluteFile
+
         config = try {
             Config.parse()
         } catch (cpe: ConfigParseException) {
             System.err.println("config.json error: ${cpe.message}")
             Config()
         }
-
         println("----- MMAURO's MEDIA MERGER UTILITY -----")
         println("Working directory: $workingDir")
         println()
@@ -125,6 +124,7 @@ object Main {
             println("${it.group}:")
             it.forEach { f ->
                 println("\t${f.file.name}")
+                println("\t\t${f.mainFile?.file?.name}")
             }
             println()
         }

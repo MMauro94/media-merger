@@ -1,6 +1,7 @@
 package com.github.mmauro94.media_merger
 
 import com.github.mmauro94.media_merger.util.asSecondsDuration
+import com.github.mmauro94.media_merger.util.findWalkingUp
 import com.github.mmauro94.media_merger.video_part.VideoPartsProvider
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixFileIdentification
@@ -32,6 +33,11 @@ class InputFile private constructor(
     val duration = ffprobeResult.format.duration.asSecondsDuration()
 
     /**
+     * Only single track video files can be a main track
+     */
+    private val canBeAMainFile by lazy { tracks.count { it.isVideoTrack() } == 1 }
+
+    /**
      * Some file may be external to the main file (e.g. subtitle tracks)
      * This lazy value searches for the main file, if it exists.
      * A main file should be named with a prefix of this file name.
@@ -44,21 +50,22 @@ class InputFile private constructor(
      *  - This file: Show.S01E01.mp3
      *  - Main file: Show.S01E01.mkv
      */
-    val mainFile by lazy {
-        //Only non-video single-track files can have a main file
-        if (tracks.size == 1 && !tracks.single().isVideoTrack()) {
-            val f = file.parentFile
-                .listFiles() //List all the files in the same directory
-                ?.filter { file.nameWithoutExtension.startsWith(it.nameWithoutExtension) } //Keep only files with the right prefix
-                ?.filterNot { it.name == file.name } //Remove itself
-                ?.sortedBy { it.name } //Sorts so that we avoid loops (two files with the same name, each main of each other)
-                ?.minBy { it.nameWithoutExtension.length } //Take the one with the shorter name
-            if (f != null) {
-                //If we found a worthy file, it should have already been parsed, so we search it in the input files
-                Main.inputFilesDetector.inputFiles()
-                    .flatMap { it.inputFiles }
-                    .find { it.file.absolutePath == f.absolutePath }
-            } else null
+    val mainFile: InputFile? by lazy {
+        //Main files cannot have main files
+        if (!canBeAMainFile) {
+            val inputFiles = inputFiles
+                .filter { it.canBeAMainFile } //Filter only files that can actually be a main file
+                .toMutableList()
+
+            file.parentFile.findWalkingUp(true) { dir ->
+                val filesToAnalyze = inputFiles.filter { it.file.parentFile == dir } //Keep only files inside the directory dir
+
+                filesToAnalyze
+                    .filter { file.nameWithoutExtension.startsWith(dir.nameWithoutExtension) } //Try to find files that are a prefix of me
+                    .minBy { it.file.nameWithoutExtension.length } //And take the shortest one
+                    ?: filesToAnalyze.firstOrNull() //If not found, take the first file that can be a main file if it exists
+                //When the expression returns null, we go up one level
+            }
         } else null
     }
 

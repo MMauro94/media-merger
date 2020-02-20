@@ -3,6 +3,7 @@ package com.github.mmauro94.media_merger.video_part
 import com.github.mmauro94.media_merger.InputFile
 import com.github.mmauro94.media_merger.Main
 import com.github.mmauro94.media_merger.StretchFactor
+import com.github.mmauro94.media_merger.Track
 import com.github.mmauro94.media_merger.util.*
 import com.github.mmauro94.media_merger.video_part.VideoPart.Type.BLACK_SEGMENT
 import net.bramp.ffmpeg.FFmpeg
@@ -94,14 +95,18 @@ class VideoPartIterator(
 
     operator fun plus(offset: Duration): VideoPartIterator {
         check(!offset.isNegative)
-        return if(offset.isZero) copy()
+        return if (offset.isZero) copy()
         else VideoPartIterator(mutableListOf(), this) {
             if (nextIndex == 0) {
-                if(it.type == BLACK_SEGMENT) {
-                    listOf(it.copy(time = DurationSpan(
-                        it.time.start,
-                        it.time.end + offset
-                    )))
+                if (it.type == BLACK_SEGMENT) {
+                    listOf(
+                        it.copy(
+                            time = DurationSpan(
+                                it.time.start,
+                                it.time.end + offset
+                            )
+                        )
+                    )
                 } else {
                     listOf(
                         BlackSegment(Duration.ZERO, offset),
@@ -198,54 +203,76 @@ private fun InputFile.detectVideoParts(
         require(chunkSize > Duration.ZERO)
     }
     return VideoPartIterator(mutableListOf(), iterator {
-        var chunk = if (chunkSize == null) null else DurationSpan(Duration.ZERO, chunkSize)
-        var blacks = detectBlackSegments(minDuration, chunk)
-        var lastBlack: DurationSpan? = null
+        val videoTrack = tracks.singleOrNull { it.isVideoTrack() }
+        if (videoTrack != null) {
+            var chunk = if (chunkSize == null) null else DurationSpan(Duration.ZERO, chunkSize)
+            var blacks = videoTrack.detectBlackSegments(minDuration, chunk)
 
-        while (blacks != null) {
-            for (black in blacks) {
-                when {
-                    lastBlack == null -> {
-                        //This is the first black we encounter
-                        if (!black.start.isZero) {
-                            //Video starts with a scene
-                            yield(Scene(Duration.ZERO, black.start))
+            var lastBlack: DurationSpan? = null
+            var lastYielded = false
+
+            while (blacks != null) {
+                for (black in blacks) {
+                    lastBlack = when {
+                        lastBlack == null -> {
+                            //This is the first black we encounter
+                            if (black.start <= videoTrack.startTime) {
+                                //Black starts right at or before the start of the track
+                                //Then we register a black that starts at the start of the file
+                                DurationSpan(Duration.ZERO, black.end)
+                            } else {
+                                //Otherwise it means that the track starts with a scene
+                                if (videoTrack.startTime > Duration.ZERO) {
+                                    //We add a first black part if the track doesn't start at zero
+                                    yield(BlackSegment(Duration.ZERO, videoTrack.startTime))
+                                }
+                                //And we add a scene starting at the start of the track
+                                yield(Scene(videoTrack.startTime, black.start))
+                                black
+                            }
                         }
-                        lastBlack = black
+                        !lastYielded && black.isConsecutiveOf(lastBlack) -> {
+                            //The new black is directly after the last one, we need to merge them
+                            DurationSpan(lastBlack.start, black.end)
+                        }
+                        else -> {
+                            if(!lastYielded) {
+                                //In this case we need to yield both the previous black
+                                yield(BlackSegment(lastBlack))
+                            }
+                            //as well as the scene between the two
+                            yield(Scene(lastBlack.end, black.start))
+                            black
+                        }
                     }
-                    black.isConsecutiveOf(lastBlack) -> {
-                        //The new black is directly after the last one, we need to merge them
-                        lastBlack = DurationSpan(lastBlack.start, black.end)
-                    }
-                    else -> {
-                        //In this case we need to yield both the previous black
+                    lastYielded = false
+                }
+                if (chunk != null) {
+                    if(lastBlack!!.end < chunk.end && !lastYielded) {
+                        //In this case I know that this black segment can be safely yielded, so I do so
                         yield(BlackSegment(lastBlack))
-                        //as well as the scene between the two
-                        yield(Scene(lastBlack.end, black.start))
-                        lastBlack = black
+                        lastYielded = true
                     }
+                    chunk = chunk.consecutiveOfSameLength()
+                    blacks = videoTrack.detectBlackSegments(minDuration, chunk)
+                } else {
+                    blacks = null
                 }
             }
-            if (chunk != null) {
-                chunk = chunk.consecutiveOfSameLength()
-                blacks = detectBlackSegments(minDuration, chunk)
-            } else {
-                blacks = null
+            //End of file reached
+            //We return the last black segment, if it exists
+            if (lastBlack != null && !lastYielded) {
+                yield(BlackSegment(lastBlack))
             }
-        }
-        //End of file reached
-        //We return the last black segment, if it exists
-        if (lastBlack != null) {
-            yield(BlackSegment(lastBlack))
-        }
 
-        if (duration != null) {
-            //If we know the duration of the file we return the last scene (if it exists)
-            //When lastBlack is null it means there is only a single scene in the file, starting at zero
+            if (duration != null) {
+                //If we know the duration of the file we return the last scene (if it exists)
+                //When lastBlack is null it means there is only a single scene in the file, starting at zero
 
-            val lastSceneStart = (lastBlack?.end ?: Duration.ZERO)
-            if (lastSceneStart < duration) {
-                yield(Scene(lastSceneStart, duration))
+                val lastSceneStart = (lastBlack?.end ?: Duration.ZERO)
+                if (lastSceneStart < duration) {
+                    yield(Scene(lastSceneStart, duration))
+                }
             }
         }
     })
@@ -263,7 +290,7 @@ private fun InputFile.detectVideoParts(
  * @param minDuration the min duration of the black segments. All black segments with a smaller duration will be ignored
  * @param range the range of the input file where to search the black segments in. If a black segment is between the start/end of the range, it will be returned split.
  */
-fun InputFile.detectBlackSegments(
+fun Track.detectBlackSegments(
     minDuration: Duration,
     range: DurationSpan? = null
 ): List<DurationSpan>? {
@@ -299,6 +326,8 @@ fun InputFile.detectBlackSegments(
             }
             .addStdoutOutput()
             .addExtraArgs(
+                "-map",
+                "0:" + ffprobeStream.index,
                 "-vf",
                 "\"blackdetect=d=" + minDuration.toTotalSeconds() + "\""
             )
