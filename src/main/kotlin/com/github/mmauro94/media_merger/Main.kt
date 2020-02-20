@@ -15,7 +15,6 @@ object Main {
 
     /*
      * Missing things TODO:
-     *  - Add a mode that calculates offset based only on the first black fragment
      *  - Add a way to specify adjustment for subtitles only once
      *  - Better error handling
      *  - [Option to convert the video if not in suitable format]

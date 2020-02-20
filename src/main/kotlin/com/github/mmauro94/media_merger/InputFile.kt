@@ -1,9 +1,9 @@
 package com.github.mmauro94.media_merger
 
-import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
-import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixFileIdentification
 import com.github.mmauro94.media_merger.util.asSecondsDuration
 import com.github.mmauro94.media_merger.video_part.VideoPartsProvider
+import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
+import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixFileIdentification
 import net.bramp.ffmpeg.FFprobe
 import net.bramp.ffmpeg.probe.FFmpegProbeResult
 import java.io.File
@@ -13,10 +13,18 @@ import java.time.Duration
 private val BLACK_SEGMENTS_MIN_DURATION = Duration.ofMillis(100)!!
 
 class InputFile private constructor(
+    val inputFilesProvider: () -> InputFiles<*>,
     val file: File,
     val mkvIdentification: MkvToolnixFileIdentification,
     val ffprobeResult: FFmpegProbeResult
 ) {
+
+    val inputFiles by lazy {
+        inputFilesProvider().also {
+            check(this@InputFile in it)
+        }
+    }
+
     private var _tracks: List<Track>? = null
 
     val tracks by lazy { _tracks!! }
@@ -58,7 +66,7 @@ class InputFile private constructor(
 
     val videoParts: VideoPartsProvider? by lazy {
         val videoTrack = tracks.singleOrNull { it.isVideoTrack() }
-        (if(videoTrack != null) {
+        (if (videoTrack != null) {
             VideoPartsProvider(this, BLACK_SEGMENTS_MIN_DURATION, videoTrack.startTime)
         } else null) ?: mainFile?.videoParts
     }
@@ -73,16 +81,17 @@ class InputFile private constructor(
 
     companion object {
         private fun new(
+            inputFilesProvider: () -> InputFiles<*>,
             file: File,
             mkvIdentification: MkvToolnixFileIdentification,
             ffprobeResult: FFmpegProbeResult
         ): InputFile {
-            val input = InputFile(file, mkvIdentification, ffprobeResult)
+            val input = InputFile(inputFilesProvider, file, mkvIdentification, ffprobeResult)
             input._tracks = tracks(input)
             return input
         }
 
-        fun parse(file: File): InputFile {
+        fun parse(inputFilesProvider: () -> InputFiles<*>, file: File): InputFile {
             val mkvId = MkvToolnix.identify(file)
             if (!mkvId.container.recognized) {
                 throw ParseException("mkvmerge doesn't recognize the file ${file.absolutePath}")
@@ -92,7 +101,7 @@ class InputFile private constructor(
             } catch (e: IOException) {
                 throw ParseException("Error ffprobing file ${file.absolutePath}", e)
             }
-            return new(file, mkvId, probeResult)
+            return new(inputFilesProvider, file, mkvId, probeResult)
         }
 
         private fun tracks(inputFile: InputFile): List<Track> {

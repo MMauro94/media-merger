@@ -42,7 +42,9 @@ abstract class TrackAdjuster<T>(
             else -> doAdjust()
         }
         return if (res) {
-            return InputFile.parse(outputFile).tracks.single()
+            return InputFile.parse({
+                throw IllegalStateException("Requested InputFiles of adjusted tracks")
+            }, outputFile).tracks.single()
         } else null
 
     }

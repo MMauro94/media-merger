@@ -10,7 +10,7 @@ import com.github.mmauro94.media_merger.cuts.Cuts
  */
 class CutsAdjustment(data: Cuts) : Adjustment<Cuts>(data) {
 
-    override val outputConcat = listOf("cuts" + data.hashCode())
+    override val outputConcat = listOf("cuts" + data.hashCode()) //TODO better string representation
 
     override fun isValid(): Boolean {
         return !data.isEmptyOffset()

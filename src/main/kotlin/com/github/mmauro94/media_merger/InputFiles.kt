@@ -31,15 +31,19 @@ data class InputFiles<G : Group<G>>(
 
         fun <G : Group<G>> detect(grouper: Grouper<G>, dir: File): List<InputFiles<G>> {
             print("Identifying files")
-            val ret = detectInner(grouper, dir)
+            val inputFiles = mutableMapOf<G, InputFiles<G>>()
+            val ret = detectInner({ inputFiles.getValue(it) }, grouper, dir)
             if (ret.isEmpty()) {
                 println()
                 System.err.println("No files identified!")
             } else println("OK")
-            return ret.map { InputFiles(it.key, it.value) }
+            for ((key, value) in ret) {
+                inputFiles[key] = InputFiles(key, value)
+            }
+            return inputFiles.values.toList()
         }
 
-        private fun <G : Group<G>> detectInner(grouper: Grouper<G>, dir: File): Map<G, List<InputFile>> {
+        private fun <G : Group<G>> detectInner(inputFilesProvider: (G) -> InputFiles<*>, grouper: Grouper<G>, dir: File): Map<G, List<InputFile>> {
             val ret = HashMap<G, MutableList<InputFile>>()
             val listFiles: Array<File> = dir.listFiles() ?: emptyArray()
             val files = listFiles
@@ -52,7 +56,7 @@ data class InputFiles<G : Group<G>>(
                 if (ei != null) {
                     files.forEach { f ->
                         try {
-                            ret.add(ei, InputFile.parse(f))
+                            ret.add(ei, InputFile.parse({ inputFilesProvider(ei) }, f))
                         } catch (e: InputFile.ParseException) {
                             System.err.println("Unable to parse file: ${e.message}")
                         }
@@ -63,7 +67,7 @@ data class InputFiles<G : Group<G>>(
             listFiles.asSequence()
                 .filter { it.isDirectory }
                 .forEach {
-                    ret.addAll(detectInner(grouper, it))
+                    ret.addAll(detectInner(inputFilesProvider, grouper, it))
                 }
             return ret
         }
