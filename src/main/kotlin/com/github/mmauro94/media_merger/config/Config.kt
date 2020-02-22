@@ -2,6 +2,8 @@ package com.github.mmauro94.media_merger.config
 
 import com.beust.klaxon.Klaxon
 import com.beust.klaxon.KlaxonException
+import com.github.mmauro94.media_merger.config.converters.DurationConverter
+import com.github.mmauro94.media_merger.config.converters.MkvToolnixLanguageConverter
 import com.github.mmauro94.media_merger.strategy.StretchAdjustmentStrategy
 import com.github.mmauro94.media_merger.util.JAR_LOCATION
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
@@ -17,7 +19,7 @@ import java.io.IOException
 data class Config(
     val defaultLanguages: List<MkvToolnixLanguage>? = null,
     val defaultAdditionalLanguagesToKeep: List<MkvToolnixLanguage> = emptyList(),
-    val ffmpegHardwareAcceleration: String? = "auto",
+    val ffmpeg: FFMpegConfig = FFMpegConfig(),
     val apiKeys: Map<String, String> = emptyMap(),
     val defaultStretchAdjustmentStrategy: StretchAdjustmentStrategy = StretchAdjustmentStrategy.KNOWN_ONLY
 ) {
@@ -57,6 +59,7 @@ data class Config(
                 try {
                     Klaxon()
                         .converter(MkvToolnixLanguageConverter)
+                        .converter(DurationConverter)
                         .parse<Config>(CONFIG_FILE) ?: Config()
                 } catch (ioe: IOException) {
                     throw ConfigParseException("Unable to read config.json", ioe)

@@ -1,6 +1,6 @@
 package com.github.mmauro94.media_merger
 
-import com.github.mmauro94.media_merger.util.asSecondsDuration
+import com.github.mmauro94.media_merger.util.toSecondsDuration
 import com.github.mmauro94.media_merger.util.findWalkingUp
 import com.github.mmauro94.media_merger.video_part.VideoPartsProvider
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
@@ -10,8 +10,6 @@ import net.bramp.ffmpeg.probe.FFmpegProbeResult
 import java.io.File
 import java.io.IOException
 import java.time.Duration
-
-private val BLACK_SEGMENTS_MIN_DURATION = Duration.ofMillis(100)!!
 
 class InputFile private constructor(
     val inputFilesProvider: () -> InputFiles<*>,
@@ -30,7 +28,7 @@ class InputFile private constructor(
 
     val tracks by lazy { _tracks!! }
 
-    val duration = ffprobeResult.format.duration.asSecondsDuration()
+    val duration = ffprobeResult.format.duration.toSecondsDuration()
 
     /**
      * Only single track video files can be a main track
@@ -40,7 +38,10 @@ class InputFile private constructor(
     /**
      * Some file may be external to the main file (e.g. subtitle tracks)
      * This lazy value searches for the main file, if it exists.
-     * A main file should be named with a prefix of this file name.
+     * The main file is searched starting from the directory of this file, and going up.
+     * See [canBeAMainFile].
+     * Only files in the same group are considered.
+     * If a file named with a prefix of this file name exists, the shortest is taken, otherwise any other file can be it.
      *
      * Example:
      *  - This file: Show.S01E01.en.srt
@@ -49,6 +50,8 @@ class InputFile private constructor(
      * Another example:
      *  - This file: Show.S01E01.mp3
      *  - Main file: Show.S01E01.mkv
+     *
+     *  If a file n
      */
     val mainFile: InputFile? by lazy {
         //Main files cannot have main files
@@ -74,7 +77,7 @@ class InputFile private constructor(
     val videoParts: VideoPartsProvider? by lazy {
         val videoTrack = tracks.singleOrNull { it.isVideoTrack() }
         (if (videoTrack != null) {
-            VideoPartsProvider(this, BLACK_SEGMENTS_MIN_DURATION, videoTrack.startTime)
+            VideoPartsProvider(this, Main.config.ffmpeg.blackdetect, videoTrack.startTime)
         } else null) ?: mainFile?.videoParts
     }
 

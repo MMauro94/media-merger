@@ -36,7 +36,7 @@ fun String.parseTimeString(separator: Char = ':'): Duration? {
 /**
  * Converts [this] double as a number of seconds and coverts it to a [Duration]
  */
-fun Double.asSecondsDuration(onZero: Duration? = null): Duration? {
+fun Double.toSecondsDuration(onZero: Duration? = null): Duration? {
     check(this >= 0)
     return if (this == 0.0) onZero else Duration.ofSeconds(toLong(), ((this % 1) * 1000000000).toLong())!!
 }
@@ -44,12 +44,13 @@ fun Double.asSecondsDuration(onZero: Duration? = null): Duration? {
 /**
  * Converts [this] BigDecimal as a number of seconds and coverts it to a [Duration]
  */
-fun BigDecimal.asSecondsDuration() = Duration.ofNanos(this.setScale(9).unscaledValue().longValueExact())!!
+fun BigDecimal.toSecondsDuration() = Duration.ofNanos(this.setScale(9).unscaledValue().longValueExact())!!
 
 /**
  * Converts this duration to a [BigDecimal] in seconds and returns its plain string representation.
  */
 fun Duration.toTotalSeconds(): String = BigDecimal.valueOf(toNanos(), 9).toPlainString()
+
 
 /**
  * Sums this iterable of [Duration]s.

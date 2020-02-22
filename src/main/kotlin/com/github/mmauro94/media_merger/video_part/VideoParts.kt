@@ -4,6 +4,7 @@ import com.github.mmauro94.media_merger.InputFile
 import com.github.mmauro94.media_merger.Main
 import com.github.mmauro94.media_merger.StretchFactor
 import com.github.mmauro94.media_merger.Track
+import com.github.mmauro94.media_merger.config.FFMpegBlackdetectConfig
 import com.github.mmauro94.media_merger.util.*
 import com.github.mmauro94.media_merger.video_part.VideoPart.Type.BLACK_SEGMENT
 import net.bramp.ffmpeg.FFmpeg
@@ -168,12 +169,12 @@ operator fun Iterable<VideoPart>.times(stretchFactor: StretchFactor) = map { it 
 
 class VideoPartsProvider(
     private val inputFile: InputFile,
-    private val minDuration: Duration,
+    private val config: FFMpegBlackdetectConfig,
     private val offset: Duration
 ) {
 
     private fun videoParts(chunkSize: Duration?): VideoParts {
-        return VideoParts(inputFile.detectVideoParts(minDuration, chunkSize)) + offset
+        return VideoParts(inputFile.detectVideoParts(config, chunkSize)) + offset
     }
 
 
@@ -196,7 +197,7 @@ class VideoPartsProvider(
  * This iterator automatically takes care of merging black segments that happen to be between chunks.
  */
 private fun InputFile.detectVideoParts(
-    minDuration: Duration,
+    config: FFMpegBlackdetectConfig,
     chunkSize: Duration?
 ): VideoPartIterator {
     if (chunkSize != null) {
@@ -206,7 +207,7 @@ private fun InputFile.detectVideoParts(
         val videoTrack = tracks.singleOrNull { it.isVideoTrack() }
         if (videoTrack != null) {
             var chunk = if (chunkSize == null) null else DurationSpan(Duration.ZERO, chunkSize)
-            var blacks = videoTrack.detectBlackSegments(minDuration, chunk)
+            var blacks = videoTrack.detectBlackSegments(config, chunk)
 
             var lastBlack: DurationSpan? = null
             var lastYielded = false
@@ -236,7 +237,7 @@ private fun InputFile.detectVideoParts(
                             DurationSpan(lastBlack.start, black.end)
                         }
                         else -> {
-                            if(!lastYielded) {
+                            if (!lastYielded) {
                                 //In this case we need to yield both the previous black
                                 yield(BlackSegment(lastBlack))
                             }
@@ -248,13 +249,13 @@ private fun InputFile.detectVideoParts(
                     lastYielded = false
                 }
                 if (chunk != null) {
-                    if(lastBlack!!.end < chunk.end && !lastYielded) {
+                    if (lastBlack!!.end < chunk.end && !lastYielded) {
                         //In this case I know that this black segment can be safely yielded, so I do so
                         yield(BlackSegment(lastBlack))
                         lastYielded = true
                     }
                     chunk = chunk.consecutiveOfSameLength()
-                    blacks = videoTrack.detectBlackSegments(minDuration, chunk)
+                    blacks = videoTrack.detectBlackSegments(config, chunk)
                 } else {
                     blacks = null
                 }
@@ -291,7 +292,7 @@ private fun InputFile.detectVideoParts(
  * @param range the range of the input file where to search the black segments in. If a black segment is between the start/end of the range, it will be returned split.
  */
 fun Track.detectBlackSegments(
-    minDuration: Duration,
+    config: FFMpegBlackdetectConfig,
     range: DurationSpan? = null
 ): List<DurationSpan>? {
     //If we must detect a range, we seek a bit earlier in order to prevent tiny errors in timings
@@ -302,7 +303,7 @@ fun Track.detectBlackSegments(
 
     val rangeStr = if (range == null) "all" else range.start.toTimeString('.') + "_" + range.end.toTimeString('.')
     val filename =
-        file.nameWithoutExtension + "@blacksegments@range_$rangeStr@minDuration_" + minDuration.toTimeString('.')
+        file.nameWithoutExtension + "@blacksegments@range_$rangeStr@" + config.toFilenameString()
     val blackFramesFile = File(
         file.parentFile,
         "$filename.txt"
@@ -320,7 +321,7 @@ fun Track.detectBlackSegments(
                 }
             }
             .setInput(file.absolutePath).apply {
-                Main.config.ffmpegHardwareAcceleration?.let {
+                Main.config.ffmpeg.hardwareAcceleration?.let {
                     addExtraArgs("-hwaccel", it)
                 }
             }
@@ -329,7 +330,18 @@ fun Track.detectBlackSegments(
                 "-map",
                 "0:" + ffprobeStream.index,
                 "-vf",
-                "\"blackdetect=d=" + minDuration.toTotalSeconds() + ":pic_th=0.99\""
+                buildString {
+                    append('"')
+                    append("blackdetect=")
+                    append("d=" + config.minDuration.toTotalSeconds())
+                    config.pictureBlackThreshold?.let {
+                        append(":pic_th=" + it.toPlainString())
+                    }
+                    config.pixelBlackThreshold?.let {
+                        append(":pix_th=" + it.toPlainString())
+                    }
+                    append('"')
+                }
             )
             .addExtraArgs("-an")
 
@@ -385,8 +397,8 @@ fun Track.detectBlackSegments(
         .mapNotNull { regex.matchEntire(it) }
         .mapNotNull {
             val ds = DurationSpan(
-                start = it.groups[1]!!.value.toBigDecimal().asSecondsDuration(),
-                end = it.groups[2]!!.value.toBigDecimal().asSecondsDuration()
+                start = it.groups[1]!!.value.toBigDecimal().toSecondsDuration(),
+                end = it.groups[2]!!.value.toBigDecimal().toSecondsDuration()
             ) + seek
 
             //If the black segments starts before the range, adjust accordingly
