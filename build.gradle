@@ -13,6 +13,7 @@ repositories {
 }
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    compile "org.jetbrains.kotlin:kotlin-reflect"
 
     compile 'com.github.mmauro94:mkvtoolnix-wrapper:1.0.1-SNAPSHOT'
 

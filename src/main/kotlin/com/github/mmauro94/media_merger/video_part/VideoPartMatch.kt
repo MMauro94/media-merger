@@ -1,5 +1,7 @@
 package com.github.mmauro94.media_merger.video_part
 
+import com.github.mmauro94.media_merger.InputFile
+import com.github.mmauro94.media_merger.StretchFactor
 import com.github.mmauro94.media_merger.util.DurationSpan
 import com.github.mmauro94.media_merger.video_part.VideoPart.Type.BLACK_SEGMENT
 import com.github.mmauro94.media_merger.video_part.VideoPart.Type.SCENE
@@ -21,7 +23,7 @@ data class VideoPartMatch(val input: VideoPart, val target: VideoPart) {
 
 data class Accuracy(val accuracy: Double, val offset: Duration?) {
     init {
-        require(accuracy >= 0 && accuracy <= 100)
+        require(accuracy in 0.0..100.0)
     }
 
     companion object {
@@ -48,8 +50,25 @@ fun VideoPart.acceptableDurationDiff(videoPart: VideoPart): Boolean {
 /**
  * Exception thrown when a video parts match cannot be found
  */
-class VideoPartsMatchException(message: String, val input: List<VideoPart>, val targets: List<VideoPart>) :
-    Exception(message)
+class VideoPartsMatchException(
+    message: String,
+    val input: List<VideoPart>,
+    val targets: List<VideoPart>,
+    val additionalText : String = ""
+) : Exception(message) {
+
+    fun text(inputFile: InputFile, targetFile: InputFile, stretchFactor: StretchFactor): String {
+        return StringBuilder().apply {
+            appendln("TARGET VIDEO PARTS ($targetFile):")
+            appendln(targets.joinToString(separator = "\n"))
+            appendln()
+            appendln("INPUT VIDEO PARTS, ALREADY STRETCHED BY $stretchFactor ($inputFile):")
+            appendln(input.joinToString(separator = "\n"))
+            appendln()
+            appendln(additionalText)
+        }.toString()
+    }
+}
 
 fun VideoParts.matchFirstSceneOffset(targets: VideoParts): Duration? {
     return matchFirstScene(iterator(), targets.iterator())?.second?.offset

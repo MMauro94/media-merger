@@ -3,7 +3,9 @@ package com.github.mmauro94.media_merger
 import com.github.mmauro94.media_merger.config.Config
 import com.github.mmauro94.media_merger.config.ConfigParseException
 import com.github.mmauro94.media_merger.strategy.AdjustmentStrategies
-import com.github.mmauro94.media_merger.strategy.CutsAdjustmentStrategy
+import com.github.mmauro94.media_merger.util.selectEnum
+import com.github.mmauro94.media_merger.util.askLanguages
+import com.github.mmauro94.media_merger.util.menu
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import java.io.File
 import java.io.IOException
@@ -55,7 +57,7 @@ object Main {
             defaultValue = config.defaultAdditionalLanguagesToKeep.toCollection(LinkedHashSet())
         )
 
-        val mediaType = askEnum(
+        val mediaType = selectEnum(
             question = "What do you need to merge?",
             defaultValue = MediaType.ANY
         )
@@ -68,10 +70,8 @@ object Main {
 
     private fun mainMenu() {
         menu(
-            premenu = {
-                println("--- Main menu ---")
-            },
-            map = linkedMapOf(
+            title = "--- Main menu ---",
+            items = linkedMapOf(
                 "Merge files" to ::mergeFiles,
                 "Just rename files" to ::justRenameFiles,
                 "See detected files" to ::seeDetectedFiles,
@@ -80,8 +80,7 @@ object Main {
                     inputFilesDetector.reloadFiles()
                     Unit
                 }
-            ),
-            exitAfterSelection = { false }
+            )
         )
     }
 
@@ -99,7 +98,7 @@ object Main {
     }
 
     private fun justRenameFiles() {
-        inputFilesDetector.inputFiles().forEach {
+        inputFilesDetector.getOrReadInputFiles().forEach {
             val outputName = it.outputName()
             if (outputName != null) {
                 it.inputFiles.forEach { f ->

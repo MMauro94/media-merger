@@ -40,8 +40,8 @@ fun selectAdjustments(
         ?: throw OperationCreationException("Unable to detect stretch factor")
 
     val cuts = when (adjustmentStrategies.cuts) {
-        NONE -> Cuts.EMPTY
-        FIRST_BLACK_SEGMENT_OFFSET -> {
+        is None -> Cuts.EMPTY
+        is FirstBlackSegmentOffset -> {
             val inputVideoParts = inputFile.videoParts?.lazy()?.times(stretchFactor)
                 ?: throw OperationCreationException("No black segments in file $inputFile")
             val targetVideoParts = targetFile.videoParts?.lazy()
@@ -55,7 +55,7 @@ fun selectAdjustments(
 
             Cuts.ofOffset(targetFirstSceneOffset - inputFirstSceneOffset)
         }
-        FIRST_SCENE_OFFSET -> {
+        is FirstSceneOffset -> {
             val inputVideoParts = inputFile.videoParts?.lazy()?.times(stretchFactor)
                 ?: throw OperationCreationException("No black segments in file $inputFile")
             val targetVideoParts = targetFile.videoParts?.lazy()
@@ -71,7 +71,7 @@ fun selectAdjustments(
                 }.toString())
             Cuts.ofOffset(offset)
         }
-        SCENES -> {
+        is CutScenes -> {
             val all = inputFile.videoParts?.all()
             val inputVideoParts = all?.times(stretchFactor)
                 ?: throw OperationCreationException("No black segments in file $inputFile")
@@ -80,21 +80,25 @@ fun selectAdjustments(
 
             try {
                 val (matches, accuracy) = inputVideoParts.matchWithTarget(targetVideoParts)
-                if (accuracy.accuracy < 95) {
+                if (accuracy.accuracy < adjustmentStrategies.cuts.minimumAccuracy) {
                     throw VideoPartsMatchException(
                         "Accuracy too low (${accuracy.accuracy}%)",
                         inputVideoParts.toList(),
-                        targetVideoParts.toList()
+                        targetVideoParts.toList(),
+                        StringBuilder().apply {
+                            appendln("DETECTED MATCHES:")
+                            matches.joinTo(
+                                buffer = this,
+                                separator = "\n",
+                                transform = {
+                                    "INPUT=" + it.input.toString().padEnd(50) + "| TARGET=" + it.target.toString()
+                                }
+                            )
+                        }.toString()
                     )
                 } else matches.computeCuts()
             } catch (e: VideoPartsMatchException) {
-                throw OperationCreationException("Unable to match scenes: ${e.message}", StringBuilder().apply {
-                    appendln("TARGET VIDEO PARTS ($targetFile):")
-                    appendln(e.targets.joinToString(separator = "\n"))
-                    appendln()
-                    appendln("INPUT VIDEO PARTS, ALREADY STRETCHED BY $stretchFactor ($inputFile):")
-                    appendln(e.input.joinToString(separator = "\n"))
-                }.toString(), e)
+                throw OperationCreationException("Unable to match scenes: ${e.message}", e.text(inputFile, targetFile, stretchFactor), e)
             }
         }
     }

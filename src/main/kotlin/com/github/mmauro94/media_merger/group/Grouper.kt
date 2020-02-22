@@ -1,9 +1,9 @@
 package com.github.mmauro94.media_merger.group
 
-import com.github.mmauro94.media_merger.askOption
-import com.github.mmauro94.media_merger.askString
-import com.github.mmauro94.media_merger.askYesNo
-import com.github.mmauro94.media_merger.menu
+import com.github.mmauro94.media_merger.util.askString
+import com.github.mmauro94.media_merger.util.askYesNo
+import com.github.mmauro94.media_merger.util.menu
+import com.github.mmauro94.media_merger.util.select
 
 interface Grouper<G : Group<G>> {
 
@@ -11,23 +11,23 @@ interface Grouper<G : Group<G>> {
 
     companion object {
 
-        fun <INFO> select(type: String, vararg providers: GroupInfoProvider<INFO>): INFO? {
+        fun <INFO : Any> select(type: String, vararg providers: GroupInfoProvider<INFO>): INFO? {
             if (!askYesNo("Select $type?", true)) {
                 return null
             }
 
-            val serviceName = askOption(
+            val provider = select(
                 question = "Select $type info provider",
-                enums = providers.map { it.service.name.toLowerCase() },
-                defaultValue = providers.singleOrNull()?.service?.name?.toLowerCase() ?: ""
+                options = providers.asList(),
+                defaultValue = providers.singleOrNull(),
+                nameProvider = { it.service.name.toLowerCase() }
             )
-            val provider = providers.single { it.service.name.toLowerCase() == serviceName }
             return select(type, provider) {
                 select(type, *providers)
             }
         }
 
-        private fun <INFO> select(type: String, provider: GroupInfoProvider<INFO>, reselect: () -> INFO?): INFO? {
+        private fun <INFO : Any> select(type: String, provider: GroupInfoProvider<INFO>, reselect: () -> INFO?): INFO? {
             val q = askString("Name of $type to search:")
             val results = try {
                 provider.search(q)
@@ -38,16 +38,12 @@ interface Grouper<G : Group<G>> {
                 }
                 return reselect()
             }
-            menu(
-                items = results.map { it.toString() } + "-- Search again --",
-                onSelection = {
-                    return if (it == results.size) {
-                        select(type, provider, reselect)
-                    } else results[it]
-                },
-                exitName = "None"
+            return menu(
+                title = "Select $type",
+                items = results.map { it.toString() to { it } }
+                        + Pair("-- Search again --", { select(type, provider, reselect) })
+                        + Pair("-- Select no show --", { null })
             )
-            return null
         }
     }
 }

@@ -329,7 +329,7 @@ fun Track.detectBlackSegments(
                 "-map",
                 "0:" + ffprobeStream.index,
                 "-vf",
-                "\"blackdetect=d=" + minDuration.toTotalSeconds() + "\""
+                "\"blackdetect=d=" + minDuration.toTotalSeconds() + ":pic_th=0.99\""
             )
             .addExtraArgs("-an")
 
