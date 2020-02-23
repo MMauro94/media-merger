@@ -184,7 +184,7 @@ fun MkvMergeCommand.addTrack(
 ) {
     track.track?.let {
         addTrack(it.mkvTrack) {
-            if (track.stretchFactor != null || track.offset > Duration.ZERO) {
+            if (track.stretchFactor != null || track.offset != Duration.ZERO) {
                 sync(
                     track.offset,
                     track.stretchFactor.let { sf ->
