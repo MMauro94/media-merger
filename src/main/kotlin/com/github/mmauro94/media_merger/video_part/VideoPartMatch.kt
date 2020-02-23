@@ -54,7 +54,7 @@ class VideoPartsMatchException(
     message: String,
     val input: List<VideoPart>,
     val targets: List<VideoPart>,
-    val additionalText : String = ""
+    val additionalText: String = ""
 ) : Exception(message) {
 
     fun text(inputFile: InputFile, targetFile: InputFile, stretchFactor: StretchFactor): String {
@@ -81,19 +81,29 @@ private fun matchFirstScene(
     inputsIterator.reset()
     inputsIterator.skipIfBlackFragment()
 
-    val candidates = mutableListOf<Pair<Pair<List<VideoPartMatch>, Accuracy>, Pair<Int,Int>>>()
+    val candidates = mutableListOf<Pair<Pair<List<VideoPartMatch>, Accuracy>, Pair<Int, Int>>>()
 
-    var max = 3
-    while (max > 0 && targetsIterator.hasNext()) {
+    var targets = 0
+    while (targets < 3 && targetsIterator.hasNext()) {
         val target = targetsIterator.next()
         if (target.type == SCENE) {
-            val match = matchNext(inputsIterator, target) to (inputsIterator.nextIndex to targetsIterator.nextIndex)
-            inputsIterator.reset()
-            inputsIterator.skipIfBlackFragment()
-            candidates += match
-            max--
+            repeat(3) { i->
+                inputsIterator.reset()
+                repeat(i) {
+                    if(inputsIterator.hasNext())inputsIterator.next()
+                    if(inputsIterator.hasNext())inputsIterator.next()
+                }
+                inputsIterator.skipIfBlackFragment()
+                val match = matchNext(inputsIterator, target) to (inputsIterator.nextIndex to targetsIterator.nextIndex)
+                candidates += match
+            }
+            targets++
         }
     }
+
+    inputsIterator.reset()
+    targetsIterator.reset()
+
     val (detected, indexes) = candidates.maxBy { it.first.second.accuracy } ?: return null
     val (inputNextIndex, targetNextIndex) = indexes
     inputsIterator.goTo(inputNextIndex)
