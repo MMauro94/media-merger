@@ -1,12 +1,12 @@
 package com.github.mmauro94.media_merger
 
+import com.github.mmauro94.media_merger.util.find
+import com.github.mmauro94.media_merger.util.findWalkingUp
+import com.github.mmauro94.media_merger.util.toSecondsDuration
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixTrack
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixTrackType
-import com.github.mmauro94.media_merger.util.toSecondsDuration
-import com.github.mmauro94.media_merger.util.find
-import com.github.mmauro94.media_merger.util.findWalkingUp
 import net.bramp.ffmpeg.probe.FFmpegStream
 import java.io.File
 import java.time.Duration
@@ -30,6 +30,13 @@ class Track(
     val isOnItsFile by lazy { inputFile.tracks.size == 1 }
 
     val startTime by lazy { ffprobeStream.start_time.toSecondsDuration(Duration.ZERO)!! }
+
+    val normalizedPixelHeight: Int? by lazy {
+        mkvTrack.properties?.pixelDimensions?.height?.let { height ->
+            val heights = intArrayOf(480, 720, 1080, 2160)
+            heights.firstOrNull { height in (it - 20)..(it + 20) } ?: height
+        }
+    }
 
     private val extensionFromCodecId = mkvTrack.properties?.codecId.let { c ->
         when {

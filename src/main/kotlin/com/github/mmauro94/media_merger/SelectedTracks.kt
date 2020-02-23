@@ -169,7 +169,7 @@ fun Sequence<Track>.selectVideoTrack(): Track? {
             it.mkvTrack.codec.contains("265")
         })
         .sortedByDescending {
-            it.mkvTrack.properties?.pixelDimensions?.height
+            it.normalizedPixelHeight
         }
         .firstOrNull().apply {
             if (this == null) {
