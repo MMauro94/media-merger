@@ -19,7 +19,7 @@ fun <T : Any> select(
         }
         return options[askInt(
             question = "Selection:",
-            isValid = { this in 1..(options.size + 1) },
+            isValid = { this in 1..(options.size) },
             default = defaultValue?.let { options.indexOf(it) + 1 }
         ) - 1]
     } else {

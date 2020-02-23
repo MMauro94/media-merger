@@ -210,7 +210,7 @@ private fun InputFile.detectVideoParts(
             var blacks = videoTrack.detectBlackSegments(config, chunk)
 
             var lastBlack: DurationSpan? = null
-            var lastYielded = false
+            var lastYielded = true
 
             while (blacks != null) {
                 for (black in blacks) {
@@ -249,7 +249,7 @@ private fun InputFile.detectVideoParts(
                     lastYielded = false
                 }
                 if (chunk != null) {
-                    if (lastBlack!!.end < chunk.end && !lastYielded) {
+                    if (!lastYielded && lastBlack!!.end < chunk.end) {
                         //In this case I know that this black segment can be safely yielded, so I do so
                         yield(BlackSegment(lastBlack))
                         lastYielded = true

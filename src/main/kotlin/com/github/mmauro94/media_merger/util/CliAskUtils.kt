@@ -12,23 +12,21 @@ inline fun <T : Any> ask(
     if (default != null) {
         require(default.isValid())
     }
-    var ret: T? = null
-    while (ret == null) {
+    while (true) {
         print("$question ")
         if (default != null) {
             print("[${default.defaultToString()}] ")
         }
         val line = CLI_SCANNER.nextLine().trim()
         if (line.isEmpty() && default != null) {
-            ret = default
+            return default
         } else {
             val t = parser(line)
             if (t != null && t.isValid()) {
-                ret = t
+                return t
             }
         }
     }
-    return ret
 }
 
 

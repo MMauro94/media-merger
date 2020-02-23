@@ -18,10 +18,10 @@ data class FFMpegBlackdetectConfig(
     fun toFilenameString() = buildString {
         append("minDuration_" + minDuration.toTimeString('.'))
         pictureBlackThreshold?.let {
-            append("pic_th_" + it.toPlainString())
+            append("@pic_th_" + it.toPlainString())
         }
         pixelBlackThreshold?.let {
-            append("pix_th_" + it.toPlainString())
+            append("@pix_th_" + it.toPlainString())
         }
     }
 }
