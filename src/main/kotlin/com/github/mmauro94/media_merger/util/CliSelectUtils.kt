@@ -1,5 +1,6 @@
 package com.github.mmauro94.media_merger.util
 
+import org.fusesource.jansi.Ansi.ansi
 import kotlin.reflect.KClass
 import kotlin.reflect.full.companionObject
 import kotlin.reflect.full.functions
@@ -13,27 +14,27 @@ fun <T : Any> select(
 ): T {
     require(defaultValue == null || defaultValue in options)
     if (long) {
+        println()
         println(question)
         options.forEachIndexed { i, value ->
-            println("${i + 1}) ${nameProvider(value)}")
+            println(ansi().fgBrightCyan().render("${i + 1}").reset().render(") ${nameProvider(value)}"))
         }
         return options[askInt(
             question = "Selection:",
             isValid = { this in 1..(options.size) },
-            default = defaultValue?.let { options.indexOf(it) + 1 }
+            default = defaultValue?.let { options.indexOf(it) + 1 },
+            itemToString = { "$this (${nameProvider(options[this - 1])})" },
+            defaultToString = { toString() }
         ) - 1]
     } else {
         val reverseMap = options.associateBy(nameProvider)
         while (true) {
-            val selection = askString(
-                question + " (" + reverseMap.keys.joinToString(", ") + ")",
-                defaultValue?.let(nameProvider) ?: ""
+            val str = askString(
+                question = ansi().fgDefault().render(question).fgBrightCyan().render(" (" + reverseMap.keys.joinToString(", ") + ")").reset().toString(),
+                default = defaultValue?.let(nameProvider) ?: "",
+                isValid = { this in reverseMap }
             )
-            if (selection in reverseMap) {
-                return reverseMap.getValue(selection)
-            } else {
-                System.err.println("Invalid value! Must be one of " + reverseMap.keys.joinToString(", ") { "'$it'" })
-            }
+            return reverseMap.getValue(str)
         }
     }
 }

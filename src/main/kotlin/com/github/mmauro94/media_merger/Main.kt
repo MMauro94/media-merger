@@ -3,14 +3,18 @@ package com.github.mmauro94.media_merger
 import com.github.mmauro94.media_merger.config.Config
 import com.github.mmauro94.media_merger.config.ConfigParseException
 import com.github.mmauro94.media_merger.strategy.AdjustmentStrategies
-import com.github.mmauro94.media_merger.util.selectEnum
 import com.github.mmauro94.media_merger.util.askLanguages
 import com.github.mmauro94.media_merger.util.menu
+import com.github.mmauro94.media_merger.util.selectEnum
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
+import org.fusesource.jansi.Ansi
+import org.fusesource.jansi.Ansi.ansi
+import org.fusesource.jansi.AnsiConsole
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import kotlin.system.exitProcess
 
 
 object Main {
@@ -35,6 +39,8 @@ object Main {
 
     @JvmStatic
     fun main(args: Array<String>) {
+        AnsiConsole.systemInstall()
+
         workingDir = File(args.getOrNull(0) ?: System.getProperty("user.dir") ?: "").absoluteFile
 
         config = try {
@@ -43,8 +49,8 @@ object Main {
             System.err.println("config.json error: ${cpe.message}")
             Config()
         }
-        println("----- MMAURO's MEDIA MERGER UTILITY -----")
-        println("Working directory: $workingDir")
+        println(ansi().bgBrightGreen().fgBlack().render("----- MEDIA-MERGER UTILITY -----").reset())
+        println(ansi().fgDefault().render("Working directory: ").fgGreen().render(workingDir.toString()).reset())
         println()
 
         mainLanguages = askLanguages(
@@ -63,7 +69,6 @@ object Main {
         )
 
         inputFilesDetector = mediaType.inputFileDetectorFactory()
-        println()
 
         mainMenu()
     }
@@ -79,7 +84,8 @@ object Main {
                 "Reload files" to {
                     inputFilesDetector.reloadFiles()
                     Unit
-                }
+                },
+                "Quit" to { exitProcess(0) }
             )
         )
     }
@@ -87,6 +93,7 @@ object Main {
 
     private fun mergeFiles() {
         val adjustmentStrategies = AdjustmentStrategies.ask()
+        println()
 
         inputFilesDetector.getOrReadInputFiles()
             .mapNotNull {

@@ -1,29 +1,44 @@
 package com.github.mmauro94.media_merger.util
 
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
+import org.fusesource.jansi.Ansi
+import org.fusesource.jansi.Ansi.ansi
+import org.fusesource.jansi.AnsiConsole
 
 inline fun <T : Any> ask(
     question: String,
     parser: (String) -> T?,
     default: T? = null,
     isValid: T.() -> Boolean = { true },
-    defaultToString: T.() -> String = { toString() }
+    noinline itemToString: T.() -> String = { toString() },
+    defaultToString: T.() -> String = { itemToString(this) }
 ): T {
     if (default != null) {
         require(default.isValid())
     }
     while (true) {
-        print("$question ")
+        print(ansi().fgDefault().render(question))
         if (default != null) {
-            print("[${default.defaultToString()}] ")
+            print(ansi().fgBrightBlue().render(" [${default.defaultToString()}]"))
         }
+        print(ansi().fgDefault().render(" ").saveCursorPosition())
         val line = CLI_SCANNER.nextLine().trim()
-        if (line.isEmpty() && default != null) {
-            return default
+        val ret = if (line.isEmpty() && default != null) {
+            default
         } else {
             val t = parser(line)
             if (t != null && t.isValid()) {
-                return t
+                t
+            } else null
+        }
+
+        if (AnsiConsole.out() == System.out) {
+            print(ansi().restoreCursorPosition().eraseLine(Ansi.Erase.FORWARD))
+            if (ret != null) {
+                println(ansi().fgGreen().render(ret.itemToString()).reset())
+                return ret
+            } else {
+                println(ansi().fgRed().render(line).reset())
             }
         }
     }
@@ -46,7 +61,6 @@ fun <T, C : MutableCollection<T>> askMultiple(
             it.split(separator.second).forEach { item ->
                 val thing = parser(item)
                 if (thing == null) {
-                    System.err.println("Invalid value \"$item\"")
                     return@ask null
                 } else {
                     things.add(thing)
@@ -56,7 +70,7 @@ fun <T, C : MutableCollection<T>> askMultiple(
         },
         default = default,
         isValid = isValid,
-        defaultToString = { joinToString(separator = separator.first, transform = itemToString) }
+        itemToString = { joinToString(separator = separator.first, transform = itemToString) }
     )
 }
 
@@ -72,6 +86,7 @@ fun askYesNo(question: String, default: Boolean? = null): Boolean {
                 else -> null
             }
         },
+        itemToString = { if (this) "yes" else "no" },
         defaultToString = {
             if (this) "Y/n"
             else "y/N"
@@ -87,20 +102,38 @@ fun askString(
     question = question,
     parser = { it },
     isValid = isValid,
-    default = if(default.isEmpty()) null else default
+    default = if (default.isEmpty()) null else default
 )
 
 fun askInt(
     question: String,
     default: Int? = null,
-    isValid: Int.() -> Boolean = { true }
-): Int = ask(question = question, parser = { it.toIntOrNull() }, isValid = isValid, default = default)
+    isValid: Int.() -> Boolean = { true },
+    itemToString: Int.() -> String = { toString() },
+    defaultToString: Int.() -> String = { itemToString(this) }
+): Int = ask(
+    question = question,
+    parser = { it.toIntOrNull() },
+    isValid = isValid,
+    default = default,
+    itemToString = itemToString,
+    defaultToString = defaultToString
+)
 
 fun askDouble(
     question: String,
     default: Double? = null,
-    isValid: Double.() -> Boolean = { true }
-): Double = ask(question = question, parser = { it.toDoubleOrNull() }, isValid = isValid, default = default)
+    isValid: Double.() -> Boolean = { true },
+    itemToString: Double.() -> String = { toString() },
+    defaultToString: Double.() -> String = { itemToString(this) }
+): Double = ask(
+    question = question,
+    parser = { it.toDoubleOrNull() },
+    isValid = isValid,
+    default = default,
+    itemToString = itemToString,
+    defaultToString = defaultToString
+)
 
 fun askLanguages(
     question: String,
