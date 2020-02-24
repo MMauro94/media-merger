@@ -17,7 +17,7 @@ fun <T> menu(
     items: List<Pair<String, () -> T>>
 ): T {
     return select(
-        question = ansi().bgBrightGreen().fgBlack().render(title).reset().toString(),
+        question = ansi().bgBrightGreen().fgBlack().a(title).reset().toString(),
         options = items,
         long = true,
         nameProvider = { it.first }

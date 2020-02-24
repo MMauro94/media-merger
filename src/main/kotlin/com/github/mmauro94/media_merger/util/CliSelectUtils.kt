@@ -17,7 +17,7 @@ fun <T : Any> select(
         println()
         println(question)
         options.forEachIndexed { i, value ->
-            println(ansi().fgBrightCyan().render("${i + 1}").reset().render(") ${nameProvider(value)}"))
+            println(ansi().fgBrightCyan().a("${i + 1}").reset().a(") ${nameProvider(value)}"))
         }
         return options[askInt(
             question = "Selection:",
@@ -30,7 +30,7 @@ fun <T : Any> select(
         val reverseMap = options.associateBy(nameProvider)
         while (true) {
             val str = askString(
-                question = ansi().fgDefault().render(question).fgBrightCyan().render(" (" + reverseMap.keys.joinToString(", ") + ")").reset().toString(),
+                question = ansi().fgDefault().a(question).fgBrightCyan().a(" (" + reverseMap.keys.joinToString(", ") + ")").reset().toString(),
                 default = defaultValue?.let(nameProvider) ?: "",
                 isValid = { this in reverseMap }
             )

@@ -49,8 +49,8 @@ object Main {
             System.err.println("config.json error: ${cpe.message}")
             Config()
         }
-        println(ansi().bgBrightGreen().fgBlack().render("----- MEDIA-MERGER UTILITY -----").reset())
-        println(ansi().fgDefault().render("Working directory: ").fgGreen().render(workingDir.toString()).reset())
+        println(ansi().bgBrightGreen().fgBlack().a("----- MEDIA-MERGER UTILITY -----").reset())
+        println(ansi().fgDefault().a("Working directory: ").fgGreen().a(workingDir.toString()).reset())
         println()
 
         mainLanguages = askLanguages(

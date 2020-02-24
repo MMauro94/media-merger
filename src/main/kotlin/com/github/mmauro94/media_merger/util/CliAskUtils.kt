@@ -17,11 +17,11 @@ inline fun <T : Any> ask(
         require(default.isValid())
     }
     while (true) {
-        print(ansi().fgDefault().render(question))
+        print(ansi().fgDefault().a(question))
         if (default != null) {
-            print(ansi().fgBrightBlue().render(" [${default.defaultToString()}]"))
+            print(ansi().fgBrightBlue().a(" [${default.defaultToString()}]"))
         }
-        print(ansi().fgDefault().render(" ").saveCursorPosition())
+        print(ansi().fgDefault().a(" ").saveCursorPosition())
         val line = CLI_SCANNER.nextLine().trim()
         val ret = if (line.isEmpty() && default != null) {
             default
@@ -35,10 +35,10 @@ inline fun <T : Any> ask(
         if (AnsiConsole.out() == System.out) {
             print(ansi().restoreCursorPosition().eraseLine(Ansi.Erase.FORWARD))
             if (ret != null) {
-                println(ansi().fgGreen().render(ret.itemToString()).reset())
+                println(ansi().fgGreen().a(ret.itemToString()).reset())
                 return ret
             } else {
-                println(ansi().fgRed().render(line).reset())
+                println(ansi().fgRed().a(line).reset())
             }
         }
     }
