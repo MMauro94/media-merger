@@ -3,11 +3,11 @@ package com.github.mmauro94.media_merger
 import com.github.mmauro94.media_merger.config.Config
 import com.github.mmauro94.media_merger.config.ConfigParseException
 import com.github.mmauro94.media_merger.strategy.AdjustmentStrategies
+import com.github.mmauro94.media_merger.util.ConsoleProgressHandler
 import com.github.mmauro94.media_merger.util.askLanguages
 import com.github.mmauro94.media_merger.util.menu
 import com.github.mmauro94.media_merger.util.selectEnum
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
-import org.fusesource.jansi.Ansi
 import org.fusesource.jansi.Ansi.ansi
 import org.fusesource.jansi.AnsiConsole
 import java.io.File
@@ -74,20 +74,23 @@ object Main {
     }
 
     private fun mainMenu() {
-        menu(
-            title = "--- Main menu ---",
-            items = linkedMapOf(
-                "Merge files" to ::mergeFiles,
-                "Just rename files" to ::justRenameFiles,
-                "See detected files" to ::seeDetectedFiles,
-                "See selected tracks" to ::seeSelectedTracks,
-                "Reload files" to {
-                    inputFilesDetector.reloadFiles()
-                    Unit
-                },
-                "Quit" to { exitProcess(0) }
+        while (true) {
+            println()
+            menu(
+                title = "--- Main menu ---",
+                items = linkedMapOf(
+                    "Merge files" to ::mergeFiles,
+                    "Just rename files" to ::justRenameFiles,
+                    "See detected files" to ::seeDetectedFiles,
+                    "See selected tracks" to ::seeSelectedTracks,
+                    "Reload files" to {
+                        inputFilesDetector.reloadFiles()
+                        Unit
+                    },
+                    "Quit" to { exitProcess(0) }
+                )
             )
-        )
+        }
     }
 
 
@@ -126,13 +129,16 @@ object Main {
     }
 
     private fun seeDetectedFiles() {
-        inputFilesDetector.getOrReadInputFiles().forEach {
+        val handler = ConsoleProgressHandler()
+        val files = inputFilesDetector.getOrReadInputFiles(progress = handler::invoke)
+        files.forEachIndexed { i, it ->
             println("${it.group}:")
             it.forEach { f ->
                 println("\t${f.file.name}")
-                println("\t\t${f.mainFile?.file?.name}")
             }
-            println()
+            if (i != files.lastIndex) {
+                println()
+            }
         }
     }
 

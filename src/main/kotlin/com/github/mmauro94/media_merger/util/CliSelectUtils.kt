@@ -14,7 +14,6 @@ fun <T : Any> select(
 ): T {
     require(defaultValue == null || defaultValue in options)
     if (long) {
-        println()
         println(question)
         options.forEachIndexed { i, value ->
             println(ansi().fgBrightCyan().a("${i + 1}").reset().a(") ${nameProvider(value)}"))
@@ -25,7 +24,9 @@ fun <T : Any> select(
             default = defaultValue?.let { options.indexOf(it) + 1 },
             itemToString = { "$this (${nameProvider(options[this - 1])})" },
             defaultToString = { toString() }
-        ) - 1]
+        ) - 1].also {
+            println()
+        }
     } else {
         val reverseMap = options.associateBy(nameProvider)
         while (true) {

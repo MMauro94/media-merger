@@ -2,9 +2,7 @@ package com.github.mmauro94.media_merger
 
 import com.github.mmauro94.media_merger.group.Group
 import com.github.mmauro94.media_merger.group.Grouper
-import com.github.mmauro94.media_merger.util.add
-import com.github.mmauro94.media_merger.util.addAll
-import com.github.mmauro94.media_merger.util.sortWithPreferences
+import com.github.mmauro94.media_merger.util.*
 import java.io.File
 
 data class InputFiles<G : Group<G>>(
@@ -29,47 +27,40 @@ data class InputFiles<G : Group<G>>(
         val SUBTITLES_EXTENSIONS = listOf("srt", "ssa", "idx", "sub")
         val EXTENSIONS_TO_IDENTIFY = VIDEO_EXTENSIONS + AUDIO_EXTENSIONS + SUBTITLES_EXTENSIONS
 
-        fun <G : Group<G>> detect(grouper: Grouper<G>, dir: File): List<InputFiles<G>> {
-            print("Identifying files")
-            val inputFiles = mutableMapOf<G, InputFiles<G>>()
-            val ret = detectInner({ inputFiles.getValue(it) }, grouper, dir)
-            if (ret.isEmpty()) {
-                println()
-                System.err.println("No files identified!")
-            } else println("OK")
-            for ((key, value) in ret) {
-                inputFiles[key] = InputFiles(key, value)
-            }
-            return inputFiles.values.toList()
-        }
-
-        private fun <G : Group<G>> detectInner(inputFilesProvider: (G) -> InputFiles<*>, grouper: Grouper<G>, dir: File): Map<G, List<InputFile>> {
-            val ret = HashMap<G, MutableList<InputFile>>()
-            val listFiles: Array<File> = dir.listFiles() ?: emptyArray()
-            val files = listFiles
+        fun <G : Group<G>> detect(grouper: Grouper<G>, dir: File, progress: ProgressReporter): List<InputFiles<G>> {
+            progress(IndeterminateProgress("Listing files..."))
+            val allFiles = dir.walkTopDown().toList()
+            progress(IndeterminateProgress("Grouping files..."))
+            val groupedFiles = allFiles
                 .filter { it.extension in EXTENSIONS_TO_IDENTIFY }
                 .filterNot { it.name.contains("@adjusted") || it.name.contains("@extracted") }
                 .groupBy { grouper.detectGroup(it.name) }
                 .filterKeys { it != null }
 
-            files.forEach { (ei, files) ->
-                if (ei != null) {
-                    files.forEach { f ->
-                        try {
-                            ret.add(ei, InputFile.parse({ inputFilesProvider(ei) }, f))
-                        } catch (e: InputFile.ParseException) {
-                            System.err.println("Unable to parse file: ${e.message}")
-                        }
-                        print(".")
+
+            val inputFiles = mutableMapOf<G, InputFiles<G>>()
+            val ret = HashMap<G, MutableList<InputFile>>()
+
+            var i = 0
+            val max = groupedFiles.values.sumBy { it.size }
+            groupedFiles.forEach { (ei, files) ->
+                check(ei != null)
+                files.forEach { f ->
+                    progress(DiscreteProgress(i, max, "Identifying ${f.name}"))
+                    try {
+                        ret.add(ei, InputFile.parse({ inputFiles.getValue(ei) }, f))
+                    } catch (e: InputFile.ParseException) {
+                        System.err.println("Unable to parse file: ${e.message}")
                     }
+                    i++
                 }
             }
-            listFiles.asSequence()
-                .filter { it.isDirectory }
-                .forEach {
-                    ret.addAll(detectInner(inputFilesProvider, grouper, it))
-                }
-            return ret
+            progress(DiscreteProgress(i, max, "Identifying complete"))
+
+            for ((key, value) in ret) {
+                inputFiles[key] = InputFiles(key, value)
+            }
+            return inputFiles.values.toList()
         }
     }
 
