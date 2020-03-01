@@ -17,6 +17,7 @@ import java.io.File
 import java.io.PrintStream
 import java.time.Duration
 import java.util.concurrent.TimeUnit
+import kotlin.math.min
 
 /**
  * It requires and ensures that consecutive parts have different type and that the first part starts at 0:00.
@@ -173,17 +174,17 @@ class VideoPartsProvider(
     private val offset: Duration
 ) {
 
-    private fun videoParts(chunkSize: Duration?): VideoParts {
-        return VideoParts(inputFile.detectVideoParts(config, chunkSize)) + offset
+    private fun videoParts(progress: ProgressHandler, chunkSize: Duration?): VideoParts {
+        return VideoParts(inputFile.detectVideoParts(config, chunkSize, progress)) + offset
     }
 
 
-    fun lazy(chunkSize: Duration = Duration.ofSeconds(30)): VideoParts {
-        return videoParts(chunkSize)
+    fun lazy(progress: ProgressHandler, chunkSize: Duration = Duration.ofSeconds(30)): VideoParts {
+        return videoParts(progress, chunkSize)
     }
 
-    fun all(): VideoParts {
-        return videoParts(null)
+    fun all(progress: ProgressHandler): VideoParts {
+        return videoParts(progress, null)
     }
 }
 
@@ -198,16 +199,33 @@ class VideoPartsProvider(
  */
 private fun InputFile.detectVideoParts(
     config: FFMpegBlackdetectConfig,
-    chunkSize: Duration?
+    chunkSize: Duration?,
+    progress: ProgressHandler
 ): VideoPartIterator {
     if (chunkSize != null) {
         require(chunkSize > Duration.ZERO)
     }
+
+    val videoTrack = tracks.singleOrNull { it.isVideoTrack() }
+
+    fun createProgress(chunk : DurationSpan?): ProgressHandler {
+        val message = "Detecting black frames segments in chunk $chunk..."
+        return when {
+            duration == null -> progress.split(Progress.INDETERMINATE, message)
+            chunk == null -> progress
+            else -> progress.split(
+                chunk.start.toSeconds() / duration.toSeconds().toFloat(),
+                min(1f, chunk.end.toSeconds() / duration.toSeconds().toFloat()),
+                message
+            )
+        }
+    }
+
     return VideoPartIterator(mutableListOf(), iterator {
-        val videoTrack = tracks.singleOrNull { it.isVideoTrack() }
         if (videoTrack != null) {
             var chunk = if (chunkSize == null) null else DurationSpan(Duration.ZERO, chunkSize)
-            var blacks = videoTrack.detectBlackSegments(config, chunk)
+
+            var blacks = videoTrack.detectBlackSegments(config, chunk, createProgress(chunk))
 
             var lastBlack: DurationSpan? = null
             var lastYielded = true
@@ -255,7 +273,7 @@ private fun InputFile.detectVideoParts(
                         lastYielded = true
                     }
                     chunk = chunk.consecutiveOfSameLength()
-                    blacks = videoTrack.detectBlackSegments(config, chunk)
+                    blacks = videoTrack.detectBlackSegments(config, chunk, createProgress(chunk))
                 } else {
                     blacks = null
                 }
@@ -288,12 +306,12 @@ private fun InputFile.detectVideoParts(
  * Returns a list of [DurationSpan] representing the durations segments at which the black segments were found.
  * Returns `null` if the given [range] is outside the range of the input file.
  *
- * @param minDuration the min duration of the black segments. All black segments with a smaller duration will be ignored
  * @param range the range of the input file where to search the black segments in. If a black segment is between the start/end of the range, it will be returned split.
  */
 fun Track.detectBlackSegments(
     config: FFMpegBlackdetectConfig,
-    range: DurationSpan? = null
+    range: DurationSpan? = null,
+    progress: ProgressHandler
 ): List<DurationSpan>? {
     //If we must detect a range, we seek a bit earlier in order to prevent tiny errors in timings
     val errorMargin: Duration = Duration.ofSeconds(1)
@@ -348,38 +366,13 @@ fun Track.detectBlackSegments(
             .setFormat("null")
             .done()
 
-        println(builder.build().joinToString(" "))
         FFmpegExecutor(FFmpeg(), FFprobe()).apply {
-            println("Detecting blackframes...")
             val realOut = System.out
             val ps = PrintStream(blackFramesFile)
             try {
                 System.setOut(ps)
                 createJob(builder) { prg ->
-                    val lod = range?.duration ?: duration
-
-                    val percentage = if (lod == null) null else prg.out_time_ns / lod.toNanos().toDouble()
-                    if (percentage != null) {
-                        realOut.println(
-                            String.format(
-                                "[%.0f%%] %s, speed:%.2fx",
-                                percentage * 100.0,
-                                FFmpegUtils.toTimecode(
-                                    prg.out_time_ns + (range?.start?.toNanos() ?: 0),
-                                    TimeUnit.NANOSECONDS
-                                ),
-                                prg.speed
-                            )
-                        )
-                    } else {
-                        realOut.println(
-                            String.format(
-                                "[N/A] %s, speed:%.2fx",
-                                FFmpegUtils.toTimecode(prg.out_time_ns, TimeUnit.NANOSECONDS),
-                                prg.speed
-                            )
-                        )
-                    }
+                    progress.ffmpeg(prg, range?.duration ?: duration, range?.start ?: Duration.ZERO)
                 }.run()
             } finally {
                 ps.close()

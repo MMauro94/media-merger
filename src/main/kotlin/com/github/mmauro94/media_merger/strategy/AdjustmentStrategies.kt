@@ -8,6 +8,9 @@ data class AdjustmentStrategies(
     val stretch: StretchAdjustmentStrategy,
     val cuts: CutsAdjustmentStrategy
 ) {
+
+    val detectProgressWeight = cuts.detectProgressSplit
+
     companion object {
         fun ask(): AdjustmentStrategies {
             return AdjustmentStrategies(

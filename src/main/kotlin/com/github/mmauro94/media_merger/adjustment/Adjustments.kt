@@ -2,6 +2,7 @@ package com.github.mmauro94.media_merger.adjustment
 
 import com.github.mmauro94.media_merger.OperationCreationException
 import com.github.mmauro94.media_merger.Track
+import com.github.mmauro94.media_merger.util.ProgressHandler
 
 /**
  * Class that contains a list of [Adjustment]s and the starting [inputTrack]
@@ -30,10 +31,11 @@ data class Adjustments(
      *
      * Returns the a [Track] for the output of the last adjustment. If no adjustments were made, returns `null`.
      */
-    fun adjust(): Track? {
+    fun adjust(progress: ProgressHandler): Track? {
+
         var track: Track = this.inputTrack
-        for (adj in adjustments) {
-            val newInput = adj.adjuster(track).adjust()
+        for ((i, adj) in adjustments.withIndex()) {
+            val newInput = adj.adjuster(track).adjust(progress.split(i, adjustments.size, "Adjusting $adj"))
             if (newInput != null) {
                 track = newInput
             }

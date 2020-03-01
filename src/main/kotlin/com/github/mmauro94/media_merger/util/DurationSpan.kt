@@ -108,4 +108,8 @@ data class DurationSpan(val start: Duration, val end: Duration) {
             end = end * stretchFactor
         )
     }
+
+    override fun toString(): String {
+        return "${start.toTimeString()} --> ${end.toTimeString()}"
+    }
 }

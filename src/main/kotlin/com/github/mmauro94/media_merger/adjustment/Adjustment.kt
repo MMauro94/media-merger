@@ -24,6 +24,8 @@ abstract class Adjustment<T>(val data : T) {
      */
     protected abstract val outputConcat: List<String>
 
+    abstract override fun toString(): String
+
     /**
      * Calculates the output file
      */

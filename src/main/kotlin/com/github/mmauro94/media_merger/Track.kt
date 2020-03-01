@@ -119,7 +119,7 @@ class Track(
     override fun equals(other: Any?) = other is Track && other.inputFile == inputFile && other.id == id
     override fun hashCode() = Objects.hash(inputFile, id)
 
-    override fun toString() = "Track $id of file ${file.name}"
+    override fun toString() = "${mkvTrack.type} track $id of file ${file.name}"
 
     companion object {
         fun from(inputFile: InputFile, mkvTrack: MkvToolnixTrack, ffprobeStream: FFmpegStream): Track? {

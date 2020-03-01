@@ -27,10 +27,10 @@ data class InputFiles<G : Group<G>>(
         val SUBTITLES_EXTENSIONS = listOf("srt", "ssa", "idx", "sub")
         val EXTENSIONS_TO_IDENTIFY = VIDEO_EXTENSIONS + AUDIO_EXTENSIONS + SUBTITLES_EXTENSIONS
 
-        fun <G : Group<G>> detect(grouper: Grouper<G>, dir: File, progress: ProgressReporter): List<InputFiles<G>> {
-            progress(IndeterminateProgress("Listing files..."))
+        fun <G : Group<G>> detect(grouper: Grouper<G>, dir: File, progress: ProgressHandler): List<InputFiles<G>> {
+            progress.indeterminate("Listing files...")
             val allFiles = dir.walkTopDown().toList()
-            progress(IndeterminateProgress("Grouping files..."))
+            progress.indeterminate("Grouping files...")
             val groupedFiles = allFiles
                 .filter { it.extension in EXTENSIONS_TO_IDENTIFY }
                 .filterNot { it.name.contains("@adjusted") || it.name.contains("@extracted") }
@@ -46,7 +46,7 @@ data class InputFiles<G : Group<G>>(
             groupedFiles.forEach { (ei, files) ->
                 check(ei != null)
                 files.forEach { f ->
-                    progress(DiscreteProgress(i, max, "Identifying ${f.name}"))
+                    progress.discrete(i, max, "Identifying ${f.name}")
                     try {
                         ret.add(ei, InputFile.parse({ inputFiles.getValue(ei) }, f))
                     } catch (e: InputFile.ParseException) {
@@ -55,7 +55,7 @@ data class InputFiles<G : Group<G>>(
                     i++
                 }
             }
-            progress(DiscreteProgress(i, max, "Identifying complete"))
+            progress.discrete(i, max, "Identifying complete")
 
             for ((key, value) in ret) {
                 inputFiles[key] = InputFiles(key, value)

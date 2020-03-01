@@ -4,6 +4,7 @@ import com.github.mmauro94.media_merger.cuts.Cuts
 import com.github.mmauro94.media_merger.cuts.computeCuts
 import com.github.mmauro94.media_merger.strategy.AdjustmentStrategies
 import com.github.mmauro94.media_merger.strategy.CutsAdjustmentStrategy.*
+import com.github.mmauro94.media_merger.util.ProgressHandler
 import com.github.mmauro94.media_merger.video_part.VideoPart.Type.SCENE
 import com.github.mmauro94.media_merger.video_part.VideoPartsMatchException
 import com.github.mmauro94.media_merger.video_part.matchFirstSceneOffset
@@ -34,18 +35,24 @@ data class SelectedAdjustments(
 fun selectAdjustments(
     adjustmentStrategies: AdjustmentStrategies,
     inputFile: InputFile,
-    targetFile: InputFile
+    targetFile: InputFile,
+    progress: ProgressHandler
 ): SelectedAdjustments {
+    progress.ratio(0f, "Detecting stretch factor...")
     val stretchFactor = StretchFactor.detect(adjustmentStrategies.stretch, inputFile, targetFile)
         ?: throw OperationCreationException("Unable to detect stretch factor")
 
+    val cutsProgress = progress.split(.1f, 1f, "Detecting cuts...")
     val cuts = when (adjustmentStrategies.cuts) {
         is None -> Cuts.EMPTY
         is FirstBlackSegmentOffset -> {
-            val inputVideoParts = inputFile.videoParts?.lazy()?.times(stretchFactor)
-                ?: throw OperationCreationException("No black segments in file $inputFile")
-            val targetVideoParts = targetFile.videoParts?.lazy()
-                ?: throw OperationCreationException("No black segments in file $targetFile")
+            val inputVideoParts = inputFile.videoParts?.lazy(
+                cutsProgress.split(0, 2, "Detecting ${inputFile.file.name} first black segment...")
+            )?.times(stretchFactor) ?: throw OperationCreationException("No black segments in file $inputFile")
+
+            val targetVideoParts = targetFile.videoParts?.lazy(
+                cutsProgress.split(1, 2, "Detecting ${targetFile.file.name} first black segment...")
+            ) ?: throw OperationCreationException("No black segments in file $targetFile")
 
             val firstInputPart = inputVideoParts.first()
             val firstTargetPart = targetVideoParts.first()
@@ -56,10 +63,13 @@ fun selectAdjustments(
             Cuts.ofOffset(targetFirstSceneOffset - inputFirstSceneOffset)
         }
         is FirstSceneOffset -> {
-            val inputVideoParts = inputFile.videoParts?.lazy()?.times(stretchFactor)
-                ?: throw OperationCreationException("No black segments in file $inputFile")
-            val targetVideoParts = targetFile.videoParts?.lazy()
-                ?: throw OperationCreationException("No black segments in file $targetFile")
+            val inputVideoParts = inputFile.videoParts?.lazy(
+                cutsProgress.split(0, 2, "Detecting ${inputFile.file.name} first scene...")
+            )?.times(stretchFactor) ?: throw OperationCreationException("No black segments in file $inputFile")
+
+            val targetVideoParts = targetFile.videoParts?.lazy(
+                cutsProgress.split(1, 2, "Detecting ${targetFile.file.name} first scene...")
+            ) ?: throw OperationCreationException("No black segments in file $targetFile")
 
             val offset = inputVideoParts.matchFirstSceneOffset(targetVideoParts)
                 ?: throw OperationCreationException("Unable to detect matching first scene", StringBuilder().apply {
@@ -72,11 +82,13 @@ fun selectAdjustments(
             Cuts.ofOffset(offset)
         }
         is CutScenes -> {
-            val all = inputFile.videoParts?.all()
-            val inputVideoParts = all?.times(stretchFactor)
-                ?: throw OperationCreationException("No black segments in file $inputFile")
-            val targetVideoParts = targetFile.videoParts?.all()
-                ?: throw OperationCreationException("No black segments in file $targetFile")
+            val inputVideoParts = inputFile.videoParts?.all(
+                cutsProgress.split(0, 2, "Detecting ${inputFile.file.name} scenes...")
+            )?.times(stretchFactor) ?: throw OperationCreationException("No black segments in file $inputFile")
+
+            val targetVideoParts = targetFile.videoParts?.all(
+                cutsProgress.split(1, 2, "Detecting ${targetFile.file.name} first scenes")
+            ) ?: throw OperationCreationException("No black segments in file $targetFile")
 
             try {
                 val (matches, accuracy) = inputVideoParts.matchWithTarget(targetVideoParts)
@@ -103,5 +115,6 @@ fun selectAdjustments(
         }
     }
 
+    progress.finished("Adjustments detected for file ${inputFile.file.name}")
     return SelectedAdjustments(inputFile, stretchFactor, cuts)
 }

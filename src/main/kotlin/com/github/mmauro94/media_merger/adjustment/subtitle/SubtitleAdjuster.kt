@@ -4,6 +4,7 @@ import com.github.mmauro94.media_merger.Track
 import com.github.mmauro94.media_merger.adjustment.Adjustment
 import com.github.mmauro94.media_merger.adjustment.TrackAdjuster
 import com.github.mmauro94.media_merger.subtitles.Subtitle
+import com.github.mmauro94.media_merger.util.ProgressHandler
 import java.io.File
 
 /**
@@ -21,11 +22,12 @@ abstract class SubtitleAdjuster<T>(
 
     abstract fun applyTransformations(subtitle: Subtitle<*>): Subtitle<*>
 
-    override fun doAdjust(): Boolean {
+    override fun doAdjust(progress: ProgressHandler): Boolean {
         val file = track.fileOrExtracted()
         val subtitle = Subtitle.parse(file)
         return if(subtitle != null) {
             applyTransformations(subtitle).save(outputFile)
+            progress.finished("Subtitles adjusted")
             true
         } else false
     }

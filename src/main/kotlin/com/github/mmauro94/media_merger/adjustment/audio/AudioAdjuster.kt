@@ -3,6 +3,7 @@ package com.github.mmauro94.media_merger.adjustment.audio
 import com.github.mmauro94.media_merger.Track
 import com.github.mmauro94.media_merger.adjustment.Adjustment
 import com.github.mmauro94.media_merger.adjustment.TrackAdjuster
+import com.github.mmauro94.media_merger.util.ProgressHandler
 import net.bramp.ffmpeg.FFmpeg
 import net.bramp.ffmpeg.FFmpegExecutor
 import net.bramp.ffmpeg.FFmpegUtils
@@ -41,7 +42,7 @@ abstract class AudioAdjuster<T>(
      */
     protected abstract val targetDuration: Duration?
 
-    override fun doAdjust(): Boolean {
+    override fun doAdjust(progress: ProgressHandler): Boolean {
         val builder = FFmpegBuilder()
             .setInput(track.file.absolutePath)
             .apply { fillBuilder() }
@@ -50,19 +51,7 @@ abstract class AudioAdjuster<T>(
             .done()
         FFmpegExecutor(FFmpeg(), FFprobe()).apply {
             createJob(builder) { prg ->
-                val targetTotalNanos = targetDuration?.toNanos()?.toDouble()
-                val percentage = if (targetTotalNanos != null) {
-                    (prg.out_time_ns / targetTotalNanos) * 100.0
-                } else null
-
-                println(
-                    String.format(
-                        "[%s] %s, speed:%.2fx",
-                        if (percentage != null) "%.0f%%".format(percentage) else "N/A",
-                        FFmpegUtils.toTimecode(prg.out_time_ns, TimeUnit.NANOSECONDS),
-                        prg.speed
-                    )
-                )
+                progress.ffmpeg(prg, targetDuration)
             }.run()
         }
         return true

@@ -9,14 +9,16 @@ import com.github.mmauro94.media_merger.adjustment.subtitle.StretchSubtitleAdjus
  * @see StretchFactor
  */
 class StretchAdjustment(
-    adjustment: StretchFactor
-) : Adjustment<StretchFactor>(adjustment) {
+    stretchFactor: StretchFactor
+) : Adjustment<StretchFactor>(stretchFactor) {
 
-    override val outputConcat = listOf("stretch${adjustment.speedMultiplier.toPlainString()}")
+    override val outputConcat = listOf("stretch${stretchFactor.speedMultiplier.toPlainString()}")
 
     override fun isValid(): Boolean {
         return !data.isEmpty()
     }
+
+    override fun toString() = data.toString()
 
     override val audioAdjusterFactory = ::StretchAudioAdjuster
     override val subtitleAdjusterFactory = ::StretchSubtitleAdjuster

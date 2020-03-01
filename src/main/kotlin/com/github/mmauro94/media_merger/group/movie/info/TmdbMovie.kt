@@ -15,6 +15,7 @@ data class TmdbMovie(private val tmdbMovie: BaseMovie) : MovieInfo() {
 
     override val name = tmdbMovie.title ?: tmdbMovie.original_title ?: throw Exception("Movie $id with no title")
 
+    @Suppress("DEPRECATION") //Don't have control over the type returned
     override val year = tmdbMovie.release_date?.let { Year.of(1900 + it.year) }
 
     override fun toString() = super.toString()
