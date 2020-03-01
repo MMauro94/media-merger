@@ -160,11 +160,6 @@ class StretchFactor private constructor(
                 targetFile.duration
             )?.let { return it }
 
-            //TODO: better handling of this case
-            if (inputFile.file.extension in InputFiles.SUBTITLES_EXTENSIONS) {
-                return NONE
-            }
-
             return null
         }
         //endregion
