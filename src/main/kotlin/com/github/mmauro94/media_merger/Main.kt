@@ -19,6 +19,7 @@ object Main {
     /*
      * Missing things TODO:
      *  - Better error handling
+     *  - Add a way to report error/warnings during progress
      *  - [Option to convert the video if not in suitable format]
      */
 
