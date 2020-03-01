@@ -112,7 +112,7 @@ data class SelectedTracks<G : Group<G>>(
             return
         }
 
-        val adjustmentsProgress = progress.split(adjustmentStrategies.detectProgressWeight, .9f, "Detecting files adjustments...")
+        val adjustmentsProgress = progress.split(adjustmentStrategies.detectProgressWeight, .9f, "Adjusting files...")
         allAdjustments.forEachIndexed { i, (aa, f) ->
             aa.adjust(adjustmentsProgress.split(i, allAdjustments.size, "Adjusting ${aa.inputTrack}"))?.let { res ->
                 f(res)

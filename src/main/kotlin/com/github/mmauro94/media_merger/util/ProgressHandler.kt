@@ -49,7 +49,7 @@ abstract class ProgressHandler {
             }
         }
     }
-    
+
 
     fun handle(progress: Progress, message: String?) = this.handle(ProgressWithMessage(progress, message))
 
