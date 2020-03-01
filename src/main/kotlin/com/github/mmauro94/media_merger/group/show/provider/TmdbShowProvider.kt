@@ -20,7 +20,13 @@ object TmdbShowProvider : ShowProvider<TmdbShow> {
         val search = try {
             tmdb
                 .searchService()
-                .tv(query, 1, Main.mainLanguages.first().iso639_1 ?: "en", null, null)
+                .tv(
+                    query,
+                    1,
+                    Main.config.infoLanguage?.iso639_1 ?: Main.mainLanguages.first().iso639_1 ?: "en",
+                    null,
+                    null
+                )
                 .execute()
         } catch (e: Exception) {
             throw GroupInfoException(e.message)
@@ -45,7 +51,7 @@ object TmdbShowProvider : ShowProvider<TmdbShow> {
             tmdb.tvSeasonsService().season(
                 show.id,
                 season,
-                Main.mainLanguages.first().iso639_1 ?: "en"
+                Main.config.infoLanguage?.iso639_1 ?: Main.mainLanguages.first().iso639_1 ?: "en"
             ).execute()
         } catch (e: Exception) {
             throw GroupInfoException(e.message)

@@ -19,6 +19,11 @@ abstract class ShowInfo {
     abstract val name: String
 
     /**
+     * The year of first airing of the show, or null
+     */
+    abstract val year: Year?
+
+    /**
      * Returns the information about a particular episode
      * @throws GroupInfoException if the info cannot be returned
      */

@@ -24,13 +24,15 @@ data class TvdbShow(private val tvdbShow: Series) : ShowInfo() {
         }
     }
 
+    override val year = firstAired?.let { Year.from(it) }
+
     override val givenName = tvdbShow.seriesName ?: ""
 
-    override val name = ShowInfo.computeName(
+    override val name = computeName(
         "TVDB",
         id.toString(),
         tvdbShow.seriesName,
-        firstAired?.let { Year.from(it) }
+        year
     )
 
     override fun toString() = super.toString()

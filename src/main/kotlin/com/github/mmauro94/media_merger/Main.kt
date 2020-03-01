@@ -20,9 +20,6 @@ object Main {
      * Missing things TODO:
      *  - Better error handling
      *  - [Option to convert the video if not in suitable format]
-     *  - [Better output]
-     *  - [Rename language option]
-     *  - [Episode name format]
      */
 
     lateinit var config: Config; private set

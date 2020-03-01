@@ -19,7 +19,15 @@ object TmdbMovieProvider : MovieProvider<TmdbMovie> {
         val search = try {
             tmdb
                 .searchService()
-                .movie(query, 1, Main.mainLanguages.first().iso639_1 ?: "en", null, null, null, null)
+                .movie(
+                    query,
+                    1,
+                    Main.config.infoLanguage?.iso639_1 ?: Main.mainLanguages.first().iso639_1 ?: "en",
+                    null,
+                    null,
+                    null,
+                    null
+                )
                 .execute()
         } catch (e: Exception) {
             throw GroupInfoException(e.message)

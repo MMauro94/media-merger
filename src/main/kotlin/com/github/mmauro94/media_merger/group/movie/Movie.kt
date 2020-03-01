@@ -1,10 +1,12 @@
 package com.github.mmauro94.media_merger.group.movie
 
+import com.github.mmauro94.media_merger.Main
 import com.github.mmauro94.media_merger.group.Group
 import com.github.mmauro94.media_merger.group.movie.info.MovieInfo
 import com.github.mmauro94.media_merger.util.filesystemCharReplace
+import com.github.mmauro94.media_merger.util.namedFormat
 
-class Movie(val movieInfo : MovieInfo?) : Group<Movie> {
+class Movie(val movieInfo: MovieInfo?) : Group<Movie> {
 
     override fun toString() = outputName() ?: "Movie"
 
@@ -13,13 +15,14 @@ class Movie(val movieInfo : MovieInfo?) : Group<Movie> {
     override fun hashCode() = 1
 
     override fun outputName(): String? {
-        return movieInfo?.let {
-            if(it.year != null) {
-                "${it.name} (${it.year})"
-            } else {
-                it.name
-            }
-        }?.filesystemCharReplace()
+        return movieInfo?.let { movie ->
+            Main.config.episodeRenameFormat.namedFormat(
+                mapOf(
+                    "name" to movie.name,
+                    "year" to (movie.year?.toString() ?: "")
+                )
+            ).filesystemCharReplace()
+        }
     }
 
     override fun compareTo(other: Movie) = 0

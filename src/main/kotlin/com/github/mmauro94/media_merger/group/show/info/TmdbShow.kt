@@ -12,14 +12,17 @@ import java.time.ZoneId
 data class TmdbShow(private val tmdbShow: BaseTvShow) : ShowInfo() {
     val id = tmdbShow.id!!
 
+    override val year = tmdbShow.first_air_date?.let { Year.from(Instant.ofEpochMilli(it.time).atZone(ZoneId.systemDefault())) }
+
     override val givenName = tmdbShow.name ?: ""
 
-    override val name = ShowInfo.computeName(
+    override val name = computeName(
         "TMDB",
         id.toString(),
         tmdbShow.name,
-        tmdbShow.first_air_date?.let { Year.from(Instant.ofEpochMilli(it.time).atZone(ZoneId.systemDefault())) }
+        year
     )
+
 
     override fun toString() = super.toString()
 

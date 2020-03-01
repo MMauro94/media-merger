@@ -1,8 +1,10 @@
 package com.github.mmauro94.media_merger.group.show
 
+import com.github.mmauro94.media_merger.Main
 import com.github.mmauro94.media_merger.group.Group
 import com.github.mmauro94.media_merger.group.show.info.EpisodeInfo
 import com.github.mmauro94.media_merger.util.filesystemCharReplace
+import com.github.mmauro94.media_merger.util.namedFormat
 import java.util.*
 
 /**
@@ -26,12 +28,14 @@ class Episode(
      */
     override fun outputName(): String? {
         return episodeInfo?.let {
-            String.format(
-                "%s %02dx%02d - %s",
-                it.show.givenName,
-                it.seasonNumber,
-                it.episodeNumber,
-                it.name ?: "Episode ${it.episodeNumber}"
+            Main.config.episodeRenameFormat.namedFormat(
+                mapOf(
+                    "showName" to it.show.givenName,
+                    "showYear" to (it.show.year?.toString() ?: ""),
+                    "seasonNumber" to it.seasonNumber,
+                    "episodeNumber" to it.episodeNumber,
+                    "episodeName" to (it.name ?: "Episode ${it.episodeNumber}")
+                )
             ).filesystemCharReplace()
         }
     }
