@@ -4,7 +4,7 @@ import com.github.mmauro94.media_merger.cuts.Cuts
 import com.github.mmauro94.media_merger.cuts.computeCuts
 import com.github.mmauro94.media_merger.strategy.AdjustmentStrategies
 import com.github.mmauro94.media_merger.strategy.CutsAdjustmentStrategy.*
-import com.github.mmauro94.media_merger.util.ProgressHandler
+import com.github.mmauro94.media_merger.util.Reporter
 import com.github.mmauro94.media_merger.video_part.VideoPart.Type.SCENE
 import com.github.mmauro94.media_merger.video_part.VideoPartsMatchException
 import com.github.mmauro94.media_merger.video_part.matchFirstSceneOffset
@@ -36,22 +36,22 @@ fun selectAdjustments(
     adjustmentStrategies: AdjustmentStrategies,
     inputFile: InputFile,
     targetFile: InputFile,
-    progress: ProgressHandler
+    reporter: Reporter
 ): SelectedAdjustments {
-    progress.ratio(0f, "Detecting stretch factor...")
+    reporter.progress.ratio(0f, "Detecting stretch factor...")
     val stretchFactor = StretchFactor.detect(adjustmentStrategies.stretch, inputFile, targetFile)
         ?: throw OperationCreationException("Unable to detect stretch factor")
 
-    val cutsProgress = progress.split(.1f, 1f, "Detecting cuts...")
+    val cutsReporter = reporter.split(.1f, 1f, "Detecting cuts...")
     val cuts = when (adjustmentStrategies.cuts) {
         is None -> Cuts.EMPTY
         is FirstBlackSegmentOffset -> {
             val inputVideoParts = inputFile.videoParts?.lazy(
-                cutsProgress.split(0, 2, "Detecting ${inputFile.file.name} first black segment...")
+                cutsReporter.split(0, 2, "Detecting ${inputFile.file.name} first black segment...")
             )?.times(stretchFactor) ?: throw OperationCreationException("No black segments in file $inputFile")
 
             val targetVideoParts = targetFile.videoParts?.lazy(
-                cutsProgress.split(1, 2, "Detecting ${targetFile.file.name} first black segment...")
+                cutsReporter.split(1, 2, "Detecting ${targetFile.file.name} first black segment...")
             ) ?: throw OperationCreationException("No black segments in file $targetFile")
 
             val firstInputPart = inputVideoParts.first()
@@ -64,11 +64,11 @@ fun selectAdjustments(
         }
         is FirstSceneOffset -> {
             val inputVideoParts = inputFile.videoParts?.lazy(
-                cutsProgress.split(0, 2, "Detecting ${inputFile.file.name} first scene...")
+                cutsReporter.split(0, 2, "Detecting ${inputFile.file.name} first scene...")
             )?.times(stretchFactor) ?: throw OperationCreationException("No black segments in file $inputFile")
 
             val targetVideoParts = targetFile.videoParts?.lazy(
-                cutsProgress.split(1, 2, "Detecting ${targetFile.file.name} first scene...")
+                cutsReporter.split(1, 2, "Detecting ${targetFile.file.name} first scene...")
             ) ?: throw OperationCreationException("No black segments in file $targetFile")
 
             val offset = inputVideoParts.matchFirstSceneOffset(targetVideoParts)
@@ -83,11 +83,11 @@ fun selectAdjustments(
         }
         is CutScenes -> {
             val inputVideoParts = inputFile.videoParts?.all(
-                cutsProgress.split(0, 2, "Detecting ${inputFile.file.name} scenes...")
+                cutsReporter.split(0, 2, "Detecting ${inputFile.file.name} scenes...")
             )?.times(stretchFactor) ?: throw OperationCreationException("No black segments in file $inputFile")
 
             val targetVideoParts = targetFile.videoParts?.all(
-                cutsProgress.split(1, 2, "Detecting ${targetFile.file.name} first scenes")
+                cutsReporter.split(1, 2, "Detecting ${targetFile.file.name} first scenes")
             ) ?: throw OperationCreationException("No black segments in file $targetFile")
 
             try {
@@ -115,6 +115,6 @@ fun selectAdjustments(
         }
     }
 
-    progress.finished("Adjustments detected for file ${inputFile.file.name}")
+    reporter.progress.finished("Adjustments detected for file ${inputFile.file.name}")
     return SelectedAdjustments(inputFile, stretchFactor, cuts)
 }

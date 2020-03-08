@@ -2,7 +2,7 @@ package com.github.mmauro94.media_merger.adjustment
 
 import com.github.mmauro94.media_merger.InputFile
 import com.github.mmauro94.media_merger.Track
-import com.github.mmauro94.media_merger.util.ProgressHandler
+import com.github.mmauro94.media_merger.util.Reporter
 import java.io.File
 
 /**
@@ -25,7 +25,7 @@ abstract class TrackAdjuster<T>(
     /**
      * Performs the adjustment
      */
-    protected abstract fun doAdjust(progress: ProgressHandler): Boolean
+    protected abstract fun doAdjust(reporter: Reporter): Boolean
 
     /**
      * Adjusts the given [track] with the [adjustment]
@@ -36,16 +36,16 @@ abstract class TrackAdjuster<T>(
      * If a file with the same name is already present, the actual adjustment is not done,
      * but its [Track] is returned anyway, basically acting as a cache.
      */
-    fun adjust(progress: ProgressHandler): Track? {
+    fun adjust(reporter: Reporter): Track? {
         val res = when {
             outputFile.exists() -> true
             !adjustment.isValid() -> false
-            else -> doAdjust(progress)
+            else -> doAdjust(reporter)
         }
         return if (res) {
             return InputFile.parse({
                 throw IllegalStateException("Requested InputFiles of adjusted tracks")
-            }, outputFile).tracks.single()
+            }, outputFile, reporter.log).tracks.single()
         } else null
 
     }

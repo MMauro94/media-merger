@@ -29,14 +29,14 @@ object TmdbShowProvider : ShowProvider<TmdbShow> {
                 )
                 .execute()
         } catch (e: Exception) {
-            throw GroupInfoException(e.message)
+            throw GroupInfoException(e.message ?: "Unknown exception while searching on TMDB")
         }
         val body = search.body()
 
         return body?.results?.map {
             TmdbShow(it)
         } ?: throw GroupInfoException(
-            search.errorBody()?.string() ?: ""
+            search.errorBody()?.string() ?: "Unknown error from TMDB"
         )
     }
 
@@ -54,7 +54,7 @@ object TmdbShowProvider : ShowProvider<TmdbShow> {
                 Main.config.infoLanguage?.iso639_1 ?: Main.mainLanguages.first().iso639_1 ?: "en"
             ).execute()
         } catch (e: Exception) {
-            throw GroupInfoException(e.message)
+            throw GroupInfoException(e.message ?: "Unknown exception while downloading season from TMDB")
         }
         return response
             .body()
@@ -68,7 +68,7 @@ object TmdbShowProvider : ShowProvider<TmdbShow> {
                 )
             }
             ?: throw GroupInfoException(
-                response.errorBody()?.string() ?: ""
+                response.errorBody()?.string() ?: "Unknown error from TMDB"
             )
     }
 
@@ -82,7 +82,7 @@ object TmdbShowProvider : ShowProvider<TmdbShow> {
                 downloadSeason(show, season)
             }
             .singleOrNull { it.episodeNumber == episode }
-            ?: throw GroupInfoException("Cannot find episode S${season}E$episode")
+            ?: throw GroupInfoException("Cannot find episode S${season.toString().padStart(2, '0')}E${episode.toString().padStart(2, '0')}")
     }
 
 }

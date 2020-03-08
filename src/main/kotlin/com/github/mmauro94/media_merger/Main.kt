@@ -3,7 +3,11 @@ package com.github.mmauro94.media_merger
 import com.github.mmauro94.media_merger.config.Config
 import com.github.mmauro94.media_merger.config.ConfigParseException
 import com.github.mmauro94.media_merger.strategy.AdjustmentStrategies
-import com.github.mmauro94.media_merger.util.*
+import com.github.mmauro94.media_merger.util.ConsoleReporter
+import com.github.mmauro94.media_merger.util.askLanguages
+import com.github.mmauro94.media_merger.util.log.ConsoleLogger
+import com.github.mmauro94.media_merger.util.menu
+import com.github.mmauro94.media_merger.util.selectEnum
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import org.fusesource.jansi.Ansi.ansi
 import org.fusesource.jansi.AnsiConsole
@@ -18,8 +22,7 @@ object Main {
 
     /*
      * Missing things TODO:
-     *  - Better error handling
-     *  - Add a way to report error/warnings during progress
+     *  - User help guide
      *  - [Option to convert the video if not in suitable format]
      */
 
@@ -41,7 +44,8 @@ object Main {
         config = try {
             Config.parse()
         } catch (cpe: ConfigParseException) {
-            System.err.println("config.json error: ${cpe.message}")
+            println(ansi().fgRed().a("config.json parsing error: ${cpe.message}"))
+            println(ansi().fgYellow().a("Using default config").reset())
             Config()
         }
         println(ansi().bgBrightGreen().fgBlack().a("----- MEDIA-MERGER UTILITY -----").reset())
@@ -73,13 +77,13 @@ object Main {
             println()
             menu(
                 title = "--- Main menu ---",
-                items = linkedMapOf(
+                items = mapOf<String, () -> Unit>(
                     "Merge files" to ::mergeFiles,
                     "Just rename files" to ::justRenameFiles,
                     "See detected files" to ::seeDetectedFiles,
                     "See selected tracks" to ::seeSelectedTracks,
                     "Reload files" to {
-                        ConsoleProgressHandler().use { progress ->
+                        ConsoleReporter().use { progress ->
                             inputFilesDetector.reloadFiles(progress)
                         }
                         Unit
@@ -95,31 +99,31 @@ object Main {
         val adjustmentStrategies = AdjustmentStrategies.ask()
         println()
 
-        ConsoleProgressHandler().use { progress ->
-            val inputFiles = inputFilesDetector.getOrReadInputFiles(progress.split(0f, 0.1f, "Identifying..."))
+        ConsoleReporter().use { reporter ->
+            val inputFiles = inputFilesDetector.getOrReadInputFiles(reporter.split(0f, 0.1f, "Identifying..."))
 
-            val mergeProgress = progress.split(.1f, 1f, "Merging...")
+            val mergeReporter = reporter.split(.1f, 1f, "Merging...")
 
             for ((i, it) in inputFiles.withIndex()) {
-                it.selectTracks()?.merge(adjustmentStrategies, mergeProgress.split(i, inputFiles.size, "Merging group ${it.group}"))
+                it.selectTracks(mergeReporter.log)?.merge(adjustmentStrategies, mergeReporter.split(i, inputFiles.size, "Merging group ${it.group}"))
             }
 
-            progress.finished("Merging of all files completed successfully")
+            reporter.progress.finished("Merging of all files completed successfully")
         }
     }
 
     private fun justRenameFiles() {
-        ConsoleProgressHandler().use { progress ->
-            val inputFiles = inputFilesDetector.getOrReadInputFiles(progress.split(0f, 0.9f, "Identifying..."))
+        ConsoleReporter().use { reporter ->
+            val inputFiles = inputFilesDetector.getOrReadInputFiles(reporter.split(0f, 0.9f, "Identifying..."))
 
-            val renameProgressHandler = progress.split(0.9f, 1f, "Renaming...")
+            val renameProgressHandler = reporter.split(0.9f, 1f, "Renaming...")
             inputFiles.forEachIndexed { i, files ->
-                val groupProgressHandler = renameProgressHandler.split(i, inputFiles.size, "Renaming group ${files.group}...")
+                val groupReporter = renameProgressHandler.split(i, inputFiles.size, "Renaming group ${files.group}...")
 
                 val outputName = files.outputName()
                 if (outputName != null) {
                     files.inputFiles.forEachIndexed { j, f ->
-                        groupProgressHandler.discrete(j, files.inputFiles.size, "Renaming file ${f.file.name}")
+                        groupReporter.progress.discrete(j, files.inputFiles.size, "Renaming file ${f.file.name}")
                         try {
                             Files.move(
                                 f.file.toPath(),
@@ -127,25 +131,23 @@ object Main {
                                 StandardCopyOption.ATOMIC_MOVE
                             )
                         } catch (ioe: IOException) {
-                            //System.err.println(ioe.message)
-                            //TODO Warn
+                            groupReporter.log.err("Unable to rename file ${f.file.name}: ${ioe.message}")
                         }
                     }
                 } else {
-                    groupProgressHandler.indeterminate("Cannot rename group ${files.group}")
-                    //System.err.println("Cannot rename group ${files.group}")
-                    //TODO Warn
+                    groupReporter.log.warn("Cannot rename group ${files.group}: insufficient information")
                 }
             }
 
-            progress.finished("Rename complete")
+            reporter.progress.finished("Rename complete")
         }
     }
 
     private fun seeDetectedFiles() {
-        ConsoleProgressHandler().use { progress ->
+        ConsoleReporter().use { progress ->
             val files = inputFilesDetector.getOrReadInputFiles(progress)
 
+            println()
             files.forEachIndexed { i, it ->
                 println("${it.group}:")
                 it.forEach { f ->
@@ -159,12 +161,12 @@ object Main {
     }
 
     private fun seeSelectedTracks() {
-        ConsoleProgressHandler().use { progress ->
-            inputFilesDetector.getOrReadInputFiles(progress).forEach {
+        ConsoleReporter().use { reporter ->
+            inputFilesDetector.getOrReadInputFiles(reporter).forEach {
                 println("${it.group}:")
-                val selectedTracks = it.selectTracks()
+                val selectedTracks = it.selectTracks(ConsoleLogger.prepend("\t"))
                 if (selectedTracks == null) {
-                    println("\tSkipped")
+                    println(ansi().fgRed().a("\tSkipped").reset())
                 } else {
                     println("\tVideo track: ${selectedTracks.videoTrack}")
                     selectedTracks.languageTracks.forEach { (lang, lt) ->

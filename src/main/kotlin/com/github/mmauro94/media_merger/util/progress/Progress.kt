@@ -1,4 +1,4 @@
-package com.github.mmauro94.media_merger.util
+package com.github.mmauro94.media_merger.util.progress
 
 data class Progress(
     val ratio: Float?,

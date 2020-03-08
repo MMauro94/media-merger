@@ -1,7 +1,9 @@
 package com.github.mmauro94.media_merger
 
+import com.github.mmauro94.media_merger.util.Reporter
 import com.github.mmauro94.media_merger.util.find
 import com.github.mmauro94.media_merger.util.findWalkingUp
+import com.github.mmauro94.media_merger.util.log.Logger
 import com.github.mmauro94.media_merger.util.toSecondsDuration
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
@@ -100,17 +102,17 @@ class Track(
 
     fun isSubtitlesTrack() = mkvTrack.type == MkvToolnixTrackType.subtitles
 
-    fun fileOrExtracted(): File {
+    fun fileOrExtracted(reporter: Reporter): File {
         return if (isOnItsFile) inputFile.file
         else {
             val extractedFile =
                 File(inputFile.file.parentFile, inputFile.file.nameWithoutExtension + "@extracted@track$id.$extension")
             if (!extractedFile.exists()) {
-                print("Extracting track...")
+                reporter.progress.indeterminate("Extracting $this")
                 MkvToolnix.extract(inputFile.file).extractTracks {
                     addTrack(mkvTrack, extractedFile)
                 }.executeAndPrint()
-                println("OK")
+                reporter.progress.indeterminate("$this extracted successfully")
             }
             extractedFile
         }
@@ -122,7 +124,12 @@ class Track(
     override fun toString() = "${mkvTrack.type} track $id of file ${file.name}"
 
     companion object {
-        fun from(inputFile: InputFile, mkvTrack: MkvToolnixTrack, ffprobeStream: FFmpegStream): Track? {
+        fun from(
+            inputFile: InputFile,
+            mkvTrack: MkvToolnixTrack,
+            ffprobeStream: FFmpegStream,
+            logger: Logger
+        ): Track? {
             val file = mkvTrack.fileIdentification.fileName
 
             var language = mkvTrack.properties?.language
@@ -130,7 +137,7 @@ class Track(
                 language = file.findLanguage()
             }
             return if (language == null) {
-                System.err.println("Track ${mkvTrack.id} of file ${file.name} skipped because of no language")
+                logger.warn("Track ${mkvTrack.id} of file ${file.name} skipped because of no language")
                 null
             } else {
                 Track(inputFile, mkvTrack, ffprobeStream, language)

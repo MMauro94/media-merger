@@ -6,17 +6,17 @@ import com.github.mmauro94.media_merger.StretchFactor
 import com.github.mmauro94.media_merger.Track
 import com.github.mmauro94.media_merger.config.FFMpegBlackdetectConfig
 import com.github.mmauro94.media_merger.util.*
+import com.github.mmauro94.media_merger.util.progress.Progress
+import com.github.mmauro94.media_merger.util.progress.ProgressHandler
 import com.github.mmauro94.media_merger.video_part.VideoPart.Type.BLACK_SEGMENT
 import net.bramp.ffmpeg.FFmpeg
 import net.bramp.ffmpeg.FFmpegExecutor
-import net.bramp.ffmpeg.FFmpegUtils
 import net.bramp.ffmpeg.FFprobe
 import net.bramp.ffmpeg.builder.FFmpegBuilder
 import org.apache.commons.lang3.ObjectUtils.max
 import java.io.File
 import java.io.PrintStream
 import java.time.Duration
-import java.util.concurrent.TimeUnit
 import kotlin.math.min
 
 /**
@@ -174,17 +174,17 @@ class VideoPartsProvider(
     private val offset: Duration
 ) {
 
-    private fun videoParts(progress: ProgressHandler, chunkSize: Duration?): VideoParts {
-        return VideoParts(inputFile.detectVideoParts(config, chunkSize, progress)) + offset
+    private fun videoParts(reporter: Reporter, chunkSize: Duration?): VideoParts {
+        return VideoParts(inputFile.detectVideoParts(config, chunkSize, reporter)) + offset
     }
 
 
-    fun lazy(progress: ProgressHandler, chunkSize: Duration = Duration.ofSeconds(30)): VideoParts {
-        return videoParts(progress, chunkSize)
+    fun lazy(reporter: Reporter, chunkSize: Duration = Duration.ofSeconds(30)): VideoParts {
+        return videoParts(reporter, chunkSize)
     }
 
-    fun all(progress: ProgressHandler): VideoParts {
-        return videoParts(progress, null)
+    fun all(reporter: Reporter): VideoParts {
+        return videoParts(reporter, null)
     }
 }
 
@@ -200,7 +200,7 @@ class VideoPartsProvider(
 private fun InputFile.detectVideoParts(
     config: FFMpegBlackdetectConfig,
     chunkSize: Duration?,
-    progress: ProgressHandler
+    reporter: Reporter
 ): VideoPartIterator {
     if (chunkSize != null) {
         require(chunkSize > Duration.ZERO)
@@ -208,12 +208,12 @@ private fun InputFile.detectVideoParts(
 
     val videoTrack = tracks.singleOrNull { it.isVideoTrack() }
 
-    fun createProgress(chunk : DurationSpan?): ProgressHandler {
+    fun createReporter(chunk : DurationSpan?): Reporter {
         val message = "Detecting black frames segments in chunk $chunk..."
         return when {
-            duration == null -> progress.split(Progress.INDETERMINATE, message)
-            chunk == null -> progress
-            else -> progress.split(
+            duration == null -> reporter.split(Progress.INDETERMINATE, message)
+            chunk == null -> reporter
+            else -> reporter.split(
                 chunk.start.toSeconds() / duration.toSeconds().toFloat(),
                 min(1f, chunk.end.toSeconds() / duration.toSeconds().toFloat()),
                 message
@@ -225,7 +225,7 @@ private fun InputFile.detectVideoParts(
         if (videoTrack != null) {
             var chunk = if (chunkSize == null) null else DurationSpan(Duration.ZERO, chunkSize)
 
-            var blacks = videoTrack.detectBlackSegments(config, chunk, createProgress(chunk))
+            var blacks = videoTrack.detectBlackSegments(config, chunk, createReporter(chunk))
 
             var lastBlack: DurationSpan? = null
             var lastYielded = true
@@ -273,7 +273,7 @@ private fun InputFile.detectVideoParts(
                         lastYielded = true
                     }
                     chunk = chunk.consecutiveOfSameLength()
-                    blacks = videoTrack.detectBlackSegments(config, chunk, createProgress(chunk))
+                    blacks = videoTrack.detectBlackSegments(config, chunk, createReporter(chunk))
                 } else {
                     blacks = null
                 }
@@ -311,7 +311,7 @@ private fun InputFile.detectVideoParts(
 fun Track.detectBlackSegments(
     config: FFMpegBlackdetectConfig,
     range: DurationSpan? = null,
-    progress: ProgressHandler
+    reporter: Reporter
 ): List<DurationSpan>? {
     //If we must detect a range, we seek a bit earlier in order to prevent tiny errors in timings
     val errorMargin: Duration = Duration.ofSeconds(1)
@@ -372,7 +372,7 @@ fun Track.detectBlackSegments(
             try {
                 System.setOut(ps)
                 createJob(builder) { prg ->
-                    progress.ffmpeg(prg, range?.duration ?: duration, range?.start ?: Duration.ZERO)
+                    reporter.progress.ffmpeg(prg, range?.duration ?: duration, range?.start ?: Duration.ZERO)
                 }.run()
             } finally {
                 ps.close()

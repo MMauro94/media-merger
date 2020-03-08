@@ -6,9 +6,9 @@ import com.github.mmauro94.media_merger.adjustment.CutsAdjustment
 import com.github.mmauro94.media_merger.adjustment.StretchAdjustment
 import com.github.mmauro94.media_merger.group.Group
 import com.github.mmauro94.media_merger.strategy.AdjustmentStrategies
-import com.github.mmauro94.media_merger.util.ProgressHandler
+import com.github.mmauro94.media_merger.util.Reporter
 import com.github.mmauro94.media_merger.util.addTrack
-import com.github.mmauro94.media_merger.util.sortWithPreferences
+import com.github.mmauro94.media_merger.util.progress.ProgressHandler
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import com.github.mmauro94.mkvtoolnix_wrapper.hasErrors
@@ -58,12 +58,12 @@ data class SelectedTracks<G : Group<G>>(
         .mapNotNull { it.track?.inputFile }
         .toSet()
 
-    fun merge(adjustmentStrategies: AdjustmentStrategies, progress: ProgressHandler) {
+    fun merge(adjustmentStrategies: AdjustmentStrategies, reporter: Reporter) {
         val outputFilenamePrefix = group.outputName() ?: videoTrack.file.nameWithoutExtension
 
         val allAdjustments = ArrayList<Pair<Adjustments, (Track) -> Unit>>()
         try {
-            val detectProgress = progress.split(0f, adjustmentStrategies.detectProgressWeight, "Detecting files adjustments...")
+            val detectProgress = reporter.split(0f, adjustmentStrategies.detectProgressWeight, "Detecting files adjustments...")
             val filteredFiles = allFiles().filterNot { it == videoTrack.inputFile }
 
             filteredFiles
@@ -112,7 +112,7 @@ data class SelectedTracks<G : Group<G>>(
             return
         }
 
-        val adjustmentsProgress = progress.split(adjustmentStrategies.detectProgressWeight, .9f, "Adjusting files...")
+        val adjustmentsProgress = reporter.split(adjustmentStrategies.detectProgressWeight, .9f, "Adjusting files...")
         allAdjustments.forEachIndexed { i, (aa, f) ->
             aa.adjust(adjustmentsProgress.split(i, allAdjustments.size, "Adjusting ${aa.inputTrack}"))?.let { res ->
                 f(res)
@@ -163,12 +163,12 @@ data class SelectedTracks<G : Group<G>>(
                 }
             }
         val tracksCount = 1 + languageTracks.entries.sumBy { it.value.countTracks() }
-        val mkvMergeProgress = progress.split(.9f, 1f, "Merging $tracksCount tracks...")
+        val mkvMergeProgress = reporter.split(.9f, 1f, "Merging $tracksCount tracks...")
 
         val result = command.executeLazy()
         result.output.forEach { line ->
             line.progress?.let {
-                mkvMergeProgress.ratio(it, line.message)
+                mkvMergeProgress.progress.ratio(it, line.message)
             }
         }
 
@@ -183,21 +183,6 @@ data class SelectedTracks<G : Group<G>>(
     }
 }
 
-fun Sequence<Track>.selectVideoTrack(): Track? {
-    return asSequence()
-        .filter { it.isVideoTrack() }
-        .sortWithPreferences({
-            it.mkvTrack.codec.contains("265")
-        })
-        .sortedByDescending {
-            it.normalizedPixelHeight
-        }
-        .firstOrNull().apply {
-            if (this == null) {
-                System.err.println("No video tracks found")
-            }
-        }
-}
 
 fun MkvMergeCommand.addTrack(
     track: SelectedTracks.TrackWithOptions,

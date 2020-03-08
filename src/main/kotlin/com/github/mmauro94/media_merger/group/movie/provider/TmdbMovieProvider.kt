@@ -30,12 +30,12 @@ object TmdbMovieProvider : MovieProvider<TmdbMovie> {
                 )
                 .execute()
         } catch (e: Exception) {
-            throw GroupInfoException(e.message)
+            throw GroupInfoException(e.message ?: "Unknown exception while searching on TMDB")
         }
         val body = search.body()
 
         return body?.results?.map {
             TmdbMovie(it)
-        } ?: throw GroupInfoException(search.errorBody()?.string() ?: "")
+        } ?: throw GroupInfoException(search.errorBody()?.string() ?: "Unknown error from TMDB")
     }
 }

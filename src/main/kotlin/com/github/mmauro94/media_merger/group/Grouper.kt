@@ -2,12 +2,14 @@ package com.github.mmauro94.media_merger.group
 
 import com.github.mmauro94.media_merger.util.askString
 import com.github.mmauro94.media_merger.util.askYesNo
+import com.github.mmauro94.media_merger.util.log.Logger
 import com.github.mmauro94.media_merger.util.menu
 import com.github.mmauro94.media_merger.util.select
+import org.fusesource.jansi.Ansi.ansi
 
 interface Grouper<G : Group<G>> {
 
-    fun detectGroup(filename: String): G?
+    fun detectGroup(filename: String, logger: Logger): G?
 
     companion object {
 
@@ -32,16 +34,14 @@ interface Grouper<G : Group<G>> {
             val results = try {
                 provider.search(q)
             } catch (e: GroupInfoException) {
-                System.err.println("Error searching for show")
-                if (e.message != null && e.message.isNotBlank()) {
-                    System.err.println(e.message)
-                }
+                print(ansi().fgRed().a("Error searching for $type: ${e.message}"))
+                println(ansi().reset())
                 return reselect()
             }
             return menu(
                 title = "Select $type",
                 items = results.map { it.toString() to { it } }
-                        + Pair("-- Search again --", { select(type, provider, reselect) })
+                        + Pair<String, () -> INFO?>("-- Search again --", { select(type, provider, reselect) })
                         + Pair("-- Select no show --", { null })
             )
         }

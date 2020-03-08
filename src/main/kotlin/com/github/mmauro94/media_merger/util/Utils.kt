@@ -7,6 +7,7 @@ import com.github.mmauro94.mkvtoolnix_wrapper.merge.MkvMergeCommand
 import java.io.File
 import java.util.*
 
+val OUT = System.out
 
 /**
  * Finds an [MkvToolnixLanguage] that has [language] as its ISO63-2 code.

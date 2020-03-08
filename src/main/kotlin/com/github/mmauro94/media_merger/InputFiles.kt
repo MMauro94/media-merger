@@ -3,6 +3,8 @@ package com.github.mmauro94.media_merger
 import com.github.mmauro94.media_merger.group.Group
 import com.github.mmauro94.media_merger.group.Grouper
 import com.github.mmauro94.media_merger.util.*
+import com.github.mmauro94.media_merger.util.log.Logger
+import com.github.mmauro94.media_merger.util.progress.ProgressHandler
 import java.io.File
 
 data class InputFiles<G : Group<G>>(
@@ -20,6 +22,22 @@ data class InputFiles<G : Group<G>>(
         }
     }
 
+    fun selectVideoTrack(logger: Logger): Track? {
+        return allTracks()
+            .filter { it.isVideoTrack() }
+            .sortWithPreferences({
+                it.mkvTrack.codec.contains("265")
+            })
+            .sortedByDescending {
+                it.normalizedPixelHeight
+            }
+            .firstOrNull().apply {
+                if (this == null) {
+                    logger.warn("No video tracks found for group $group")
+                }
+            }
+    }
+
     companion object {
 
         val VIDEO_EXTENSIONS = listOf("avi", "mp4", "mkv", "mov", "ogv", "mpg", "mpeg", "m4v")
@@ -27,14 +45,14 @@ data class InputFiles<G : Group<G>>(
         val SUBTITLES_EXTENSIONS = listOf("srt", "ssa", "idx", "sub")
         val EXTENSIONS_TO_IDENTIFY = VIDEO_EXTENSIONS + AUDIO_EXTENSIONS + SUBTITLES_EXTENSIONS
 
-        fun <G : Group<G>> detect(grouper: Grouper<G>, dir: File, progress: ProgressHandler): List<InputFiles<G>> {
-            progress.indeterminate("Listing files...")
+        fun <G : Group<G>> detect(grouper: Grouper<G>, dir: File, reporter: Reporter): List<InputFiles<G>> {
+            reporter.progress.indeterminate("Listing files...")
             val allFiles = dir.walkTopDown().toList()
-            progress.indeterminate("Grouping files...")
+            reporter.progress.indeterminate("Grouping files...")
             val groupedFiles = allFiles
                 .filter { it.extension in EXTENSIONS_TO_IDENTIFY }
                 .filterNot { it.name.contains("@adjusted") || it.name.contains("@extracted") }
-                .groupBy { grouper.detectGroup(it.name) }
+                .groupBy { grouper.detectGroup(it.name, reporter.log) }
                 .filterKeys { it != null }
 
 
@@ -46,16 +64,16 @@ data class InputFiles<G : Group<G>>(
             groupedFiles.forEach { (ei, files) ->
                 check(ei != null)
                 files.forEach { f ->
-                    progress.discrete(i, max, "Identifying ${f.name}")
+                    reporter.progress.discrete(i, max, "Identifying ${f.name}")
                     try {
-                        ret.add(ei, InputFile.parse({ inputFiles.getValue(ei) }, f))
+                        ret.add(ei, InputFile.parse({ inputFiles.getValue(ei) }, f, reporter.log))
                     } catch (e: InputFile.ParseException) {
-                        System.err.println("Unable to parse file: ${e.message}")
+                        reporter.log.err("Unable to parse file: ${e.message}")
                     }
                     i++
                 }
             }
-            progress.discrete(i, max, "Identifying complete")
+            reporter.progress.discrete(i, max, "Identifying complete")
 
             for ((key, value) in ret) {
                 inputFiles[key] = InputFiles(key, value)
@@ -64,10 +82,10 @@ data class InputFiles<G : Group<G>>(
         }
     }
 
-    fun selectTracks(): SelectedTracks<G>? {
-        val videoTrack = allTracks().selectVideoTrack()
+    fun selectTracks(logger: Logger): SelectedTracks<G>? {
+        val videoTrack = selectVideoTrack(logger)
         if (videoTrack?.durationOrFileDuration == null) {
-            System.err.println("Video track $videoTrack without duration")
+            logger.warn("Video track $videoTrack without duration")
             return null
         }
 

@@ -2,6 +2,7 @@ package com.github.mmauro94.media_merger
 
 import com.github.mmauro94.media_merger.util.toSecondsDuration
 import com.github.mmauro94.media_merger.util.findWalkingUp
+import com.github.mmauro94.media_merger.util.log.Logger
 import com.github.mmauro94.media_merger.video_part.VideoPartsProvider
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixFileIdentification
@@ -9,7 +10,6 @@ import net.bramp.ffmpeg.FFprobe
 import net.bramp.ffmpeg.probe.FFmpegProbeResult
 import java.io.File
 import java.io.IOException
-import java.time.Duration
 
 class InputFile private constructor(
     val inputFilesProvider: () -> InputFiles<*>,
@@ -94,14 +94,15 @@ class InputFile private constructor(
             inputFilesProvider: () -> InputFiles<*>,
             file: File,
             mkvIdentification: MkvToolnixFileIdentification,
-            ffprobeResult: FFmpegProbeResult
+            ffprobeResult: FFmpegProbeResult,
+            logger: Logger
         ): InputFile {
             val input = InputFile(inputFilesProvider, file, mkvIdentification, ffprobeResult)
-            input._tracks = tracks(input)
+            input._tracks = tracks(input, logger)
             return input
         }
 
-        fun parse(inputFilesProvider: () -> InputFiles<*>, file: File): InputFile {
+        fun parse(inputFilesProvider: () -> InputFiles<*>, file: File, logger : Logger): InputFile {
             val mkvId = MkvToolnix.identify(file)
             if (!mkvId.container.recognized) {
                 throw ParseException("mkvmerge doesn't recognize the file ${file.absolutePath}")
@@ -111,15 +112,15 @@ class InputFile private constructor(
             } catch (e: IOException) {
                 throw ParseException("Error ffprobing file ${file.absolutePath}", e)
             }
-            return new(inputFilesProvider, file, mkvId, probeResult)
+            return new(inputFilesProvider, file, mkvId, probeResult, logger)
         }
 
-        private fun tracks(inputFile: InputFile): List<Track> {
+        private fun tracks(inputFile: InputFile, logger: Logger): List<Track> {
             val ret = ArrayList<Track>(inputFile.mkvIdentification.tracks.size)
             inputFile.mkvIdentification.tracks.forEach { t ->
                 val ff = inputFile.ffprobeResult.streams.find { it.index.toLong() == t.id }
                 if (ff != null && t.id == ff.index.toLong()) {
-                    Track.from(inputFile, t, ff)?.let {
+                    Track.from(inputFile, t, ff, logger)?.let {
                         ret.add(it)
                     }
                 }

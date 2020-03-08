@@ -21,14 +21,14 @@ object TvdbShowProvider : ShowProvider<TvdbShow> {
                 .series(query, null, null, null, Main.mainLanguages.first().iso639_1 ?: "en")
                 .execute()
         } catch (e: Exception) {
-            throw GroupInfoException(e.message)
+            throw GroupInfoException(e.message ?: "Unknown exception while searching on TVDB")
         }
         val body = search.body()
 
         return body?.data?.map {
             TvdbShow(it)
         } ?: throw GroupInfoException(
-            search.errorBody()?.string() ?: ""
+            search.errorBody()?.string() ?: "Unknown error from TVDB"
         )
     }
 
@@ -46,7 +46,7 @@ object TvdbShowProvider : ShowProvider<TvdbShow> {
                 Main.mainLanguages.first().iso639_1 ?: "en"
             ).execute()
         } catch (e: Exception) {
-            throw GroupInfoException(e.message)
+            throw GroupInfoException(e.message ?: "Unknown exception while downloading episodes from TVDB")
         }
         val ret = response
             .body()
@@ -59,7 +59,7 @@ object TvdbShowProvider : ShowProvider<TvdbShow> {
                     it.episodeName
                 )
             } ?: throw GroupInfoException(
-            response.errorBody()?.string() ?: ""
+            response.errorBody()?.string() ?: "Unknown error from TVDB"
         )
         return if (ret.size >= 100) {
             ret + downloadEpisodes(show, page + 1)
@@ -76,7 +76,7 @@ object TvdbShowProvider : ShowProvider<TvdbShow> {
                 downloadEpisodes(show)
             }
             .singleOrNull { it.seasonNumber == season && it.episodeNumber == episode }
-            ?: throw GroupInfoException("Cannot find episode S${season}E$episode")
+            ?: throw GroupInfoException("Cannot find episode S${season.toString().padStart(2, '0')}E${episode.toString().padStart(2, '0')}")
     }
 
 }
