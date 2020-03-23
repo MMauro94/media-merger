@@ -34,7 +34,7 @@ interface ProgressSplitter<T> {
     fun split(globalProgressSpan: ProgressSpan, message: String?): T {
         return create(object : ProgressHandler {
             override fun handle(main: ProgressWithMessage, vararg previouses: ProgressWithMessage) {
-                baseHandler.handle(
+                this@ProgressSplitter.baseHandler.handle(
                     ProgressWithMessage(
                         progress = globalProgressSpan.interpolate(main.progress.ratio ?: 0f),
                         message = message
