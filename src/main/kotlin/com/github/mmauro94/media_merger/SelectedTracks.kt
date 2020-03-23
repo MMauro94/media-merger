@@ -8,7 +8,6 @@ import com.github.mmauro94.media_merger.group.Group
 import com.github.mmauro94.media_merger.strategy.AdjustmentStrategies
 import com.github.mmauro94.media_merger.util.Reporter
 import com.github.mmauro94.media_merger.util.addTrack
-import com.github.mmauro94.media_merger.util.progress.ProgressHandler
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import com.github.mmauro94.mkvtoolnix_wrapper.hasErrors
@@ -61,6 +60,9 @@ data class SelectedTracks<G : Group<G>>(
     fun merge(adjustmentStrategies: AdjustmentStrategies, reporter: Reporter) {
         val outputFilenamePrefix = group.outputName() ?: videoTrack.file.nameWithoutExtension
 
+        reporter.log.debug("")
+        reporter.log.debug("All selected tracks:")
+
         val allAdjustments = ArrayList<Pair<Adjustments, (Track) -> Unit>>()
         try {
             val detectProgress = reporter.split(0f, adjustmentStrategies.detectProgressWeight, "Detecting files adjustments...")
@@ -111,6 +113,18 @@ data class SelectedTracks<G : Group<G>>(
             e.printTo(File(Main.outputDir, "$outputFilenamePrefix.err.txt"))
             return
         }
+        for ((lang, tracks) in languageTracks) {
+            reporter.log.debug("  For $lang:")
+            if (tracks.audioTrack.track != null) {
+                reporter.log.debug("    Audio track: " + tracks.audioTrack)
+            }
+            if (tracks.subtitleTrack.track != null) {
+                reporter.log.debug("    Subtitle track: " + tracks.subtitleTrack)
+            }
+            if (tracks.forcedSubtitleTrack.track != null) {
+                reporter.log.debug("    Forced subtitle track: " + tracks.forcedSubtitleTrack)
+            }
+        }
 
         val adjustmentsProgress = reporter.split(adjustmentStrategies.detectProgressWeight, .9f, "Adjusting files...")
         allAdjustments.forEachIndexed { i, (aa, f) ->
@@ -135,8 +149,7 @@ data class SelectedTracks<G : Group<G>>(
                 val sortedLanguages = languageTracks.toSortedMap(
                     compareBy(*comparables.toTypedArray())
                 ).filterKeys {
-                    it in Main.mainLanguages ||
-                            it in Main.additionalLanguagesToKeep //Remove non wanted languages
+                    it in Main.mainLanguages || it in Main.additionalLanguagesToKeep //Remove unwanted languages
                 }
                 sortedLanguages.forEach { (lang, tracks) ->
                     addTrack(tracks.audioTrack) {
@@ -162,6 +175,8 @@ data class SelectedTracks<G : Group<G>>(
                     }
                 }
             }
+
+        reporter.log.debug("\nMkv Command: mkvmerge " + command.commandArgs().joinToString(" "))
         val tracksCount = 1 + languageTracks.entries.sumBy { it.value.countTracks() }
         val mkvMergeProgress = reporter.split(.9f, 1f, "Merging $tracksCount tracks...")
 

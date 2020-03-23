@@ -1,6 +1,6 @@
 package com.github.mmauro94.media_merger.util.progress
 
-interface ProgressSplitter<T> {
+interface ProgressHandlerContainer<T> {
 
     val baseHandler: ProgressHandler
 
@@ -34,7 +34,7 @@ interface ProgressSplitter<T> {
     fun split(globalProgressSpan: ProgressSpan, message: String?): T {
         return create(object : ProgressHandler {
             override fun handle(main: ProgressWithMessage, vararg previouses: ProgressWithMessage) {
-                this@ProgressSplitter.baseHandler.handle(
+                this@ProgressHandlerContainer.baseHandler.handle(
                     ProgressWithMessage(
                         progress = globalProgressSpan.interpolate(main.progress.ratio ?: 0f),
                         message = message

@@ -2,9 +2,10 @@ package com.github.mmauro94.media_merger
 
 import com.github.mmauro94.media_merger.group.Group
 import com.github.mmauro94.media_merger.group.Grouper
-import com.github.mmauro94.media_merger.util.*
+import com.github.mmauro94.media_merger.util.Reporter
+import com.github.mmauro94.media_merger.util.add
 import com.github.mmauro94.media_merger.util.log.Logger
-import com.github.mmauro94.media_merger.util.progress.ProgressHandler
+import com.github.mmauro94.media_merger.util.sortWithPreferences
 import java.io.File
 
 data class InputFiles<G : Group<G>>(
@@ -15,6 +16,8 @@ data class InputFiles<G : Group<G>>(
     override fun iterator() = inputFiles.iterator()
 
     fun outputName() = group.outputName()
+
+    fun outputNameOrFallback() = outputName() ?: group.toString()
 
     fun allTracks() = sequence {
         inputFiles.forEach {
@@ -84,6 +87,8 @@ data class InputFiles<G : Group<G>>(
 
     fun selectTracks(logger: Logger): SelectedTracks<G>? {
         val videoTrack = selectVideoTrack(logger)
+        logger.debug("Track selection for $group:")
+        logger.debug("  Video track: $videoTrack")
         if (videoTrack?.durationOrFileDuration == null) {
             logger.warn("Video track $videoTrack without duration")
             return null
@@ -91,7 +96,8 @@ data class InputFiles<G : Group<G>>(
 
         val languageTracks = allTracks()
             .groupBy { it.language } //Group by language
-            .mapValues { (_, tracks) ->
+            .mapValues { (lang, tracks) ->
+                logger.debug("  For language $lang:")
                 val audioTrack = tracks
                     .asSequence()
                     .filter { it.isAudioTrack() }
@@ -108,6 +114,12 @@ data class InputFiles<G : Group<G>>(
                     }, {
                         sameFile(it, videoTrack)
                     })
+                    .also {
+                        logger.debug("    Sorted audio tracks:")
+                        it.forEach { t ->
+                            logger.debug("      - $t")
+                        }
+                    }
                     .firstOrNull()
 
                 val subtitleTracks = tracks
@@ -125,13 +137,26 @@ data class InputFiles<G : Group<G>>(
 
                 val subtitleTrack = subtitleTracks
                     .filter { !it.isForced }
+                    .also {
+                        logger.debug("    Sorted subtitle tracks:")
+                        it.forEach { t ->
+                            logger.debug("      - $t")
+                        }
+                    }
                     .firstOrNull()
 
                 val forcedSubtitleTrack = subtitleTracks
                     .filter { it.isForced }
+                    .also {
+                        logger.debug("    Sorted forced subtitle tracks:")
+                        it.forEach { t ->
+                            logger.debug("      - $t")
+                        }
+                    }
                     .firstOrNull()
 
                 if (audioTrack == null && subtitleTrack == null) {
+                    logger.debug("    Neither audio track or subtitle track for this language")
                     null
                 } else {
                     SelectedTracks.LanguageTracks().apply {

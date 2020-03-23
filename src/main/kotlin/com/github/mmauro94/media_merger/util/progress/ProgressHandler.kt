@@ -5,7 +5,7 @@ import java.time.Duration
 import java.util.concurrent.TimeUnit
 import net.bramp.ffmpeg.progress.Progress as FFmpegProgress
 
-interface ProgressHandler : ProgressSplitter<ProgressHandler> {
+interface ProgressHandler : ProgressHandlerContainer<ProgressHandler> {
 
     fun handle(main: ProgressWithMessage, vararg previouses: ProgressWithMessage)
 
