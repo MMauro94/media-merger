@@ -3,11 +3,12 @@ package com.github.mmauro94.media_merger
 import com.github.mmauro94.media_merger.adjustment.Adjustment
 import com.github.mmauro94.media_merger.adjustment.Adjustments
 import com.github.mmauro94.media_merger.adjustment.CutsAdjustment
-import com.github.mmauro94.media_merger.adjustment.StretchAdjustment
+import com.github.mmauro94.media_merger.adjustment.LinearDriftAdjustment
 import com.github.mmauro94.media_merger.group.Group
 import com.github.mmauro94.media_merger.strategy.AdjustmentStrategies
 import com.github.mmauro94.media_merger.util.Reporter
 import com.github.mmauro94.media_merger.util.addTrack
+import com.github.mmauro94.media_merger.util.log.withPrependDebug
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import com.github.mmauro94.mkvtoolnix_wrapper.hasErrors
@@ -23,11 +24,11 @@ data class SelectedTracks<G : Group<G>>(
     data class TrackWithOptions(
         var track: Track? = null,
         var offset: Duration = Duration.ZERO,
-        var stretchFactor: StretchFactor? = null
+        var linearDrift: LinearDrift? = null
     ) {
         override fun toString(): String {
             return if (track == null) "None"
-            else "$track" + (stretchFactor?.let { ", stretch factor: $it" }
+            else "$track" + (linearDrift?.let { ", stretch factor: $it" }
                 ?: "") + offset.let { ", offset factor: ${it.toMillis()}" }
         }
     }
@@ -61,7 +62,6 @@ data class SelectedTracks<G : Group<G>>(
         val outputFilenamePrefix = group.outputName() ?: videoTrack.file.nameWithoutExtension
 
         reporter.log.debug("")
-        reporter.log.debug("All selected tracks:")
 
         val allAdjustments = ArrayList<Pair<Adjustments, (Track) -> Unit>>()
         try {
@@ -85,9 +85,9 @@ data class SelectedTracks<G : Group<G>>(
                                 val offset = adj.cuts.optOffset()
 
                                 if (track.isAudioTrack() || offset == null) {
-                                    trackAdjustments += StretchAdjustment(adj.stretchFactor)
+                                    trackAdjustments += LinearDriftAdjustment(adj.linearDrift)
                                 } else {
-                                    it.stretchFactor = adj.stretchFactor
+                                    it.linearDrift = adj.linearDrift
                                 }
 
                                 if (offset != null) {
@@ -103,29 +103,33 @@ data class SelectedTracks<G : Group<G>>(
                                             trackAdjustments
                                         ), { t ->
                                             it.track = t
-                                            it.stretchFactor = null
+                                            it.linearDrift = null
                                         })
                                 )
                             }
                     }
                 }
-        } catch (e: OperationCreationException) {
-            e.printTo(File(Main.outputDir, "$outputFilenamePrefix.err.txt"))
+        } catch (e: AdjustmentDetectionImpossible) {
+            reporter.log.err("Unable to merge group $group! See logs for details")
+            reporter.log.forceDebug()
             return
         }
-        for ((lang, tracks) in languageTracks) {
-            reporter.log.debug("  For $lang:")
-            if (tracks.audioTrack.track != null) {
-                reporter.log.debug("    Audio track: " + tracks.audioTrack)
-            }
-            if (tracks.subtitleTrack.track != null) {
-                reporter.log.debug("    Subtitle track: " + tracks.subtitleTrack)
-            }
-            if (tracks.forcedSubtitleTrack.track != null) {
-                reporter.log.debug("    Forced subtitle track: " + tracks.forcedSubtitleTrack)
+
+        reporter.log.debug("Actual selected tracks:")
+        reporter.log.withPrependDebug("   ") {
+            for ((lang, tracks) in languageTracks) {
+                debug("For $lang:")
+                if (tracks.audioTrack.track != null) {
+                    debug("  - Audio track: " + tracks.audioTrack)
+                }
+                if (tracks.subtitleTrack.track != null) {
+                    debug("  - Subtitle track: " + tracks.subtitleTrack)
+                }
+                if (tracks.forcedSubtitleTrack.track != null) {
+                    debug("  - Forced subtitle track: " + tracks.forcedSubtitleTrack)
+                }
             }
         }
-
         val adjustmentsProgress = reporter.split(adjustmentStrategies.detectProgressWeight, .9f, "Adjusting files...")
         allAdjustments.forEachIndexed { i, (aa, f) ->
             aa.adjust(adjustmentsProgress.split(i, allAdjustments.size, "Adjusting ${aa.inputTrack}"))?.let { res ->
@@ -176,23 +180,30 @@ data class SelectedTracks<G : Group<G>>(
                 }
             }
 
-        reporter.log.debug("\nMkv Command: mkvmerge " + command.commandArgs().joinToString(" "))
+        reporter.log.debug()
+        reporter.log.debug("--- MKV EXECUTION ---")
+        reporter.log.debug("mkvmerge " + command.commandArgs().joinToString(" "))
+        reporter.log.debug()
+
         val tracksCount = 1 + languageTracks.entries.sumBy { it.value.countTracks() }
         val mkvMergeProgress = reporter.split(.9f, 1f, "Merging $tracksCount tracks...")
 
         val result = command.executeLazy()
         result.output.forEach { line ->
+            if (!line.isProgressLine) {
+                reporter.log.debug(line.toString())
+            }
             line.progress?.let {
                 mkvMergeProgress.progress.ratio(it, line.message)
             }
         }
 
         if (!result.success) {
-            val part = if (!result.output.hasErrors()) "mergewarn" else "mergeerr"
-            File(outputFile.parentFile, outputFile.nameWithoutExtension + ".$part.txt").printWriter().use { pw ->
-                result.output.forEach {
-                    pw.println(it)
-                }
+            reporter.log.forceDebug()
+            if (result.output.hasErrors()) {
+                reporter.log.debug("MKV MERGE FINISHED WITH ERROR")
+            } else {
+                reporter.log.debug("MKV MERGE FINISHED WITH WARNINGS")
             }
         }
     }
@@ -205,10 +216,10 @@ fun MkvMergeCommand.addTrack(
 ) {
     track.track?.let {
         addTrack(it.mkvTrack) {
-            if (track.stretchFactor != null || track.offset != Duration.ZERO) {
+            if (track.linearDrift != null || track.offset != Duration.ZERO) {
                 sync(
                     track.offset,
-                    track.stretchFactor.let { sf ->
+                    track.linearDrift.let { sf ->
                         if (sf == null) null else Pair(
                             sf.durationMultiplier.toFloat(),
                             null

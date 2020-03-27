@@ -12,7 +12,9 @@ import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import org.fusesource.jansi.Ansi.ansi
 import org.fusesource.jansi.AnsiConsole
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
+import java.io.OutputStreamWriter
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import kotlin.system.exitProcess
@@ -32,6 +34,7 @@ object Main {
     lateinit var additionalLanguagesToKeep: Set<MkvToolnixLanguage>; private set
     lateinit var inputFilesDetector: InputFilesDetector<*>; private set
     var debug: Boolean = false
+    lateinit var globalLog: Pair<File, OutputStreamWriter?>
 
     val outputDir by lazy { File(workingDir, "OUTPUT") }
 
@@ -45,6 +48,10 @@ object Main {
         }
 
         workingDir = File(options.getOrNull(0) ?: System.getProperty("user.dir") ?: "").absoluteFile
+        globalLog = File(outputDir, "global_debug.txt").let {
+            it to if (debug) FileOutputStream(it, true).writer()
+            else null
+        }
 
         config = try {
             Config.parse()
@@ -106,7 +113,7 @@ object Main {
         println()
 
         ConsoleReporter().use { reporter ->
-            reporter.log.debug("Selected stretch strategy: ${adjustmentStrategies.stretch.name}")
+            reporter.log.debug("Selected linear drift strategy: ${adjustmentStrategies.linearDrift}")
             reporter.log.debug("Selected cut strategy: ${adjustmentStrategies.cuts}\n")
 
             val inputFiles = inputFilesDetector.getOrReadInputFiles(reporter.split(0f, 0.1f, "Identifying..."))
@@ -121,12 +128,9 @@ object Main {
             val mergeReporter = reporter.split(.1f, 1f, "Merging...")
 
             for ((i, it) in inputFiles.withIndex()) {
-                File(outputDir, "${it.outputNameOrFallback()}.debug.txt").writer().use { logWriter ->
-                    val rep = mergeReporter
-                        .withDebug(logWriter)
-                        .split(i, inputFiles.size, "Merging group ${it.group}")
-
-                    it.selectTracks(rep.log)?.merge(adjustmentStrategies, rep)
+                mergeReporter.withDebug(File(outputDir, "${it.outputNameOrFallback()}.debug.txt")) { rep ->
+                    val r = rep.split(i, inputFiles.size, "Merging group ${it.group}")
+                    it.selectTracks(r.log)?.merge(adjustmentStrategies, r)
                 }
             }
 

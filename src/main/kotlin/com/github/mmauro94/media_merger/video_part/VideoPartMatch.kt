@@ -1,7 +1,7 @@
 package com.github.mmauro94.media_merger.video_part
 
 import com.github.mmauro94.media_merger.InputFile
-import com.github.mmauro94.media_merger.StretchFactor
+import com.github.mmauro94.media_merger.LinearDrift
 import com.github.mmauro94.media_merger.util.DurationSpan
 import com.github.mmauro94.media_merger.video_part.VideoPart.Type.BLACK_SEGMENT
 import com.github.mmauro94.media_merger.video_part.VideoPart.Type.SCENE
@@ -51,24 +51,8 @@ fun VideoPart.acceptableDurationDiff(videoPart: VideoPart): Boolean {
  * Exception thrown when a video parts match cannot be found
  */
 class VideoPartsMatchException(
-    message: String,
-    val input: List<VideoPart>,
-    val targets: List<VideoPart>,
-    val additionalText: String = ""
-) : Exception(message) {
-
-    fun text(inputFile: InputFile, targetFile: InputFile, stretchFactor: StretchFactor): String {
-        return StringBuilder().apply {
-            appendln("TARGET VIDEO PARTS ($targetFile):")
-            appendln(targets.joinToString(separator = "\n"))
-            appendln()
-            appendln("INPUT VIDEO PARTS, ALREADY STRETCHED BY $stretchFactor ($inputFile):")
-            appendln(input.joinToString(separator = "\n"))
-            appendln()
-            appendln(additionalText)
-        }.toString()
-    }
-}
+    message: String
+) : Exception(message)
 
 fun VideoParts.matchFirstSceneOffset(targets: VideoParts): Duration? {
     return matchFirstScene(iterator(), targets.iterator())?.second?.offset
@@ -184,7 +168,7 @@ fun VideoParts.matchWithTarget(targets: VideoParts): Pair<List<VideoPartMatch>, 
 
     val matches = mutableListOf<Pair<List<VideoPartMatch>, Accuracy>>()
     val firstSceneMatch = matchFirstScene(inputParts, targetParts)
-        ?: throw VideoPartsMatchException("Unable to detect first scene!", readOnly(), targets.readOnly())
+        ?: throw VideoPartsMatchException("Unable to detect first scene!")
     matches += firstSceneMatch
 
     while (inputParts.hasNext() && targetParts.hasNext()) {

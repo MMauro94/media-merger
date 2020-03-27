@@ -1,9 +1,8 @@
 package com.github.mmauro94.media_merger.adjustment
 
-import com.github.mmauro94.media_merger.OperationCreationException
+import com.github.mmauro94.media_merger.AdjustmentDetectionImpossible
 import com.github.mmauro94.media_merger.Track
 import com.github.mmauro94.media_merger.util.Reporter
-import com.github.mmauro94.media_merger.util.progress.ProgressHandler
 
 /**
  * Class that contains a list of [Adjustment]s and the starting [inputTrack]
@@ -20,7 +19,7 @@ data class Adjustments(
         return when{
             inputTrack.isAudioTrack() -> audioAdjuster(inputTrack)
             inputTrack.isSubtitlesTrack() -> subtitleAdjuster(inputTrack)
-            else -> throw OperationCreationException("Unable to find adjuster for track type")
+            else -> throw IllegalStateException("Unable to find adjuster for track type")
         }
     }
 

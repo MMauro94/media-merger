@@ -1,6 +1,6 @@
 package com.github.mmauro94.media_merger.subtitles
 
-import com.github.mmauro94.media_merger.StretchFactor
+import com.github.mmauro94.media_merger.LinearDrift
 import com.github.mmauro94.media_merger.cuts.Cut
 import com.github.mmauro94.media_merger.cuts.Cuts
 import com.github.mmauro94.media_merger.subtitles.srt.SRTSubtitle
@@ -20,10 +20,10 @@ abstract class Subtitle<TEXT : SubtitleText<*>>(val items: List<TEXT>) {
     protected abstract fun TEXT.changeTime(time: DurationSpan): TEXT
 
     /**
-     * Function that multiplies a [TEXT] by the given [stretchFactor].
+     * Function that multiplies a [TEXT] by the given [linearDrift].
      */
-    protected operator fun TEXT.times(stretchFactor: StretchFactor): TEXT {
-        return changeTime(time * stretchFactor)
+    protected operator fun TEXT.times(linearDrift: LinearDrift): TEXT {
+        return changeTime(time * linearDrift)
     }
 
     /**
@@ -32,10 +32,10 @@ abstract class Subtitle<TEXT : SubtitleText<*>>(val items: List<TEXT>) {
     protected abstract fun withLines(items: List<TEXT>): Subtitle<TEXT>
 
     /**
-     * Function that multiplies this [Subtitle] by the given [stretchFactor].
+     * Function that multiplies this [Subtitle] by the given [linearDrift].
      */
-    operator fun times(stretchFactor: StretchFactor): Subtitle<TEXT> {
-        return withLines(items.map { it.times(stretchFactor) })
+    operator fun times(linearDrift: LinearDrift): Subtitle<TEXT> {
+        return withLines(items.map { it.times(linearDrift) })
     }
 
     /**

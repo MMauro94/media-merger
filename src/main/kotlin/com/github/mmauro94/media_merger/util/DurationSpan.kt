@@ -1,6 +1,6 @@
 package com.github.mmauro94.media_merger.util
 
-import com.github.mmauro94.media_merger.StretchFactor
+import com.github.mmauro94.media_merger.LinearDrift
 import com.github.mmauro94.media_merger.times
 import java.time.Duration
 
@@ -100,12 +100,12 @@ data class DurationSpan(val start: Duration, val end: Duration) {
     }
 
     /**
-     * Multiplies this span by the given [stretchFactor].
+     * Multiplies this span by the given [linearDrift].
      */
-    operator fun times(stretchFactor: StretchFactor): DurationSpan {
+    operator fun times(linearDrift: LinearDrift): DurationSpan {
         return DurationSpan(
-            start = start * stretchFactor,
-            end = end * stretchFactor
+            start = start * linearDrift,
+            end = end * linearDrift
         )
     }
 

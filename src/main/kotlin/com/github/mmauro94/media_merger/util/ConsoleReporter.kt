@@ -6,17 +6,16 @@ import com.github.mmauro94.media_merger.util.log.Logger
 import com.github.mmauro94.media_merger.util.progress.ProgressHandler
 import com.github.mmauro94.media_merger.util.progress.ProgressWithMessage
 import org.fusesource.jansi.Ansi
-import java.io.File
 import kotlin.math.max
 
-class ConsoleReporter : Reporter(), AutoCloseable {
+class ConsoleReporter() : Reporter(), AutoCloseable {
 
-    private val globalLog = if (Main.debug) File(Main.outputDir, "global_debug.txt").writer() else null
+
     private var closed = false
     private var last: Pair<ProgressWithMessage, Array<out ProgressWithMessage>>? = null
     private var maxSize = 0
 
-    override val log = Logger({ message, type ->
+    override val log: Logger = Logger({ message, type ->
         if (last != null) {
             OUT.print(Ansi.ansi().restoreCursorPosition())
         }
@@ -25,7 +24,7 @@ class ConsoleReporter : Reporter(), AutoCloseable {
             OUT.print(Ansi.ansi().saveCursorPosition())
             progress.handle(main, *previouses)
         }
-    }, globalLog)
+    }, debugFile = Main.globalLog)
 
     override val progress = object : ProgressHandler {
         private fun handleSingle(progress: ProgressWithMessage) {
@@ -50,6 +49,7 @@ class ConsoleReporter : Reporter(), AutoCloseable {
             } else {
                 OUT.print(Ansi.ansi().saveCursorPosition())
             }
+            main.message?.let { log.debug(it) }
             last = main to previouses
             maxSize = max(maxSize, previouses.size)
             previouses.reversedArray().forEach(::handleSingle)
@@ -59,7 +59,7 @@ class ConsoleReporter : Reporter(), AutoCloseable {
 
     override fun close() {
         check(!closed)
-        globalLog?.close()
+        log.debugFile?.second?.close()
         OUT.println()
     }
 }

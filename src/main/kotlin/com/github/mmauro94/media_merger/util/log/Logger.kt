@@ -1,11 +1,16 @@
 package com.github.mmauro94.media_merger.util.log
 
+import java.io.File
 import java.io.OutputStreamWriter
 
 open class Logger(
     val log: (message: String, type: LogType) -> Unit,
-    val debugWriter: OutputStreamWriter?
+    val debugTransform: (String) -> String = { it },
+    debugFile: Pair<File, OutputStreamWriter?>? = null
 ) : LoggerContainer<Logger> {
+
+    private val logs = mutableListOf<String>()
+    var debugFile: Pair<File, OutputStreamWriter?>? = debugFile; private set
 
     override val baseLogger get() = this
 
@@ -16,15 +21,26 @@ open class Logger(
         log(message, type)
     }
 
-    fun debug(message: String) {
-        debugWriter?.appendln(message)
+    fun debug(message: String = "") {
+        debugFile?.second.let {
+            it?.appendln(debugTransform(message)) ?: logs.add(debugTransform(message))
+        }
+    }
+
+    fun forceDebug() {
+        debugFile?.let {
+            if (it.second != null) {
+                val writer = it.first.writer()
+                debugFile = it.first to writer
+                for (log in logs) {
+                    writer.appendln(log)
+                }
+                logs.clear()
+            }
+        }
     }
 
     fun warn(message: String) = invoke(message, LogType.WARN)
 
     fun err(message: String) = invoke(message, LogType.ERR)
-
-    fun prepend(str: String) = Logger({ message, type ->
-        this@Logger.log(str + message, type)
-    }, debugWriter)
 }

@@ -18,20 +18,20 @@ data class Framerate(val framerate: BigDecimal) {
     override fun toString() = "${framerate.stripTrailingZeros().toPlainString()} fps"
 
     /**
-     * Calculates the [StretchFactor] that must be applied to this framerate to comply with [target] timings.
+     * Calculates the [LinearDrift] that must be applied to this framerate to comply with [target] timings.
      */
-    fun calculateStretchTo(target: Framerate): StretchFactor {
-        return StretchFactor.ofDurationMultiplier(
+    fun calculateLinearDriftTo(target: Framerate): LinearDrift {
+        return LinearDrift.ofDurationMultiplier(
             framerate.divide(target.framerate, 3, RoundingMode.HALF_UP),
             "$this to $target"
         )
     }
 
     /**
-     * Calculates the [StretchFactor] that must be applied to [input] framerate to comply with this timings.
+     * Calculates the [LinearDrift] that must be applied to [input] framerate to comply with this timings.
      */
-    fun calculateStretchFrom(input: Framerate): StretchFactor {
-        return input.calculateStretchTo(this)
+    fun calculateLinearDriftFrom(input: Framerate): LinearDrift {
+        return input.calculateLinearDriftTo(this)
     }
 
     companion object {

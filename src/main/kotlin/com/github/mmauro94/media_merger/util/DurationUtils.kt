@@ -6,14 +6,15 @@ import java.util.concurrent.TimeUnit
 
 
 fun Duration.toTimeString(separator: Char = ':'): String {
-    return mutableListOf<String>().apply {
+    val abs = abs()
+    return (if (isNegative) "-" else "") + mutableListOf<String>().apply {
         fun add(i: Int, pad: Int = 2) {
             add(i.toString().padStart(pad, '0'))
         }
-        add(toHoursPart())
-        add(toMinutesPart())
-        add(toSecondsPart())
-        add(toNanosPart(), 9)
+        add(abs.toHoursPart())
+        add(abs.toMinutesPart())
+        add(abs.toSecondsPart())
+        add(abs.toNanosPart(), 9)
     }.joinToString(separator = separator.toString())
 }
 

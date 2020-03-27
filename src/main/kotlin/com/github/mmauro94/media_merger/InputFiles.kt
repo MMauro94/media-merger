@@ -5,6 +5,7 @@ import com.github.mmauro94.media_merger.group.Grouper
 import com.github.mmauro94.media_merger.util.Reporter
 import com.github.mmauro94.media_merger.util.add
 import com.github.mmauro94.media_merger.util.log.Logger
+import com.github.mmauro94.media_merger.util.log.withPrependDebug
 import com.github.mmauro94.media_merger.util.sortWithPreferences
 import java.io.File
 
@@ -87,82 +88,84 @@ data class InputFiles<G : Group<G>>(
 
     fun selectTracks(logger: Logger): SelectedTracks<G>? {
         val videoTrack = selectVideoTrack(logger)
-        logger.debug("Track selection for $group:")
-        logger.debug("  Video track: $videoTrack")
         if (videoTrack?.durationOrFileDuration == null) {
             logger.warn("Video track $videoTrack without duration")
             return null
         }
+        logger.debug("--- TRACK SELECTION FOR $group ---")
+        logger.debug("Video track: $videoTrack")
 
         val languageTracks = allTracks()
             .groupBy { it.language } //Group by language
             .mapValues { (lang, tracks) ->
-                logger.debug("  For language $lang:")
-                val audioTrack = tracks
-                    .asSequence()
-                    .filter { it.isAudioTrack() }
-                    .sortWithPreferences({
-                        it.mkvTrack.codec.contains("DTS", true)
-                    }, {
-                        it.mkvTrack.codec.contains("AC-3", true)
-                    }, {
-                        it.mkvTrack.codec.contains("AAC", true)
-                    }, {
-                        it.mkvTrack.codec.contains("FLAC", true)
-                    }, {
-                        it.isOnItsFile
-                    }, {
-                        sameFile(it, videoTrack)
-                    })
-                    .also {
-                        logger.debug("    Sorted audio tracks:")
-                        it.forEach { t ->
-                            logger.debug("      - $t")
+                logger.debug("For language $lang:")
+                logger.withPrependDebug("   ") {
+                    val audioTrack = tracks
+                        .asSequence()
+                        .filter { it.isAudioTrack() }
+                        .sortWithPreferences({
+                            it.mkvTrack.codec.contains("DTS", true)
+                        }, {
+                            it.mkvTrack.codec.contains("AC-3", true)
+                        }, {
+                            it.mkvTrack.codec.contains("AAC", true)
+                        }, {
+                            it.mkvTrack.codec.contains("FLAC", true)
+                        }, {
+                            it.isOnItsFile
+                        }, {
+                            sameFile(it, videoTrack)
+                        })
+                        .also {
+                            debug("Sorted audio tracks:")
+                            it.forEach { t ->
+                                debug("  - $t")
+                            }
                         }
-                    }
-                    .firstOrNull()
+                        .firstOrNull()
 
-                val subtitleTracks = tracks
-                    .asSequence()
-                    .filter { it.isSubtitlesTrack() }
-                    .sortWithPreferences({
-                        it.mkvTrack.properties?.textSubtitles == true
-                    }, {
-                        it.isOnItsFile
-                    }, {
-                        it.mkvTrack.properties?.trackName?.contains("SDH", ignoreCase = true) == true
-                    }, {
-                        sameFile(it, videoTrack)
-                    })
+                    val subtitleTracks = tracks
+                        .asSequence()
+                        .filter { it.isSubtitlesTrack() }
+                        .sortWithPreferences({
+                            it.mkvTrack.properties?.textSubtitles == true
+                        }, {
+                            it.isOnItsFile
+                        }, {
+                            it.mkvTrack.properties?.trackName?.contains("SDH", ignoreCase = true) == true
+                        }, {
+                            sameFile(it, videoTrack)
+                        })
 
-                val subtitleTrack = subtitleTracks
-                    .filter { !it.isForced }
-                    .also {
-                        logger.debug("    Sorted subtitle tracks:")
-                        it.forEach { t ->
-                            logger.debug("      - $t")
+                    val subtitleTrack = subtitleTracks
+                        .filter { !it.isForced }
+                        .also {
+                            debug("Sorted subtitle tracks:")
+                            it.forEach { t ->
+                                debug("  - $t")
+                            }
                         }
-                    }
-                    .firstOrNull()
+                        .firstOrNull()
 
-                val forcedSubtitleTrack = subtitleTracks
-                    .filter { it.isForced }
-                    .also {
-                        logger.debug("    Sorted forced subtitle tracks:")
-                        it.forEach { t ->
-                            logger.debug("      - $t")
+                    val forcedSubtitleTrack = subtitleTracks
+                        .filter { it.isForced }
+                        .also {
+                            debug("Sorted forced subtitle tracks:")
+                            it.forEach { t ->
+                                debug("  - $t")
+                            }
                         }
-                    }
-                    .firstOrNull()
+                        .firstOrNull()
 
-                if (audioTrack == null && subtitleTrack == null) {
-                    logger.debug("    Neither audio track or subtitle track for this language")
-                    null
-                } else {
-                    SelectedTracks.LanguageTracks().apply {
-                        this.audioTrack.track = audioTrack
-                        this.subtitleTrack.track = subtitleTrack
-                        this.forcedSubtitleTrack.track = forcedSubtitleTrack
+                    if (audioTrack == null && subtitleTrack == null) {
+                        debug("Neither audio track or subtitle track for this language")
+                        null
+                    } else {
+                        SelectedTracks.LanguageTracks().apply {
+                            this.audioTrack.track = audioTrack
+                            this.subtitleTrack.track = subtitleTrack
+                            this.forcedSubtitleTrack.track = forcedSubtitleTrack
+                        }
                     }
                 }
             }
@@ -172,6 +175,7 @@ data class InputFiles<G : Group<G>>(
 
         return SelectedTracks(group, videoTrack, languageTracks)
     }
+
 
     override fun compareTo(other: InputFiles<G>) = group.compareTo(other.group)
 }

@@ -1,13 +1,12 @@
 package com.github.mmauro94.media_merger.video_part
 
 import com.github.mmauro94.media_merger.InputFile
+import com.github.mmauro94.media_merger.LinearDrift
 import com.github.mmauro94.media_merger.Main
-import com.github.mmauro94.media_merger.StretchFactor
 import com.github.mmauro94.media_merger.Track
 import com.github.mmauro94.media_merger.config.FFMpegBlackdetectConfig
 import com.github.mmauro94.media_merger.util.*
 import com.github.mmauro94.media_merger.util.progress.Progress
-import com.github.mmauro94.media_merger.util.progress.ProgressHandler
 import com.github.mmauro94.media_merger.video_part.VideoPart.Type.BLACK_SEGMENT
 import net.bramp.ffmpeg.FFmpeg
 import net.bramp.ffmpeg.FFmpegExecutor
@@ -89,11 +88,11 @@ class VideoPartIterator(
     }
 
     /**
-     * Multiplies all the [VideoPart]s to the provided [stretchFactor].
+     * Multiplies all the [VideoPart]s to the provided [linearDrift].
      *
      * @see VideoPart.times
      */
-    operator fun times(stretchFactor: StretchFactor) = VideoPartIterator(mutableListOf(), this) { listOf(it * stretchFactor) }
+    operator fun times(linearDrift: LinearDrift) = VideoPartIterator(mutableListOf(), this) { listOf(it * linearDrift) }
 
     operator fun plus(offset: Duration): VideoPartIterator {
         check(!offset.isNegative)
@@ -148,11 +147,11 @@ class VideoParts(
     fun readOnly(): List<VideoPart> = iterator.cache()
 
     /**
-     * Multiplies all the [VideoPart]s to the provided [stretchFactor].
+     * Multiplies all the [VideoPart]s to the provided [linearDrift].
      *
      * @see VideoPart.times
      */
-    operator fun times(stretchFactor: StretchFactor) = VideoParts(iterator * stretchFactor)
+    operator fun times(linearDrift: LinearDrift) = VideoParts(iterator * linearDrift)
 
     operator fun plus(offset: Duration) = VideoParts(iterator + offset)
 
@@ -161,11 +160,11 @@ class VideoParts(
 fun Iterable<VideoPart>.sumDurations() = map { it.time.duration }.sum()
 
 /**
- * Multiplies all the [VideoPart]s to the provided [stretchFactor].
+ * Multiplies all the [VideoPart]s to the provided [linearDrift].
  *
  * @see VideoPart.times
  */
-operator fun Iterable<VideoPart>.times(stretchFactor: StretchFactor) = map { it * stretchFactor }
+operator fun Iterable<VideoPart>.times(linearDrift: LinearDrift) = map { it * linearDrift }
 
 
 class VideoPartsProvider(
@@ -185,6 +184,11 @@ class VideoPartsProvider(
 
     fun all(reporter: Reporter): VideoParts {
         return videoParts(reporter, null)
+    }
+
+    fun get(lazy: Boolean, reporter: Reporter): VideoParts {
+        return if (lazy) lazy(reporter)
+        else all(reporter)
     }
 }
 
@@ -208,7 +212,7 @@ private fun InputFile.detectVideoParts(
 
     val videoTrack = tracks.singleOrNull { it.isVideoTrack() }
 
-    fun createReporter(chunk : DurationSpan?): Reporter {
+    fun createReporter(chunk: DurationSpan?): Reporter {
         val message = "Detecting black frames segments in chunk $chunk..."
         return when {
             duration == null -> reporter.split(Progress.INDETERMINATE, message)

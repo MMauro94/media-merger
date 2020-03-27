@@ -1,6 +1,6 @@
 package com.github.mmauro94.media_merger.video_part
 
-import com.github.mmauro94.media_merger.StretchFactor
+import com.github.mmauro94.media_merger.LinearDrift
 import com.github.mmauro94.media_merger.util.DurationSpan
 import java.time.Duration
 
@@ -33,10 +33,10 @@ data class VideoPart(val time: DurationSpan, val type: Type) {
 
 
     /**
-     * Multiplies this [VideoPart] by the given [stretchFactor]
+     * Multiplies this [VideoPart] by the given [linearDrift]
      */
-    operator fun times(stretchFactor: StretchFactor): VideoPart {
-        return this.copy(time = time * stretchFactor)
+    operator fun times(linearDrift: LinearDrift): VideoPart {
+        return this.copy(time = time * linearDrift)
     }
 
     operator fun plus(offset: Duration): VideoPart {

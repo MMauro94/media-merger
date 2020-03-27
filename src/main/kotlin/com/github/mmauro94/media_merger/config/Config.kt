@@ -4,7 +4,7 @@ import com.beust.klaxon.Klaxon
 import com.beust.klaxon.KlaxonException
 import com.github.mmauro94.media_merger.config.converters.DurationConverter
 import com.github.mmauro94.media_merger.config.converters.MkvToolnixLanguageConverter
-import com.github.mmauro94.media_merger.strategy.StretchAdjustmentStrategy
+import com.github.mmauro94.media_merger.strategy.LinearDriftAdjustmentStrategy
 import com.github.mmauro94.media_merger.util.JAR_LOCATION
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import java.io.File
@@ -21,7 +21,6 @@ data class Config(
     val defaultAdditionalLanguagesToKeep: List<MkvToolnixLanguage> = emptyList(),
     val ffmpeg: FFMpegConfig = FFMpegConfig(),
     val apiKeys: Map<String, String> = emptyMap(),
-    val defaultStretchAdjustmentStrategy: StretchAdjustmentStrategy = StretchAdjustmentStrategy.KNOWN_ONLY,
     val infoLanguage : MkvToolnixLanguage? = null,
     val episodeRenameFormat : String = "%(showName) %(seasonNumber00)x%(episodeNumber) - %(episodeName)",
     val movieRenameFormat : String = "%(name) (%(year))"

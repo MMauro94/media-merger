@@ -120,6 +120,22 @@ fun askInt(
     defaultToString = defaultToString
 )
 
+
+fun askLong(
+    question: String,
+    default: Long? = null,
+    isValid: Long.() -> Boolean = { true },
+    itemToString: Long.() -> String = { toString() },
+    defaultToString: Long.() -> String = { itemToString(this) }
+): Long = ask(
+    question = question,
+    parser = { it.toLongOrNull() },
+    isValid = isValid,
+    default = default,
+    itemToString = itemToString,
+    defaultToString = defaultToString
+)
+
 fun askDouble(
     question: String,
     default: Double? = null,
