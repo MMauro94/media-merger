@@ -22,7 +22,7 @@ data class Config(
     val ffmpeg: FFMpegConfig = FFMpegConfig(),
     val apiKeys: Map<String, String> = emptyMap(),
     val infoLanguage : MkvToolnixLanguage? = null,
-    val episodeRenameFormat : String = "%(showName) %(seasonNumber00)x%(episodeNumber) - %(episodeName)",
+    val episodeRenameFormat : String = "%(showName) %(seasonNumber00)x%(episodeNumber00) - %(episodeName)",
     val movieRenameFormat : String = "%(name) (%(year))"
 ) {
 
