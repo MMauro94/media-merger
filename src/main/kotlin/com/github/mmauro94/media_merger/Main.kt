@@ -49,8 +49,10 @@ object Main {
 
         workingDir = File(options.getOrNull(0) ?: System.getProperty("user.dir") ?: "").absoluteFile
         globalLog = File(outputDir, "global_debug.txt").let {
-            it to if (debug) FileOutputStream(it, true).writer()
-            else null
+            it to if (debug) {
+                outputDir.mkdirs()
+                FileOutputStream(it).writer()
+            } else null
         }
 
         config = try {

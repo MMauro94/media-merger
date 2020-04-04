@@ -3,6 +3,7 @@ package com.github.mmauro94.media_merger
 import com.github.mmauro94.media_merger.cuts.Cuts
 import com.github.mmauro94.media_merger.strategy.AdjustmentStrategies
 import com.github.mmauro94.media_merger.util.Reporter
+import com.github.mmauro94.media_merger.util.toTimeStringOrUnknown
 
 /**
  * @param inputFile the file to adjust
@@ -31,12 +32,13 @@ fun selectAdjustments(
     targetFile: InputFile,
     reporter: Reporter
 ): SelectedAdjustments {
-    reporter.log.debug("--- ADJUSTMENT DETECTION ---")
-    reporter.log.debug("Input file: ${inputFile.file.absolutePath}")
+    reporter.log.debug("--- ADJUSTMENT DETECTION FOR ${inputFile.file.absolutePath} ---")
     reporter.log.debug("Target file: ${targetFile.file.absolutePath}")
     reporter.log.debug()
 
     reporter.progress.ratio(0f, "Detecting linear drift...")
+    reporter.log.debug("Input duration: ${inputFile.duration.toTimeStringOrUnknown()}")
+    reporter.log.debug("Target duration: ${targetFile.duration.toTimeStringOrUnknown()}")
     val linearDrift = adjustmentStrategies.linearDrift.detect(reporter.log, inputFile, targetFile) ?: throw AdjustmentDetectionImpossible()
     reporter.log.debug("Detected linear drift: $linearDrift")
 

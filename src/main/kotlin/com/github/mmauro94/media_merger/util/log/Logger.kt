@@ -29,12 +29,13 @@ open class Logger(
 
     fun forceDebug() {
         debugFile?.let {
-            if (it.second != null) {
+            if (it.second == null) {
                 val writer = it.first.writer()
                 debugFile = it.first to writer
                 for (log in logs) {
                     writer.appendln(log)
                 }
+                writer.flush()
                 logs.clear()
             }
         }

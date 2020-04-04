@@ -25,14 +25,16 @@ interface LoggerContainer<T> {
     )
 
     fun <R> withDebug(file: File, block: (T) -> R): R {
-        val w = if (Main.debug) file.writer()
-        else null
+        val w = if (Main.debug) file.writer() else null
         val logger = Logger(baseLogger.log, baseLogger.debugTransform, file to w)
 
         try {
             return block(create(logger))
         } finally {
-            logger.debugFile?.second?.close()
+            logger.debugFile?.second?.apply {
+                flush()
+                close()
+            }
         }
     }
 }

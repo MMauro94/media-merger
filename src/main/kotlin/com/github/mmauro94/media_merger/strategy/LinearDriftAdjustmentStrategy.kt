@@ -153,8 +153,9 @@ sealed class LinearDriftAdjustmentStrategy {
                     KNOWN_LINEAR_DRIFTS
                         .mapNotNull { sf ->
                             val resultingDuration = sf.resultingDurationForLinearDrift(duration)
-                            val ok = resultingDuration > targetDuration - maxDurationError && resultingDuration < targetDuration + maxDurationError
-                            log.debug("Resulting duration with linear drift $sf would be $resultingDuration" + if (!ok) " (exceeds max error)" else "")
+                            val error = (resultingDuration - targetDuration).abs()
+                            val ok = error <= maxDurationError
+                            log.debug("Resulting duration with linear drift $sf would be ${resultingDuration.toTimeString()}" + if (!ok) " (exceeds max error by ${error.toTimeString()})" else "")
                             if (ok) sf to resultingDuration
                             else null
                         }
