@@ -37,11 +37,7 @@ data class SelectedTracks<G : Group<G>>(
         val audioTrack: TrackWithOptions = TrackWithOptions(),
         val subtitleTrack: TrackWithOptions = TrackWithOptions(),
         val forcedSubtitleTrack: TrackWithOptions = TrackWithOptions()
-    ) {
-        fun countTracks(): Int {
-            return sequenceOf(audioTrack.track, subtitleTrack.track, forcedSubtitleTrack.track).filterNotNull().count()
-        }
-    }
+    )
 
     fun allTracks() = languageTracks.asSequence()
         .flatMap {
@@ -138,6 +134,7 @@ data class SelectedTracks<G : Group<G>>(
         }
 
         val outputFile = File(Main.outputDir, "$outputFilenamePrefix.mkv")
+        var tracksCount = 0
         val command = MkvToolnix.merge(outputFile)
             .addTrack(videoTrack) {
                 isDefault = true
@@ -161,6 +158,7 @@ data class SelectedTracks<G : Group<G>>(
                         isForced = false
                         name = ""
                         language = lang
+                        tracksCount++
                     }
                 }
                 sortedLanguages.forEach { (lang, tracks) ->
@@ -169,6 +167,7 @@ data class SelectedTracks<G : Group<G>>(
                         isForced = false
                         name = ""
                         language = lang
+                        tracksCount++
                     }
 
                     addTrack(tracks.forcedSubtitleTrack) {
@@ -176,6 +175,7 @@ data class SelectedTracks<G : Group<G>>(
                         isDefault = false
                         name = "Forced"
                         language = lang
+                        tracksCount++
                     }
                 }
             }
@@ -185,7 +185,6 @@ data class SelectedTracks<G : Group<G>>(
         reporter.log.debug("mkvmerge " + command.commandArgs().joinToString(" "))
         reporter.log.debug()
 
-        val tracksCount = 1 + languageTracks.entries.sumBy { it.value.countTracks() }
         val mkvMergeProgress = reporter.split(.9f, 1f, "Merging $tracksCount tracks...")
 
         val result = command.executeLazy()
