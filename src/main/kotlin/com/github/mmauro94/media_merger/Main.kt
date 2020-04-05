@@ -12,9 +12,7 @@ import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import org.fusesource.jansi.Ansi.ansi
 import org.fusesource.jansi.AnsiConsole
 import java.io.File
-import java.io.FileOutputStream
 import java.io.IOException
-import java.io.OutputStreamWriter
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import kotlin.system.exitProcess
@@ -34,9 +32,9 @@ object Main {
     lateinit var additionalLanguagesToKeep: Set<MkvToolnixLanguage>; private set
     lateinit var inputFilesDetector: InputFilesDetector<*>; private set
     var debug: Boolean = false
-    lateinit var globalLog: Pair<File, OutputStreamWriter?>
 
     val outputDir by lazy { File(workingDir, "OUTPUT") }
+    val globalLog: File by lazy { File(outputDir, "global_debug.txt") }
 
 
     @JvmStatic
@@ -47,24 +45,38 @@ object Main {
             debug = true
         }
 
-        workingDir = File(options.getOrNull(0) ?: System.getProperty("user.dir") ?: "").absoluteFile
-        globalLog = File(outputDir, "global_debug.txt").let {
-            it to if (debug) {
-                outputDir.mkdirs()
-                FileOutputStream(it).writer()
-            } else null
+        val configPath = options.singleOrNull { it.startsWith("--config=") }?.let {
+            options.remove(it)
+            it.removePrefix("--config=")
         }
-
+        val configFile = if (configPath !== null) File(configPath) else Config.DEFAULT_CONFIG_FILE
         config = try {
-            Config.parse()
+            if (!configFile.exists()) {
+                if (configPath !== null) {
+                    throw ConfigParseException("Provided config file does not exist")
+                } else Config()
+            } else {
+                Config.parse(configFile)
+            }
         } catch (cpe: ConfigParseException) {
             println(ansi().fgRed().a("config.json parsing error: ${cpe.message}"))
             println(ansi().fgYellow().a("Using default config").reset())
             Config()
         }
+
+        workingDir = File(options.getOrNull(0) ?: System.getProperty("user.dir") ?: "").absoluteFile
+        if(!outputDir.exists()) {
+            outputDir.mkdir()
+        }
+
         println(ansi().bgBrightGreen().fgBlack().a("----- MEDIA-MERGER UTILITY -----").reset())
         println(ansi().fgDefault().a("Working directory: ").fgGreen().a(workingDir.toString()).reset())
-        println(ansi().fgBlue().a("Debug mode active").reset())
+        if (configFile.exists()) {
+            println(ansi().fgDefault().a("config.json path: ").fgGreen().a(configFile.absolutePath.toString()).reset())
+        }
+        if (debug) {
+            println(ansi().fgBlue().a("Debug mode active").reset())
+        }
         println()
 
         mainLanguages = askLanguages(
@@ -130,10 +142,10 @@ object Main {
             val mergeReporter = reporter.split(.1f, 1f, "Merging...")
 
             for ((i, it) in inputFiles.withIndex()) {
-                mergeReporter.withDebug(File(outputDir, "${it.outputNameOrFallback()}.debug.txt")) { rep ->
-                    val r = rep.split(i, inputFiles.size, "Merging group ${it.group}")
-                    it.selectTracks(r.log)?.merge(adjustmentStrategies, r)
-                }
+                val r = mergeReporter
+                    .withDebug(it.debugFile)
+                    .split(i, inputFiles.size, "Merging group ${it.group}")
+                it.selectTracks(r.log)?.merge(adjustmentStrategies, r)
             }
 
             reporter.progress.finished("Merging of all files completed successfully")

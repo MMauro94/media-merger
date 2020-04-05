@@ -13,7 +13,7 @@ data class DurationSpan(val start: Duration, val end: Duration) {
 
     init {
         require(!start.isNegative)
-        require(start < end)
+        require(end > start)
     }
 
     /**

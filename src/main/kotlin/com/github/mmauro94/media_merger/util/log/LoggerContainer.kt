@@ -12,7 +12,8 @@ interface LoggerContainer<T> {
     fun prepend(str: String) = create(
         Logger(
             log = { message, type -> baseLogger.log(message.split("\n").joinToString("\n") { str + it }, type) },
-            debugFile = baseLogger.debugFile
+            debugFile = baseLogger.debugFile,
+            printToDebug = baseLogger.printToDebug
         )
     )
 
@@ -20,22 +21,13 @@ interface LoggerContainer<T> {
         Logger(
             log = baseLogger.log,
             debugTransform = { message -> message.split("\n").joinToString("\n") { str + it } },
-            debugFile = baseLogger.debugFile
+            debugFile = baseLogger.debugFile,
+            printToDebug = baseLogger.printToDebug
         )
     )
 
-    fun <R> withDebug(file: File, block: (T) -> R): R {
-        val w = if (Main.debug) file.writer() else null
-        val logger = Logger(baseLogger.log, baseLogger.debugTransform, file to w)
-
-        try {
-            return block(create(logger))
-        } finally {
-            logger.debugFile?.second?.apply {
-                flush()
-                close()
-            }
-        }
+    fun withDebug(file: File): T {
+        return create(Logger(baseLogger.log, baseLogger.debugTransform, file, Main.debug))
     }
 }
 

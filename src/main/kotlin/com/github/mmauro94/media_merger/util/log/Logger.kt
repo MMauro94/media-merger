@@ -1,16 +1,17 @@
 package com.github.mmauro94.media_merger.util.log
 
+import com.github.mmauro94.media_merger.Main
 import java.io.File
-import java.io.OutputStreamWriter
 
 open class Logger(
     val log: (message: String, type: LogType) -> Unit,
     val debugTransform: (String) -> String = { it },
-    debugFile: Pair<File, OutputStreamWriter?>? = null
+    val debugFile: File? = null,
+    printToDebug: Boolean = Main.debug
 ) : LoggerContainer<Logger> {
 
-    private val logs = mutableListOf<String>()
-    var debugFile: Pair<File, OutputStreamWriter?>? = debugFile; private set
+    private val debugLogs = mutableListOf<String>()
+    var printToDebug = printToDebug; private set
 
     override val baseLogger get() = this
 
@@ -22,21 +23,21 @@ open class Logger(
     }
 
     fun debug(message: String = "") {
-        debugFile?.second.let {
-            it?.appendln(debugTransform(message)) ?: logs.add(debugTransform(message))
+        if (debugFile != null) {
+            if (printToDebug) {
+                debugFile.appendText(debugTransform(message) + "\n")
+            } else {
+                debugLogs.add(debugTransform(message))
+            }
         }
     }
 
     fun forceDebug() {
-        debugFile?.let {
-            if (it.second == null) {
-                val writer = it.first.writer()
-                debugFile = it.first to writer
-                for (log in logs) {
-                    writer.appendln(log)
-                }
-                writer.flush()
-                logs.clear()
+        if (debugFile != null) {
+            if (!printToDebug) {
+                printToDebug = true
+                debugFile.appendText(debugLogs.joinToString("\n") + "\n")
+                debugLogs.clear()
             }
         }
     }

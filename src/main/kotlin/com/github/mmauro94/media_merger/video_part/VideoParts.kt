@@ -218,7 +218,7 @@ private fun InputFile.detectVideoParts(
             duration == null -> reporter.split(Progress.INDETERMINATE, message)
             chunk == null -> reporter
             else -> reporter.split(
-                chunk.start.toSeconds() / duration.toSeconds().toFloat(),
+                min(1f, chunk.start.toSeconds() / duration.toSeconds().toFloat()),
                 min(1f, chunk.end.toSeconds() / duration.toSeconds().toFloat()),
                 message
             )

@@ -5,6 +5,7 @@ import com.github.mmauro94.media_merger.Track
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import com.github.mmauro94.mkvtoolnix_wrapper.merge.MkvMergeCommand
 import java.io.File
+import java.io.FileOutputStream
 import java.util.*
 
 val OUT = System.out
@@ -97,4 +98,8 @@ fun <T> File.findWalkingUp(allowWorkingDir: Boolean, finder: (File) -> T?): T? {
             parent.findWalkingUp(allowWorkingDir, finder)
         } else found
     }
+}
+
+fun File.appendWriter(): FileOutputStream {
+    return FileOutputStream(this, true)
 }

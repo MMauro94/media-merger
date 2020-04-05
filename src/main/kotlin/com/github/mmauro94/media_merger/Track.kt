@@ -4,6 +4,7 @@ import com.github.mmauro94.media_merger.util.Reporter
 import com.github.mmauro94.media_merger.util.find
 import com.github.mmauro94.media_merger.util.findWalkingUp
 import com.github.mmauro94.media_merger.util.log.Logger
+import com.github.mmauro94.media_merger.util.log.withPrependDebug
 import com.github.mmauro94.media_merger.util.toSecondsDuration
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
@@ -134,21 +135,29 @@ class Track(
 
             var language = mkvTrack.properties?.language
             if ((language == null || language.isUndefined()) && mkvTrack.fileIdentification.tracks.first { it.type == mkvTrack.type } == mkvTrack) {
-                language = file.findLanguage()
+                logger.debug("Detecting language for track ${mkvTrack.id} of file ${file.name} from filename")
+                language = file.findLanguage(logger.prependDebug("  "))
             }
             return if (language == null) {
                 logger.warn("Track ${mkvTrack.id} of file ${file.name} skipped because of no language")
                 null
             } else {
+                logger.debug("Detected language for track ${mkvTrack.id} of file ${file.name} is $language")
                 Track(inputFile, mkvTrack, ffprobeStream, language)
             }
         }
 
-        private fun File.findLanguage(): MkvToolnixLanguage? {
+        private fun File.findLanguage(logger: Logger): MkvToolnixLanguage? {
             return findWalkingUp(false) { f ->
-                val map = f.name.split(Regex("(\\s+|_|\\.)")).asSequence()
+                val split = f.name.split(Regex("(\\s+|[_.\\-])")).filterNot { it.isBlank() }
+                logger.debug("Name split: $split")
+                val map = split
                     .groupingBy { s ->
-                        MkvToolnixLanguage.find(s.toLowerCase())
+                        val lang = MkvToolnixLanguage.find(s.toLowerCase())
+                        if (Main.config.languagesDetectWhitelist.isEmpty() || lang in Main.config.languagesDetectWhitelist) {
+                            logger.debug("File part '$s' matching with language $lang")
+                            lang
+                        } else null
                     }
                     .eachCount()
                     .filterKeys { it != null }
@@ -159,5 +168,4 @@ class Track(
     }
 }
 
-fun sameFile(track1: Track, track2: Track) =
-    track1.file.absolutePath == track2.file.absolutePath
+fun sameFile(track1: Track, track2: Track) = track1.file.absolutePath == track2.file.absolutePath

@@ -119,6 +119,8 @@ sealed class LinearDriftAdjustmentStrategy {
                     log.debug("Target framerate unknown, cannot calculate ratio based on framerate")
                 }
                 else -> framerate.calculateLinearDriftTo(targetFramerate).also {
+                    log.debug("Input framerate: $framerate")
+                    log.debug("Target framerate: $targetFramerate")
                     log.debug("Calculated precise linear drift: $it")
                 }
             }

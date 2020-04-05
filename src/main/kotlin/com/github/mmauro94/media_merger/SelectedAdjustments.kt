@@ -3,6 +3,7 @@ package com.github.mmauro94.media_merger
 import com.github.mmauro94.media_merger.cuts.Cuts
 import com.github.mmauro94.media_merger.strategy.AdjustmentStrategies
 import com.github.mmauro94.media_merger.util.Reporter
+import com.github.mmauro94.media_merger.util.toTimeString
 import com.github.mmauro94.media_merger.util.toTimeStringOrUnknown
 
 /**
@@ -41,10 +42,16 @@ fun selectAdjustments(
     reporter.log.debug("Target duration: ${targetFile.duration.toTimeStringOrUnknown()}")
     val linearDrift = adjustmentStrategies.linearDrift.detect(reporter.log, inputFile, targetFile) ?: throw AdjustmentDetectionImpossible()
     reporter.log.debug("Detected linear drift: $linearDrift")
+    if(inputFile.duration != null) {
+        reporter.log.debug("Input fixed duration: " + linearDrift.resultingDurationForLinearDrift(inputFile.duration).toTimeString())
+    }
 
     reporter.log.debug()
     val cutsReporter = reporter.split(.1f, 1f, "Detecting cuts...")
     val cuts = adjustmentStrategies.cuts.detect(cutsReporter, linearDrift, inputFile, targetFile) ?: throw AdjustmentDetectionImpossible()
+    if (cuts.isOffset()) {
+        reporter.log.debug("Detected offset: " + cuts.optOffset()!!.toTimeString())
+    }
 
     reporter.log.debug()
     reporter.progress.finished("Adjustments detected for file ${inputFile.file.name}")

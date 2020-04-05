@@ -8,8 +8,7 @@ import com.github.mmauro94.media_merger.util.progress.ProgressWithMessage
 import org.fusesource.jansi.Ansi
 import kotlin.math.max
 
-class ConsoleReporter() : Reporter(), AutoCloseable {
-
+class ConsoleReporter : Reporter(), AutoCloseable {
 
     private var closed = false
     private var last: Pair<ProgressWithMessage, Array<out ProgressWithMessage>>? = null
@@ -24,7 +23,7 @@ class ConsoleReporter() : Reporter(), AutoCloseable {
             OUT.print(Ansi.ansi().saveCursorPosition())
             progress.handle(main, *previouses)
         }
-    }, debugFile = Main.globalLog)
+    }, debugFile = Main.globalLog, printToDebug = Main.debug)
 
     override val progress = object : ProgressHandler {
         private fun handleSingle(progress: ProgressWithMessage) {
@@ -59,7 +58,6 @@ class ConsoleReporter() : Reporter(), AutoCloseable {
 
     override fun close() {
         check(!closed)
-        log.debugFile?.second?.close()
         OUT.println()
     }
 }

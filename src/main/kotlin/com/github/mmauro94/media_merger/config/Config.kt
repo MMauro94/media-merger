@@ -4,10 +4,10 @@ import com.beust.klaxon.Klaxon
 import com.beust.klaxon.KlaxonException
 import com.github.mmauro94.media_merger.config.converters.DurationConverter
 import com.github.mmauro94.media_merger.config.converters.MkvToolnixLanguageConverter
-import com.github.mmauro94.media_merger.strategy.LinearDriftAdjustmentStrategy
 import com.github.mmauro94.media_merger.util.JAR_LOCATION
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import java.io.File
+import java.io.FileNotFoundException
 import java.io.IOException
 
 /**
@@ -15,10 +15,12 @@ import java.io.IOException
  *
  * @param defaultLanguages the default languages
  * @param defaultAdditionalLanguagesToKeep the default additional languages to keep
+ * @param languagesDetectWhitelist a list of languages that can be detected from the file/folder names.
  */
 data class Config(
     val defaultLanguages: List<MkvToolnixLanguage>? = null,
     val defaultAdditionalLanguagesToKeep: List<MkvToolnixLanguage> = emptyList(),
+    val languagesDetectWhitelist: List<MkvToolnixLanguage> = emptyList(),
     val ffmpeg: FFMpegConfig = FFMpegConfig(),
     val apiKeys: Map<String, String> = emptyMap(),
     val infoLanguage : MkvToolnixLanguage? = null,
@@ -47,7 +49,7 @@ data class Config(
         /**
          * The config file
          */
-        private val CONFIG_FILE = File(JAR_LOCATION, "config.json")
+        val DEFAULT_CONFIG_FILE = File(JAR_LOCATION, "config.json")
 
         /**
          * Parses the `config.json` configuration file.
@@ -55,20 +57,21 @@ data class Config(
          *
          * @return a [Config] instance or `null` if the config doesn't exist
          * @throws ConfigParseException if there is an error reading or parsing the config file
+         * @throws FileNotFoundException if the passed file does not exists
          */
-        fun parse(): Config {
-            return if (CONFIG_FILE.exists()) {
+        fun parse(configFile : File): Config {
+            return if (configFile.exists()) {
                 try {
                     Klaxon()
                         .converter(MkvToolnixLanguageConverter)
                         .converter(DurationConverter)
-                        .parse<Config>(CONFIG_FILE) ?: Config()
+                        .parse<Config>(configFile) ?: Config()
                 } catch (ioe: IOException) {
                     throw ConfigParseException("Unable to read config.json", ioe)
                 } catch (ke: KlaxonException) {
                     throw ConfigParseException("Unable to parse config.json: ${ke.message}", ke)
                 }
-            } else Config()
+            } else throw FileNotFoundException()
         }
     }
 }

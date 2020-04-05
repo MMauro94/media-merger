@@ -17,8 +17,7 @@ data class InputFiles<G : Group<G>>(
     override fun iterator() = inputFiles.iterator()
 
     fun outputName() = group.outputName()
-
-    fun outputNameOrFallback() = outputName() ?: group.toString()
+    val debugFile = group.debugFile
 
     fun allTracks() = sequence {
         inputFiles.forEach {
@@ -67,12 +66,13 @@ data class InputFiles<G : Group<G>>(
             val max = groupedFiles.values.sumBy { it.size }
             groupedFiles.forEach { (ei, files) ->
                 check(ei != null)
+                val groupRep = reporter.withDebug(ei.debugFile)
                 files.forEach { f ->
-                    reporter.progress.discrete(i, max, "Identifying ${f.name}")
+                    groupRep.progress.discrete(i, max, "Identifying ${f.name}")
                     try {
-                        ret.add(ei, InputFile.parse({ inputFiles.getValue(ei) }, f, reporter.log))
+                        ret.add(ei, InputFile.parse({ inputFiles.getValue(ei) }, f, groupRep.log))
                     } catch (e: InputFile.ParseException) {
-                        reporter.log.err("Unable to parse file: ${e.message}")
+                        groupRep.log.err("Unable to parse file: ${e.message}")
                     }
                     i++
                 }
