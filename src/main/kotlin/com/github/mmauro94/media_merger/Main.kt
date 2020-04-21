@@ -3,11 +3,8 @@ package com.github.mmauro94.media_merger
 import com.github.mmauro94.media_merger.config.Config
 import com.github.mmauro94.media_merger.config.ConfigParseException
 import com.github.mmauro94.media_merger.strategy.AdjustmentStrategies
-import com.github.mmauro94.media_merger.util.ConsoleReporter
-import com.github.mmauro94.media_merger.util.askLanguages
+import com.github.mmauro94.media_merger.util.*
 import com.github.mmauro94.media_merger.util.log.ConsoleLogger
-import com.github.mmauro94.media_merger.util.menu
-import com.github.mmauro94.media_merger.util.selectEnum
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import org.fusesource.jansi.Ansi.ansi
 import org.fusesource.jansi.AnsiConsole
@@ -44,19 +41,18 @@ object Main {
         if (options.remove("--debug")) {
             debug = true
         }
+        val providedConfigFiles = options
+            .filter { it.startsWith("--config=") }
+            .map {
+                options.remove(it)
+                File(it.removePrefix("--config="))
+            }
 
-        val configPath = options.singleOrNull { it.startsWith("--config=") }?.let {
-            options.remove(it)
-            it.removePrefix("--config=")
-        }
-        val configFile = if (configPath !== null) File(configPath) else Config.DEFAULT_CONFIG_FILE
+        workingDir = File(options.getOrNull(0) ?: System.getProperty("user.dir") ?: "").absoluteFile
+
         config = try {
-            if (!configFile.exists()) {
-                if (configPath !== null) {
-                    throw ConfigParseException("Provided config file does not exist")
-                } else Config()
-            } else {
-                Config.parse(configFile)
+            ConsoleReporter().use { cr ->
+                Config.parse(listOf(Config.SYSTEM_CONFIG_FILE) + providedConfigFiles + File(workingDir, "config.json"), cr)
             }
         } catch (cpe: ConfigParseException) {
             println(ansi().fgRed().a("config.json parsing error: ${cpe.message}"))
@@ -64,16 +60,12 @@ object Main {
             Config()
         }
 
-        workingDir = File(options.getOrNull(0) ?: System.getProperty("user.dir") ?: "").absoluteFile
-        if(!outputDir.exists()) {
+        if (!outputDir.exists()) {
             outputDir.mkdir()
         }
 
         println(ansi().bgBrightGreen().fgBlack().a("----- MEDIA-MERGER UTILITY -----").reset())
         println(ansi().fgDefault().a("Working directory: ").fgGreen().a(workingDir.toString()).reset())
-        if (configFile.exists()) {
-            println(ansi().fgDefault().a("config.json path: ").fgGreen().a(configFile.absolutePath.toString()).reset())
-        }
         if (debug) {
             println(ansi().fgBlue().a("Debug mode active").reset())
         }
