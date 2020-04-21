@@ -28,6 +28,7 @@ object Main {
     lateinit var mainLanguages: LinkedHashSet<MkvToolnixLanguage>; private set
     lateinit var additionalLanguagesToKeep: Set<MkvToolnixLanguage>; private set
     lateinit var inputFilesDetector: InputFilesDetector<*>; private set
+    var test: Boolean = false
     var debug: Boolean = false
 
     val outputDir by lazy { File(workingDir, "OUTPUT") }
@@ -40,6 +41,9 @@ object Main {
         val options = args.toMutableList()
         if (options.remove("--debug")) {
             debug = true
+        }
+        if (options.remove("--test")) {
+            test = true
         }
         val providedConfigFiles = options
             .filter { it.startsWith("--config=") }
@@ -66,9 +70,8 @@ object Main {
 
         println(ansi().bgBrightGreen().fgBlack().a("----- MEDIA-MERGER UTILITY -----").reset())
         println(ansi().fgDefault().a("Working directory: ").fgGreen().a(workingDir.toString()).reset())
-        if (debug) {
-            println(ansi().fgBlue().a("Debug mode active").reset())
-        }
+        if (debug) println(ansi().fgBlue().a("Debug mode active").reset())
+        if (test) println(ansi().fgBlue().a("Test mode active").reset())
         println()
 
         mainLanguages = askLanguages(

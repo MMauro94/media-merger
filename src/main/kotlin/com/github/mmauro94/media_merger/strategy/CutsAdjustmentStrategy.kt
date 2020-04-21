@@ -25,18 +25,18 @@ sealed class CutsAdjustmentStrategy(val detectProgressSplit: Float) {
         block: (inputVideoParts: VideoParts, targetVideoParts: VideoParts) -> Cuts?
     ): Cuts? {
         val inputVideoParts = (inputFile.videoParts ?: return null.also { reporter.log.debug("No black segments in input file") })
-            .get(lazy, reporter.split(0, 2, "Detecting ${inputFile.file.name} first black segment..."))
+            .get(lazy, reporter.split(0, 2, "Detecting ${inputFile.file.name} black segments..."))
             .times(linearDrift)
 
         val targetVideoParts = (targetFile.videoParts ?: return null.also { reporter.log.debug("No black segments in target file") })
-            .get(lazy, reporter.split(1, 2, "Detecting ${targetFile.file.name} first black segment..."))
+            .get(lazy, reporter.split(1, 2, "Detecting ${targetFile.file.name} black segments..."))
 
         return block(inputVideoParts, targetVideoParts).also {
             reporter.log.debug()
             reporter.log.debug("TARGET VIDEO PARTS (not complete) ($targetFile):")
             reporter.log.debug(targetVideoParts.readOnly().joinToString(separator = "\n"))
             reporter.log.debug()
-            reporter.log.debug("INPUT VIDEO PARTS (not complete), ALREADY STRETCHED BY $linearDrift ($inputFile):")
+            reporter.log.debug("INPUT VIDEO PARTS " + (if(lazy) "(Not complete)" else "") + ", ALREADY STRETCHED BY $linearDrift ($inputFile):")
             reporter.log.debug(inputVideoParts.readOnly().joinToString(separator = "\n"))
         }
     }
@@ -114,13 +114,13 @@ sealed class CutsAdjustmentStrategy(val detectProgressSplit: Float) {
                     reporter.log.debug("Detected matches:")
                     reporter.log.prepend("   ").apply {
                         for (match in matches) {
-                            debug("INPUT=" + match.input.toString().padEnd(50) + "| TARGET=" + match.target.toString())
+                            debug("INPUT=" + match.input.toString().padEnd(60) + "| TARGET=" + match.target.toString())
                         }
                     }
                     reporter.log.debug("Accuracy: ${accuracy.accuracy}")
 
                     if (accuracy.accuracy < minimumAccuracy) {
-                        reporter.log.debug("Accuracy too low! (threshold $minimumAccuracy")
+                        reporter.log.debug("Accuracy too low! (threshold $minimumAccuracy)")
                         null
                     } else matches.computeCuts()
                 } catch (e: VideoPartsMatchException) {

@@ -77,11 +77,14 @@ data class Config(
             var config: JsonObject? = null
             for (file in configFiles) {
                 if (file.exists()) {
+                    reporter.log.debug("Parsing config file ${file.absolutePath}")
                     val json = Klaxon().parseJsonObject(file.reader())
                     if (config == null) config = json
                     else {
                         json.mergeIn(config)
                     }
+                } else {
+                    reporter.log.debug("Searched config file didn't exist: ${file.absolutePath}")
                 }
             }
 
@@ -89,8 +92,7 @@ data class Config(
                 reporter.log.debug("No config files found! Using default config")
                 Config()
             } else {
-                reporter.log.debug("Merged config file:")
-                reporter.log.debug(config.toJsonString())
+                reporter.log.debug("Merged config file: " + config.toJsonString())
 
                 try {
                     Klaxon()

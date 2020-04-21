@@ -59,12 +59,13 @@ data class InputFiles<G : Group<G>>(
                 .filterKeys { it != null }
 
 
+
             val inputFiles = mutableMapOf<G, InputFiles<G>>()
             val ret = HashMap<G, MutableList<InputFile>>()
 
             var i = 0
             val max = groupedFiles.values.sumBy { it.size }
-            groupedFiles.forEach { (ei, files) ->
+            for ((ei, files) in groupedFiles) {
                 check(ei != null)
                 val groupRep = reporter.withDebug(ei.debugFile)
                 files.forEach { f ->
@@ -75,6 +76,10 @@ data class InputFiles<G : Group<G>>(
                         groupRep.log.err("Unable to parse file: ${e.message}")
                     }
                     i++
+                }
+                if(Main.test) {
+                    reporter.log.warn("Test mode active, only first group will be analyzed")
+                    break
                 }
             }
             reporter.progress.discrete(i, max, "Identifying complete")
