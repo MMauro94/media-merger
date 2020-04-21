@@ -113,8 +113,9 @@ sealed class CutsAdjustmentStrategy(val detectProgressSplit: Float) {
                     val (matches, accuracy) = inputVideoParts.matchWithTarget(targetVideoParts)
                     reporter.log.debug("Detected matches:")
                     reporter.log.prepend("   ").apply {
+                        val maxInput = matches.map { it.toString().length }.max()
                         for (match in matches) {
-                            debug("INPUT=" + match.input.toString().padEnd(60) + "| TARGET=" + match.target.toString())
+                            debug("INPUT=" + match.input.toString().padEnd(maxInput!! + 1) + "| TARGET=" + match.target.toString())
                         }
                     }
                     reporter.log.debug("Accuracy: ${accuracy.accuracy}")
