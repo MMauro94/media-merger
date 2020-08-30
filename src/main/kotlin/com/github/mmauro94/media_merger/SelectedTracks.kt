@@ -154,7 +154,7 @@ data class SelectedTracks<G : Group<G>>(
                 }
                 sortedLanguages.forEach { (lang, tracks) ->
                     addTrack(tracks.audioTrack) {
-                        isDefault = lang.iso639_2 == "eng"
+                        isDefault = lang == sortedLanguages.keys.first()
                         isForced = false
                         name = ""
                         language = lang
@@ -163,7 +163,7 @@ data class SelectedTracks<G : Group<G>>(
                 }
                 sortedLanguages.forEach { (lang, tracks) ->
                     addTrack(tracks.subtitleTrack) {
-                        isDefault = lang.iso639_2 == "eng"
+                        isDefault = lang == sortedLanguages.keys.first()
                         isForced = false
                         name = ""
                         language = lang
