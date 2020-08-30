@@ -17,6 +17,8 @@ dependencies {
 
     compile 'com.github.mmauro94:mkvtoolnix-wrapper:1.0.1-SNAPSHOT'
 
+    compile 'com.beust:klaxon:5.0.13'
+
     compile 'com.uwetrottmann.tmdb2:tmdb-java:2.0.2'
     compile 'com.uwetrottmann.thetvdb-java:thetvdb-java:2.2.0'
 
