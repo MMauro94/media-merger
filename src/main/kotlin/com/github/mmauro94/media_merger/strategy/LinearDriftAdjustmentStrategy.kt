@@ -35,7 +35,7 @@ sealed class LinearDriftAdjustmentStrategy {
     @Suppress("unused")
     object ByFramerate : LinearDriftAdjustmentStrategy() {
         override fun detect(log: Logger, inputFile: InputFile, targetFile: InputFile): LinearDrift? {
-            return detectFromFramerate(log, inputFile.framerate, targetFile.framerate)
+            return detectFromFramerate(log, inputFile.framerate, targetFile.framerate)?.toKnownOnly()
         }
 
         override fun toString() = "By framerate (known only)"
@@ -63,7 +63,7 @@ sealed class LinearDriftAdjustmentStrategy {
     @Suppress("unused")
     class ByDuration(val maxDurationError: Duration) : LinearDriftAdjustmentStrategy() {
         override fun detect(log: Logger, inputFile: InputFile, targetFile: InputFile): LinearDrift? {
-            return detectFromDuration(log, inputFile.duration, targetFile.duration, maxDurationError)
+            return detectFromDuration(log, inputFile.duration, targetFile.duration, maxDurationError)?.toKnownOnly()
         }
 
         override fun toString() = "By duration (known only, max duration error ${maxDurationError.toTimeString()})"
