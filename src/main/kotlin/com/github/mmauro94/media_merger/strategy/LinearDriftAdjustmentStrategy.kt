@@ -100,7 +100,7 @@ sealed class LinearDriftAdjustmentStrategy {
     companion object {
 
         private fun LinearDrift.toKnownOnly(): LinearDrift? {
-            return KNOWN_LINEAR_DRIFTS.minBy { (it.speedMultiplier - this.speedMultiplier).abs() }!!
+            return KNOWN_LINEAR_DRIFTS.minByOrNull { (it.speedMultiplier - this.speedMultiplier).abs() }!!
         }
 
         /**
@@ -161,7 +161,7 @@ sealed class LinearDriftAdjustmentStrategy {
                             if (ok) sf to resultingDuration
                             else null
                         }
-                        .minBy { it.second }
+                        .minByOrNull { it.second }
                         ?.first
                 }
             }

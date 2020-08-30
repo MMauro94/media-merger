@@ -25,9 +25,9 @@ class SRTSubtitleText(time: DurationSpan, text: String) : PlainSubtitleText(time
      * @param index the index of the subtitle item
      */
     fun write(index: Int, outputStreamWriter: OutputStreamWriter) {
-        outputStreamWriter.appendln(index.toString())
-        outputStreamWriter.appendln("${time.start.toSrtString()} --> ${time.end.toSrtString()}")
-        outputStreamWriter.appendln(text)
-        outputStreamWriter.appendln()
+        outputStreamWriter.appendLine(index.toString())
+        outputStreamWriter.appendLine("${time.start.toSrtString()} --> ${time.end.toSrtString()}")
+        outputStreamWriter.appendLine(text)
+        outputStreamWriter.appendLine()
     }
 }

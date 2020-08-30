@@ -88,7 +88,7 @@ private fun matchFirstScene(
     inputsIterator.reset()
     targetsIterator.reset()
 
-    val (detected, indexes) = candidates.maxBy { it.first.second.accuracy } ?: return null
+    val (detected, indexes) = candidates.maxByOrNull { it.first.second.accuracy } ?: return null
     val (inputNextIndex, targetNextIndex) = indexes
     inputsIterator.goTo(inputNextIndex)
     targetsIterator.goTo(targetNextIndex)

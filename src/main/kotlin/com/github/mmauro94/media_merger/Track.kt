@@ -161,7 +161,7 @@ class Track(
                     }
                     .eachCount()
                     .filterKeys { it != null }
-                val max = map.values.max()
+                val max = map.values.maxOrNull()
                 map.entries.singleOrNull { it.value == max }?.key
             }
         }

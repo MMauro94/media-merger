@@ -65,7 +65,7 @@ class InputFile private constructor(
 
                 filesToAnalyze
                     .filter { file.nameWithoutExtension.startsWith(dir.nameWithoutExtension) } //Try to find files that are a prefix of me
-                    .minBy { it.file.nameWithoutExtension.length } //And take the shortest one
+                    .minByOrNull { it.file.nameWithoutExtension.length } //And take the shortest one
                     ?: filesToAnalyze.firstOrNull() //If not found, take the first file that can be a main file if it exists
                 //When the expression returns null, we go up one level
             }
