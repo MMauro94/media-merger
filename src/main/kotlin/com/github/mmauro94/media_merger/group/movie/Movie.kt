@@ -16,7 +16,7 @@ class Movie(val movieInfo: MovieInfo?) : Group<Movie> {
 
     override fun outputName(): String? {
         return movieInfo?.let { movie ->
-            Main.config.episodeRenameFormat.namedFormat(
+            Main.config.movieRenameFormat.namedFormat(
                 mapOf(
                     "name" to movie.name,
                     "year" to (movie.year?.toString() ?: "")
