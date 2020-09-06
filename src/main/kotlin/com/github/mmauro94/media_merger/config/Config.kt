@@ -1,13 +1,10 @@
 package com.github.mmauro94.media_merger.config
 
 import com.beust.klaxon.JsonObject
-import com.beust.klaxon.Klaxon
 import com.beust.klaxon.KlaxonException
-import com.github.mmauro94.media_merger.config.converters.BigDecimalConverter
-import com.github.mmauro94.media_merger.config.converters.DurationConverter
-import com.github.mmauro94.media_merger.config.converters.MkvToolnixLanguageConverter
 import com.github.mmauro94.media_merger.util.ConsoleReporter
 import com.github.mmauro94.media_merger.util.JAR_LOCATION
+import com.github.mmauro94.media_merger.util.json.KLAXON
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import java.io.File
 import java.io.IOException
@@ -78,7 +75,9 @@ data class Config(
             for (file in configFiles) {
                 if (file.exists()) {
                     reporter.log.debug("Parsing config file ${file.absolutePath}")
-                    val json = Klaxon().parseJsonObject(file.reader())
+                    val json = file.reader().use { r ->
+                        KLAXON.parseJsonObject(r)
+                    }
                     if (config == null) config = json
                     else {
                         json.mergeIn(config)
@@ -95,11 +94,7 @@ data class Config(
                 reporter.log.debug("Merged config file: " + config.toJsonString())
 
                 try {
-                    Klaxon()
-                        .converter(MkvToolnixLanguageConverter)
-                        .converter(DurationConverter)
-                        .converter(BigDecimalConverter)
-                        .parseFromJsonObject<Config>(config) ?: Config()
+                    KLAXON.parseFromJsonObject<Config>(config) ?: Config()
                 } catch (ioe: IOException) {
                     throw ConfigParseException("Unable to read config", ioe)
                 } catch (ke: KlaxonException) {

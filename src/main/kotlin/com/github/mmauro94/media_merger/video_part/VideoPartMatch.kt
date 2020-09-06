@@ -1,12 +1,10 @@
 package com.github.mmauro94.media_merger.video_part
 
-import com.github.mmauro94.media_merger.InputFile
-import com.github.mmauro94.media_merger.LinearDrift
 import com.github.mmauro94.media_merger.util.DurationSpan
 import com.github.mmauro94.media_merger.video_part.VideoPart.Type.BLACK_SEGMENT
 import com.github.mmauro94.media_merger.video_part.VideoPart.Type.SCENE
-import java.lang.Double.max
 import java.time.Duration
+import kotlin.math.max
 
 /**
  * A match between two video parts of two different files.
@@ -71,11 +69,11 @@ private fun matchFirstScene(
     while (targets < 3 && targetsIterator.hasNext()) {
         val target = targetsIterator.next()
         if (target.type == SCENE) {
-            repeat(3) { i->
+            repeat(3) { i ->
                 inputsIterator.reset()
                 repeat(i) {
-                    if(inputsIterator.hasNext())inputsIterator.next()
-                    if(inputsIterator.hasNext())inputsIterator.next()
+                    if (inputsIterator.hasNext()) inputsIterator.next()
+                    if (inputsIterator.hasNext()) inputsIterator.next()
                 }
                 inputsIterator.skipIfBlackFragment()
                 val match = matchNext(inputsIterator, target) to (inputsIterator.nextIndex to targetsIterator.nextIndex)

@@ -1,4 +1,4 @@
-package com.github.mmauro94.media_merger.config.converters
+package com.github.mmauro94.media_merger.util.json.converters
 
 import com.beust.klaxon.Converter
 import com.beust.klaxon.JsonValue

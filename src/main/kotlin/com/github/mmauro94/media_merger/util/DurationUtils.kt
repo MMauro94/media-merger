@@ -20,7 +20,7 @@ fun Duration.toTimeString(separator: Char = ':'): String {
 
 fun Duration?.toTimeStringOrUnknown(separator: Char = ':'): String = this?.toTimeString(separator) ?: "Unknown"
 
-fun String.parseTimeString(separator: Char = ':'): Duration? {
+fun String.parseTimeStringOrNull(separator: Char = ':'): Duration? {
     val sep = Regex.escape(separator.toString())
     val regex = "(?:([0-9]+)$sep)?(?:([0-9]+)$sep)?([0-9]+)$sep([0-9]+)".toRegex()
     val units = listOf(TimeUnit.HOURS, TimeUnit.MINUTES, TimeUnit.SECONDS, TimeUnit.NANOSECONDS)

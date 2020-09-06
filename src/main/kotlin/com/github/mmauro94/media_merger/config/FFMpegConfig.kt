@@ -1,5 +1,7 @@
 package com.github.mmauro94.media_merger.config
 
+import com.beust.klaxon.Json
+import com.beust.klaxon.JsonObject
 import com.github.mmauro94.media_merger.util.toTimeString
 import java.math.BigDecimal
 import java.time.Duration
@@ -16,7 +18,7 @@ data class FFMpegBlackdetectConfig(
 ) {
 
     fun toFilenameString() = buildString {
-        append("minDuration_" + minDuration.toTimeString('.'))
+        append("min_duration_" + minDuration.toTimeString('.'))
         pictureBlackThreshold?.let {
             append("@pic_th_" + it.toPlainString())
         }

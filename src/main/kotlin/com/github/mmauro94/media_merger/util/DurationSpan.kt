@@ -1,12 +1,13 @@
 package com.github.mmauro94.media_merger.util
 
+import com.beust.klaxon.Json
 import com.github.mmauro94.media_merger.LinearDrift
 import com.github.mmauro94.media_merger.times
 import java.time.Duration
 
 /**
  * A time span (e.g. from 00:01.123 to 00:15.456)
- * @param start the start time, must be positive
+ * @param start the start time, must be > 0
  * @param end the end time, must be greater than [start]
  */
 data class DurationSpan(val start: Duration, val end: Duration) {
@@ -19,16 +20,19 @@ data class DurationSpan(val start: Duration, val end: Duration) {
     /**
      * The duration of this span
      */
+    @Json(ignored = true)
     val duration: Duration = end - start
 
     /**
      * Commodity property that is half of [duration]
      */
+    @Json(ignored = true)
     val halfDuration: Duration = duration.dividedBy(2L)
 
     /**
      * Commodity property that is the middle of span
      */
+    @Json(ignored = true)
     val middle: Duration = start + halfDuration
 
     /**
@@ -70,8 +74,22 @@ data class DurationSpan(val start: Duration, val end: Duration) {
      * Returns whether this span and [other] intersect.
      */
     fun intersects(other: DurationSpan): Boolean {
-        return if (start < other.start) end > other.start
-        else start < other.end
+        return intersection(other) != null
+    }
+
+    /**
+     * Returns the intersection between this span and [other].
+     * Returns `null` if no intersection exists.
+     */
+    fun intersection(other: DurationSpan): DurationSpan? {
+        val start = maxOf(start, other.start)
+        val end = minOf(start, other.start)
+        return if (start < end) DurationSpan(start, end)
+        else null
+    }
+
+    fun isContainedIn(other : DurationSpan): Boolean {
+        return start >= other.start && end <= other.end
     }
 
     /**
@@ -111,5 +129,22 @@ data class DurationSpan(val start: Duration, val end: Duration) {
 
     override fun toString(): String {
         return "${start.toTimeString()} --> ${end.toTimeString()}"
+    }
+}
+
+fun List<DurationSpan>.restrictTo(start: Duration, end: Duration?): List<DurationSpan> {
+    require(!start.isNegative)
+    if (end != null) {
+        require(start < end)
+    }
+    return mapNotNull {
+        when {
+            it.end <= start -> null //In this case the entire span is before the range, thus ignore
+            it.start < start -> it.copy(start = start) //In this case we just truncate the span to start at the start of the range
+
+            end != null && it.start > end -> null //In this case the entire span is after the range, thus ignore
+            end != null && it.end > end -> it.copy(end = end) //In this case we just truncate the span to end at the end of the range
+            else -> it //Otherwise return normally
+        }
     }
 }

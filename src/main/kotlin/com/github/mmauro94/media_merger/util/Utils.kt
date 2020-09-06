@@ -103,3 +103,7 @@ fun <T> File.findWalkingUp(allowWorkingDir: Boolean, finder: (File) -> T?): T? {
 fun File.appendWriter(): FileOutputStream {
     return FileOutputStream(this, true)
 }
+
+fun newTmpFile(): File {
+    return File(System.getProperty("java.io.tmpdir")!!, UUID.randomUUID().toString())
+}

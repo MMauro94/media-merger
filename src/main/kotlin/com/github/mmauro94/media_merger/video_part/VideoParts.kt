@@ -6,13 +6,14 @@ import com.github.mmauro94.media_merger.Main
 import com.github.mmauro94.media_merger.Track
 import com.github.mmauro94.media_merger.config.FFMpegBlackdetectConfig
 import com.github.mmauro94.media_merger.util.*
+import com.github.mmauro94.media_merger.util.json.KLAXON
+import com.github.mmauro94.media_merger.util.json.toPrettyJsonString
 import com.github.mmauro94.media_merger.util.progress.Progress
 import com.github.mmauro94.media_merger.video_part.VideoPart.Type.BLACK_SEGMENT
 import net.bramp.ffmpeg.FFmpeg
 import net.bramp.ffmpeg.FFmpegExecutor
 import net.bramp.ffmpeg.FFprobe
 import net.bramp.ffmpeg.builder.FFmpegBuilder
-import org.apache.commons.lang3.ObjectUtils.max
 import java.io.File
 import java.io.PrintStream
 import java.time.Duration
@@ -301,106 +302,124 @@ private fun InputFile.detectVideoParts(
     })
 }
 
+
 /**
- * Detects the black segments from this [InputFile].
- *
- * It also saves the output of the command to a file with the same prefix as the input file. If this file is already
- * present, it parses it rather than performing the command again.
- *
- * Returns a list of [DurationSpan] representing the durations segments at which the black segments were found.
- * Returns `null` if the given [range] is outside the range of the input file.
- *
- * @param range the range of the input file where to search the black segments in. If a black segment is between the start/end of the range, it will be returned split.
+ * Calls [Track.runBlackSegmentDetection] or returned the cached value if present
  */
 fun Track.detectBlackSegments(
     config: FFMpegBlackdetectConfig,
     range: DurationSpan? = null,
     reporter: Reporter
 ): List<DurationSpan>? {
+    val blacksegmentsFile = File(file.parentFile, file.name + ".blacksegments.json")
+    val cache = if (blacksegmentsFile.exists()) {
+        blacksegmentsFile.reader().use { r ->
+            CachedBlackSegments.fromJsonArray(KLAXON.parseJsonArray(r))
+        }
+    } else CachedBlackSegments()
+
+    return cache[config].takeOrComputeForRange(range) { start, end ->
+        runBlackSegmentDetection(config, start, end, reporter)
+    }.also {
+        blacksegmentsFile.writeText(KLAXON.toPrettyJsonString(cache.simplify().toJsonArray()))
+    }
+}
+
+/**
+ * Detects the black segments from this [InputFile].
+ *
+ * Returns a list of [DurationSpan] representing the durations segments at which the black segments were found.
+ * Returns `null` if the given [range] is outside the range of the input file.
+ *
+ * [start] and [end] are the range of the input file where to search the black segments in. If a black segment is between the start/end of the range, it will be returned split.
+ */
+private fun Track.runBlackSegmentDetection(
+    config: FFMpegBlackdetectConfig,
+    start: Duration = Duration.ZERO,
+    end: Duration? = null,
+    reporter: Reporter
+): List<DurationSpan>? {
+    require(!start.isNegative)
+    val duration = when {
+        end != null -> {
+            require(start < end)
+            end - start
+        }
+        durationOrFileDuration != null -> durationOrFileDuration - start
+        else -> null
+    }
+
     //If we must detect a range, we seek a bit earlier in order to prevent tiny errors in timings
     val errorMargin: Duration = Duration.ofSeconds(1)
-    val seek = if (range != null && range.start > Duration.ZERO) {
-        max(Duration.ZERO, range.start - errorMargin)
-    } else Duration.ZERO
+    val seek = maxOf(Duration.ZERO, start - errorMargin)
 
-    val rangeStr = if (range == null) "all" else range.start.toTimeString('.') + "_" + range.end.toTimeString('.')
-    val filename =
-        file.nameWithoutExtension + "@blacksegments@range_$rangeStr@" + config.toFilenameString()
-    val blackFramesFile = File(
-        file.parentFile,
-        "$filename.txt"
-    )
-
-    if (!blackFramesFile.exists()) {
-        val builder = FFmpegBuilder()
-            .setVerbosity(FFmpegBuilder.Verbosity.INFO)
-            .apply {
-                if (range != null) {
-                    if (seek > Duration.ZERO) {
-                        addExtraArgs("-ss", seek.toTotalSeconds())
-                    }
-                    addExtraArgs("-t", range.duration.toTotalSeconds())
-                }
+    val builder = FFmpegBuilder()
+        .setVerbosity(FFmpegBuilder.Verbosity.INFO)
+        .apply {
+            if (seek > Duration.ZERO) {
+                addExtraArgs("-ss", seek.toTotalSeconds())
             }
-            .setInput(file.absolutePath).apply {
-                Main.config.ffmpeg.hardwareAcceleration?.let {
-                    addExtraArgs("-hwaccel", it)
-                }
+            if (end != null) {
+                addExtraArgs("-t", (end - start).toTotalSeconds())
             }
-            .addStdoutOutput()
-            .addExtraArgs(
-                "-map",
-                "0:" + ffprobeStream.index,
-                "-vf",
-                buildString {
-                    append('"')
-                    append("blackdetect=")
-                    append("d=" + config.minDuration.toTotalSeconds())
-                    config.pictureBlackThreshold?.let {
-                        append(":pic_th=" + it.toPlainString())
-                    }
-                    config.pixelBlackThreshold?.let {
-                        append(":pix_th=" + it.toPlainString())
-                    }
-                    append('"')
+        }
+        .setInput(file.absolutePath).apply {
+            Main.config.ffmpeg.hardwareAcceleration?.let {
+                addExtraArgs("-hwaccel", it)
+            }
+        }
+        .addStdoutOutput()
+        .addExtraArgs(
+            "-map",
+            "0:" + ffprobeStream.index,
+            "-vf",
+            buildString {
+                append('"')
+                append("blackdetect=")
+                append("d=" + config.minDuration.toTotalSeconds())
+                config.pictureBlackThreshold?.let {
+                    append(":pic_th=" + it.toPlainString())
                 }
-            )
-            .addExtraArgs("-an")
+                config.pixelBlackThreshold?.let {
+                    append(":pix_th=" + it.toPlainString())
+                }
+                append('"')
+            }
+        )
+        .addExtraArgs("-an")
 
-            .setFormat("null")
-            .done()
+        .setFormat("null")
+        .done()
 
+    val tmpFile = newTmpFile()
+    try {
         FFmpegExecutor(FFmpeg(), FFprobe()).apply {
             val realOut = System.out
-            val ps = PrintStream(blackFramesFile)
+            val ps = PrintStream(tmpFile)
             try {
                 System.setOut(ps)
                 createJob(builder) { prg ->
-                    reporter.progress.ffmpeg(prg, range?.duration ?: duration, range?.start ?: Duration.ZERO)
+                    reporter.progress.ffmpeg(prg, duration, start)
                 }.run()
             } finally {
                 ps.close()
                 System.setOut(realOut)
             }
         }
+
+        val regex = "\\[blackdetect @ [0-9a-f]+] black_start:(\\d+(?:\\.\\d+)?) black_end:(\\d+(?:\\.\\d+)?).+".toRegex()
+        val lines = tmpFile.readLines()
+        return if (lines.any { it.contains("Output file is empty", ignoreCase = true) }) {
+            null
+        } else lines
+            .mapNotNull { regex.matchEntire(it) }
+            .map {
+                DurationSpan(
+                    start = it.groups[1]!!.value.toBigDecimal().toSecondsDuration(),
+                    end = it.groups[2]!!.value.toBigDecimal().toSecondsDuration()
+                ) + seek
+            }.restrictTo(start, end)
+    } finally {
+        tmpFile.delete()
     }
-
-    val regex =
-        "\\[blackdetect @ [0-9a-f]+] black_start:(\\d+(?:\\.\\d+)?) black_end:(\\d+(?:\\.\\d+)?).+".toRegex()
-    val lines = blackFramesFile.readLines()
-    return if (lines.any { it.contains("Output file is empty", ignoreCase = true) }) {
-        null
-    } else lines
-        .mapNotNull { regex.matchEntire(it) }
-        .mapNotNull {
-            val ds = DurationSpan(
-                start = it.groups[1]!!.value.toBigDecimal().toSecondsDuration(),
-                end = it.groups[2]!!.value.toBigDecimal().toSecondsDuration()
-            ) + seek
-
-            //If the black segments starts before the range, adjust accordingly
-            if (range != null && ds.end <= range.start) null //In this case the entire segments is before the error margin, thus ignore
-            else if (range != null && ds.start < range.start) ds.copy(start = range.start) //In this case we just truncate the black fragment to start at the start of the range
-            else ds //Otherwise return normally
-        }
 }
