@@ -318,9 +318,9 @@ fun Track.detectBlackSegments(
         }
     } else CachedBlackSegments()
 
-    return cache[config].takeOrComputeForRange(range) { start, end ->
+    return cache[config.toCachedConfig()].takeOrComputeForRange(range) { start, end ->
         runBlackSegmentDetection(config, start, end, reporter)
-    }.also {
+    }?.filter { it.duration >= config.minDuration }.also {
         blacksegmentsFile.writeText(KLAXON.toPrettyJsonString(cache.simplify().toJsonArray()))
     }
 }
@@ -376,13 +376,9 @@ private fun Track.runBlackSegmentDetection(
             buildString {
                 append('"')
                 append("blackdetect=")
-                append("d=" + config.minDuration.toTotalSeconds())
-                config.pictureBlackThreshold?.let {
-                    append(":pic_th=" + it.toPlainString())
-                }
-                config.pixelBlackThreshold?.let {
-                    append(":pix_th=" + it.toPlainString())
-                }
+                append("d=0")
+                append(":pic_th=" + config.pictureBlackThreshold.toPlainString())
+                append(":pix_th=" + config.pixelBlackThreshold.toPlainString())
                 append('"')
             }
         )

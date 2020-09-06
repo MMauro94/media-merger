@@ -1,8 +1,9 @@
 package com.github.mmauro94.media_merger
 
-import com.github.mmauro94.media_merger.util.toSecondsDuration
+import com.github.mmauro94.media_merger.config.FFMpegBlackdetectConfig
 import com.github.mmauro94.media_merger.util.findWalkingUp
 import com.github.mmauro94.media_merger.util.log.Logger
+import com.github.mmauro94.media_merger.util.toSecondsDuration
 import com.github.mmauro94.media_merger.video_part.VideoPartsProvider
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnix
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixFileIdentification
@@ -74,11 +75,17 @@ class InputFile private constructor(
 
     val framerate by lazy { detectFramerate() ?: mainFile?.detectFramerate() }
 
-    val videoParts: VideoPartsProvider? by lazy {
-        val videoTrack = tracks.singleOrNull { it.isVideoTrack() }
-        (if (videoTrack != null) {
-            VideoPartsProvider(this, Main.config.ffmpeg.blackdetect, videoTrack.startTime)
-        } else null) ?: mainFile?.videoParts
+    private val videoParts = mutableMapOf<FFMpegBlackdetectConfig, VideoPartsProvider?>()
+    fun videoParts(config: FFMpegBlackdetectConfig): VideoPartsProvider? {
+        return if (videoParts.containsKey(config)) videoParts[config]
+        else {
+            val videoTrack = tracks.singleOrNull { it.isVideoTrack() }
+            val ret = (if (videoTrack != null) {
+                VideoPartsProvider(this, config, videoTrack.startTime)
+            } else null) ?: mainFile?.videoParts(config)
+            videoParts[config] = ret
+            ret
+        }
     }
 
     override fun toString(): String = file.name
@@ -102,7 +109,7 @@ class InputFile private constructor(
             return input
         }
 
-        fun parse(inputFilesProvider: () -> InputFiles<*>, file: File, logger : Logger): InputFile {
+        fun parse(inputFilesProvider: () -> InputFiles<*>, file: File, logger: Logger): InputFile {
             val mkvId = MkvToolnix.identify(file)
             if (!mkvId.container.recognized) {
                 throw ParseException("mkvmerge doesn't recognize the file ${file.absolutePath}")

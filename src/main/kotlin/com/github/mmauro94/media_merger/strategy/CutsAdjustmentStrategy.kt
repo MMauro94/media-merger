@@ -2,6 +2,7 @@ package com.github.mmauro94.media_merger.strategy
 
 import com.github.mmauro94.media_merger.InputFile
 import com.github.mmauro94.media_merger.LinearDrift
+import com.github.mmauro94.media_merger.config.FFMpegBlackdetectConfig
 import com.github.mmauro94.media_merger.cuts.Cuts
 import com.github.mmauro94.media_merger.cuts.computeCuts
 import com.github.mmauro94.media_merger.util.CliDescriptor
@@ -17,6 +18,7 @@ sealed class CutsAdjustmentStrategy(val detectProgressSplit: Float) {
     abstract override fun toString(): String
 
     protected fun detect(
+        blackdetectConfig: FFMpegBlackdetectConfig,
         reporter: Reporter,
         lazy: Boolean,
         linearDrift: LinearDrift,
@@ -24,19 +26,19 @@ sealed class CutsAdjustmentStrategy(val detectProgressSplit: Float) {
         targetFile: InputFile,
         block: (inputVideoParts: VideoParts, targetVideoParts: VideoParts) -> Cuts?
     ): Cuts? {
-        val inputVideoParts = (inputFile.videoParts ?: return null.also { reporter.log.debug("No black segments in input file") })
+        val inputVideoParts = (inputFile.videoParts(blackdetectConfig) ?: return null.also { reporter.log.debug("No black segments in input file") })
             .get(lazy, reporter.split(0, 2, "Detecting ${inputFile.file.name} black segments..."))
             .times(linearDrift)
 
-        val targetVideoParts = (targetFile.videoParts ?: return null.also { reporter.log.debug("No black segments in target file") })
+        val targetVideoParts = (targetFile.videoParts(blackdetectConfig) ?: return null.also { reporter.log.debug("No black segments in target file") })
             .get(lazy, reporter.split(1, 2, "Detecting ${targetFile.file.name} black segments..."))
 
         return block(inputVideoParts, targetVideoParts).also {
             reporter.log.debug()
-            reporter.log.debug("TARGET VIDEO PARTS (not complete) ($targetFile):")
+            reporter.log.debug("TARGET VIDEO PARTS " + (if (lazy) "(Not complete)" else "") + " ($targetFile):")
             reporter.log.debug(targetVideoParts.readOnly().joinToString(separator = "\n"))
             reporter.log.debug()
-            reporter.log.debug("INPUT VIDEO PARTS " + (if(lazy) "(Not complete)" else "") + ", ALREADY STRETCHED BY $linearDrift ($inputFile):")
+            reporter.log.debug("INPUT VIDEO PARTS " + (if (lazy) "(Not complete)" else "") + ", ALREADY STRETCHED BY $linearDrift ($inputFile):")
             reporter.log.debug(inputVideoParts.readOnly().joinToString(separator = "\n"))
         }
     }
@@ -57,11 +59,11 @@ sealed class CutsAdjustmentStrategy(val detectProgressSplit: Float) {
      */
     @CliDescriptor("Adjust offset using first black segment")
     @Suppress("unused")
-    object FirstBlackSegmentOffset : CutsAdjustmentStrategy(.4f) {
+    data class FirstBlackSegmentOffset(val blackdetectConfig: FFMpegBlackdetectConfig) : CutsAdjustmentStrategy(.4f) {
         override fun toString() = "First black segment offset"
 
         override fun detect(reporter: Reporter, linearDrift: LinearDrift, inputFile: InputFile, targetFile: InputFile): Cuts? {
-            return detect(reporter, true, linearDrift, inputFile, targetFile) { inputVideoParts, targetVideoParts ->
+            return detect(blackdetectConfig, reporter, true, linearDrift, inputFile, targetFile) { inputVideoParts, targetVideoParts ->
                 val firstInputPart = inputVideoParts.first()
                 val firstTargetPart = targetVideoParts.first()
 
@@ -76,6 +78,11 @@ sealed class CutsAdjustmentStrategy(val detectProgressSplit: Float) {
                 Cuts.ofOffset(offset)
             }
         }
+
+        companion object {
+            @Suppress("unused")
+            fun ask() = FirstBlackSegmentOffset(FFMpegBlackdetectConfig.ask())
+        }
     }
 
     /**
@@ -83,10 +90,10 @@ sealed class CutsAdjustmentStrategy(val detectProgressSplit: Float) {
      */
     @CliDescriptor("Adjust offset using first matching scene")
     @Suppress("unused")
-    object FirstSceneOffset : CutsAdjustmentStrategy(.6f) {
+    data class FirstSceneOffset(val blackdetectConfig: FFMpegBlackdetectConfig) : CutsAdjustmentStrategy(.6f) {
         override fun toString() = "First scene offset"
         override fun detect(reporter: Reporter, linearDrift: LinearDrift, inputFile: InputFile, targetFile: InputFile): Cuts? {
-            return detect(reporter, true, linearDrift, inputFile, targetFile) { inputVideoParts, targetVideoParts ->
+            return detect(blackdetectConfig, reporter, true, linearDrift, inputFile, targetFile) { inputVideoParts, targetVideoParts ->
                 val offset = inputVideoParts.matchFirstSceneOffset(targetVideoParts)
                 if (offset == null) {
                     reporter.log.debug("Unable to detect matching first scene")
@@ -96,6 +103,11 @@ sealed class CutsAdjustmentStrategy(val detectProgressSplit: Float) {
                 }
             }
         }
+
+        companion object {
+            @Suppress("unused")
+            fun ask() = FirstSceneOffset(FFMpegBlackdetectConfig.ask())
+        }
     }
 
     /**
@@ -103,17 +115,17 @@ sealed class CutsAdjustmentStrategy(val detectProgressSplit: Float) {
      */
     @CliDescriptor("Cut by matching scenes")
     @Suppress("unused")
-    data class CutScenes(val minimumAccuracy: Double) : CutsAdjustmentStrategy(.8f) {
+    data class CutScenes(val blackdetectConfig: FFMpegBlackdetectConfig, val minimumAccuracy: Double) : CutsAdjustmentStrategy(.8f) {
 
         override fun toString() = "Cut scenes with $minimumAccuracy% accuracy"
 
         override fun detect(reporter: Reporter, linearDrift: LinearDrift, inputFile: InputFile, targetFile: InputFile): Cuts? {
-            return detect(reporter, false, linearDrift, inputFile, targetFile) { inputVideoParts, targetVideoParts ->
+            return detect(blackdetectConfig, reporter, false, linearDrift, inputFile, targetFile) { inputVideoParts, targetVideoParts ->
                 try {
                     val (matches, accuracy) = inputVideoParts.matchWithTarget(targetVideoParts)
                     reporter.log.debug("Detected matches:")
                     reporter.log.prepend("   ").apply {
-                        val maxInput = matches.map { it.toString().length }.maxOrNull()
+                        val maxInput = matches.map { it.input.toString().length }.maxOrNull()
                         for (match in matches) {
                             debug("INPUT=" + match.input.toString().padEnd(maxInput!! + 1) + "| TARGET=" + match.target.toString())
                         }
@@ -135,7 +147,8 @@ sealed class CutsAdjustmentStrategy(val detectProgressSplit: Float) {
             @Suppress("unused")
             fun ask(): CutScenes {
                 return CutScenes(
-                    askDouble(
+                    blackdetectConfig = FFMpegBlackdetectConfig.ask(),
+                    minimumAccuracy = askDouble(
                         question = "Select minimum accuracy",
                         isValid = { this in 0.0..100.0 },
                         default = 95.0

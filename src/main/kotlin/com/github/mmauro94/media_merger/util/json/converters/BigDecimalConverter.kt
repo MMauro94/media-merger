@@ -9,7 +9,10 @@ internal object BigDecimalConverter : Converter {
 
     override fun canConvert(cls: Class<*>) = cls == BigDecimal::class.java
 
-    override fun fromJson(jv: JsonValue) = jv.string?.toBigDecimal() ?: jv.bigDecimal ?: jv.double?.toBigDecimal()
+    override fun fromJson(jv: JsonValue): BigDecimal? {
+        return if (jv.inside == null) null
+        else jv.string?.toBigDecimal() ?: jv.bigDecimal ?: jv.double?.toBigDecimal() ?: throw KlaxonException("Invalid big decimal")
+    }
 
     override fun toJson(value: Any): String {
         return if (value is BigDecimal) value.toString()

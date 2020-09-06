@@ -5,31 +5,51 @@ import java.time.Duration
 import java.util.concurrent.TimeUnit
 
 
-fun Duration.toTimeString(separator: Char = ':'): String {
+fun Duration.toTimeString(): String {
     val abs = abs()
-    return (if (isNegative) "-" else "") + mutableListOf<String>().apply {
-        fun add(i: Int, pad: Int = 2) {
-            add(i.toString().padStart(pad, '0'))
+    val firstPart = (if (isNegative) "-" else "") + mutableListOf<String>().apply {
+        fun add(v: Int) {
+            add(v.toString().padStart(2, '0'))
         }
-        add(abs.toHoursPart())
+        if (abs.toHoursPart() > 0) {
+            add(abs.toHoursPart())
+        }
         add(abs.toMinutesPart())
         add(abs.toSecondsPart())
-        add(abs.toNanosPart(), 9)
-    }.joinToString(separator = separator.toString())
+    }.joinToString(":")
+
+    val secondPart = if (abs.nano > 0) {
+        mutableListOf<String>().apply {
+            var added = false
+            fun add(v: Int) {
+                if (added || v > 0) {
+                    add(v.toString().padStart(3, '0'))
+                    added = true
+                }
+            }
+
+            add(abs.nano % 1000)
+            add((abs.nano / 1000) % 1000)
+            add(abs.toMillisPart())
+            reverse()
+        }.joinToString(separator = "", prefix = ".")
+    } else ""
+
+    return firstPart + secondPart
 }
 
-fun Duration?.toTimeStringOrUnknown(separator: Char = ':'): String = this?.toTimeString(separator) ?: "Unknown"
+fun Duration?.toTimeStringOrUnknown(): String = this?.toTimeString() ?: "Unknown"
 
-fun String.parseTimeStringOrNull(separator: Char = ':'): Duration? {
-    val sep = Regex.escape(separator.toString())
-    val regex = "(?:([0-9]+)$sep)?(?:([0-9]+)$sep)?([0-9]+)$sep([0-9]+)".toRegex()
-    val units = listOf(TimeUnit.HOURS, TimeUnit.MINUTES, TimeUnit.SECONDS, TimeUnit.NANOSECONDS)
+fun String.parseTimeStringOrNull(): Duration? {
+    val regex = "(-?)(?:(?:([0-9]{1,2}):)?([0-9]{1,2}):)?([0-9]{1,2})(?:\\.([0-9]{1,9}))?".toRegex()
+    val units = listOf(TimeUnit.HOURS, TimeUnit.MINUTES, TimeUnit.SECONDS)
     return regex.matchEntire(this)?.let { m ->
+        val neg = m.groupValues[1] == "-"
         val totalNanos =
-            m.groupValues.drop(1).zip(units.drop(units.size - (m.groupValues.size - 1))).map { (match, unit) ->
-                unit.toNanos(match.toLong())
-            }.sum()
-        Duration.ofNanos(totalNanos)
+            m.groupValues.drop(2).zip(units).map { (match, unit) ->
+                unit.toNanos(match.toLongOrNull() ?: 0)
+            }.sum() + m.groupValues.last().padEnd(9, '0').toLong()
+        Duration.ofNanos(totalNanos * if (neg) -1 else 1)
     }
 }
 

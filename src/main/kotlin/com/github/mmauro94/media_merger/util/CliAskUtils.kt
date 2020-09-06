@@ -4,6 +4,8 @@ import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import org.fusesource.jansi.Ansi
 import org.fusesource.jansi.Ansi.ansi
 import org.fusesource.jansi.AnsiConsole
+import java.math.BigDecimal
+import java.time.Duration
 
 inline fun <T : Any> ask(
     question: String,
@@ -151,6 +153,21 @@ fun askDouble(
     defaultToString = defaultToString
 )
 
+fun askBigDecimal(
+    question: String,
+    default: BigDecimal? = null,
+    isValid: BigDecimal.() -> Boolean = { true },
+    itemToString: BigDecimal.() -> String = { toPlainString() },
+    defaultToString: BigDecimal.() -> String = { itemToString(this) }
+): BigDecimal = ask(
+    question = question,
+    parser = { it.toBigDecimalOrNull() },
+    isValid = isValid,
+    default = default,
+    itemToString = itemToString,
+    defaultToString = defaultToString
+)
+
 fun askLanguages(
     question: String,
     defaultValue: LinkedHashSet<MkvToolnixLanguage>? = null,
@@ -166,3 +183,16 @@ fun askLanguages(
     )
 }
 
+fun askDuration(
+    question: String,
+    default: Duration,
+    isValid: Duration.() -> Boolean = { !isNegative }
+): Duration {
+    return ask(
+        question = question,
+        parser = { it.parseTimeStringOrNull() ?: it.toLongOrNull()?.let { s -> Duration.ofSeconds(s) } },
+        default = default,
+        isValid = isValid,
+        itemToString = { toTimeString() }
+    )
+}

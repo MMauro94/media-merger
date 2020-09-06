@@ -83,7 +83,7 @@ data class DurationSpan(val start: Duration, val end: Duration) {
      */
     fun intersection(other: DurationSpan): DurationSpan? {
         val start = maxOf(start, other.start)
-        val end = minOf(start, other.start)
+        val end = minOf(end, other.end)
         return if (start < end) DurationSpan(start, end)
         else null
     }

@@ -1,8 +1,8 @@
 package com.github.mmauro94.media_merger.config
 
-import com.beust.klaxon.Json
-import com.beust.klaxon.JsonObject
-import com.github.mmauro94.media_merger.util.toTimeString
+import com.github.mmauro94.media_merger.Main
+import com.github.mmauro94.media_merger.util.askBigDecimal
+import com.github.mmauro94.media_merger.util.askDuration
 import java.math.BigDecimal
 import java.time.Duration
 
@@ -12,18 +12,29 @@ data class FFMpegConfig(
 )
 
 data class FFMpegBlackdetectConfig(
-    val minDuration: Duration = Duration.ofMillis(100),
-    val pictureBlackThreshold: BigDecimal? = BigDecimal("0.99"),
-    val pixelBlackThreshold: BigDecimal? = null
+    val minDuration: Duration = Duration.ofSeconds(1),
+    val pictureBlackThreshold: BigDecimal = BigDecimal("0.99"),
+    val pixelBlackThreshold: BigDecimal = BigDecimal("0.05")
 ) {
 
-    fun toFilenameString() = buildString {
-        append("min_duration_" + minDuration.toTimeString('.'))
-        pictureBlackThreshold?.let {
-            append("@pic_th_" + it.toPlainString())
-        }
-        pixelBlackThreshold?.let {
-            append("@pix_th_" + it.toPlainString())
+    companion object {
+        fun ask(): FFMpegBlackdetectConfig {
+            return FFMpegBlackdetectConfig(
+                minDuration = askDuration(
+                    question = "Give min duration of black segments",
+                    default = Main.config.ffmpeg.blackdetect.minDuration
+                ),
+                pictureBlackThreshold = askBigDecimal(
+                    question = "Select min percentage (0-1) of black pixels",
+                    default = Main.config.ffmpeg.blackdetect.pictureBlackThreshold,
+                    isValid = { this >= BigDecimal.ZERO && this <= BigDecimal.ONE }
+                ),
+                pixelBlackThreshold = askBigDecimal(
+                    question = "Select max luminance percentage (0-1) of single pixel",
+                    default = Main.config.ffmpeg.blackdetect.pixelBlackThreshold,
+                    isValid = { this >= BigDecimal.ZERO && this <= BigDecimal.ONE }
+                ),
+            )
         }
     }
 }

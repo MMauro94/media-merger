@@ -126,8 +126,8 @@ data class CachedBlackSegmentsForConfig(private var map: SortedMap<DurationSpan?
         fun fromJsonArray(arr: JsonArray<*>): CachedBlackSegmentsForConfig {
             return CachedBlackSegmentsForConfig(arr.associate {
                 if (it is JsonObject) {
-                    val jRange = it.obj("range") ?: throw KlaxonException("Each item must have a range")
-                    val range = KLAXON.parseFromJsonObject<DurationSpan>(jRange) ?: throw KlaxonException("Invalid range")
+                    val jRange = it.obj("range")
+                    val range = if (jRange == null) null else KLAXON.parseFromJsonObject<DurationSpan>(jRange)
 
                     val jBlackSegments = it.array<JsonObject>("black_segments") ?: throw KlaxonException("Each item must have a black_segments")
                     val blackSegments = KLAXON.parseFromJsonArray<DurationSpan>(jBlackSegments) ?: throw KlaxonException("Invalid black_segments")

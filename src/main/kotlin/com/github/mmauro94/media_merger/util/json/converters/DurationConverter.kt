@@ -13,10 +13,12 @@ object DurationConverter : Converter {
     override fun canConvert(cls: Class<*>) = cls == Duration::class.java
 
     override fun fromJson(jv: JsonValue): Duration? {
-        return jv.string.let { str ->
-            if (str == null) null
-            else str.toBigDecimalOrNull()?.toSecondsDuration() ?: str.parseTimeStringOrNull() ?: throw KlaxonException("Invalid duration")
-        }
+        return if (jv.inside == null) null
+        else
+            jv.string?.toBigDecimalOrNull()?.toSecondsDuration()
+                ?: jv.string?.parseTimeStringOrNull()
+                ?: jv.int?.toBigDecimal()?.toSecondsDuration()
+         ?: throw KlaxonException("Invalid duration")
     }
 
     override fun toJson(value: Any): String {

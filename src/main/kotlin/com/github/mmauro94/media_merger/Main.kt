@@ -64,6 +64,8 @@ object Main {
             Config()
         }
 
+        println(providedConfigFiles)
+
         if (!outputDir.exists()) {
             outputDir.mkdir()
         }
