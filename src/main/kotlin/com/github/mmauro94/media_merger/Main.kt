@@ -4,6 +4,7 @@ import com.github.mmauro94.media_merger.config.Config
 import com.github.mmauro94.media_merger.config.ConfigParseException
 import com.github.mmauro94.media_merger.strategy.AdjustmentStrategies
 import com.github.mmauro94.media_merger.util.*
+import com.github.mmauro94.media_merger.util.ask.askLinkedHashSet
 import com.github.mmauro94.media_merger.util.log.ConsoleLogger
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import org.fusesource.jansi.Ansi.ansi
@@ -64,8 +65,6 @@ object Main {
             Config()
         }
 
-        println(providedConfigFiles)
-
         if (!outputDir.exists()) {
             outputDir.mkdir()
         }
@@ -76,12 +75,12 @@ object Main {
         if (test) println(ansi().fgBlue().a("Test mode active").reset())
         println()
 
-        mainLanguages = askLanguages(
+        mainLanguages = MkvToolnixLanguage.askLinkedHashSet(
             question = "What are the main languages?",
             defaultValue = config.defaultLanguages?.toCollection(LinkedHashSet())
         )
 
-        additionalLanguagesToKeep = askLanguages(
+        additionalLanguagesToKeep = MkvToolnixLanguage.askLinkedHashSet(
             question = "What are the additional languages to keep?",
             defaultValue = config.defaultAdditionalLanguagesToKeep.toCollection(LinkedHashSet())
         )

@@ -1,8 +1,8 @@
 package com.github.mmauro94.media_merger.config
 
 import com.github.mmauro94.media_merger.Main
-import com.github.mmauro94.media_merger.util.askBigDecimal
-import com.github.mmauro94.media_merger.util.askDuration
+import com.github.mmauro94.media_merger.util.ask.BigDecimalCliAsker
+import com.github.mmauro94.media_merger.util.ask.DurationCliAsker
 import java.math.BigDecimal
 import java.time.Duration
 
@@ -20,16 +20,16 @@ data class FFMpegBlackdetectConfig(
     companion object {
         fun ask(): FFMpegBlackdetectConfig {
             return FFMpegBlackdetectConfig(
-                minDuration = askDuration(
+                minDuration = DurationCliAsker.ask(
                     question = "Give min duration of black segments",
                     default = Main.config.ffmpeg.blackdetect.minDuration
                 ),
-                pictureBlackThreshold = askBigDecimal(
+                pictureBlackThreshold = BigDecimalCliAsker.ask(
                     question = "Select min percentage (0-1) of black pixels",
                     default = Main.config.ffmpeg.blackdetect.pictureBlackThreshold,
                     isValid = { this >= BigDecimal.ZERO && this <= BigDecimal.ONE }
                 ),
-                pixelBlackThreshold = askBigDecimal(
+                pixelBlackThreshold = BigDecimalCliAsker.ask(
                     question = "Select max luminance percentage (0-1) of single pixel",
                     default = Main.config.ffmpeg.blackdetect.pixelBlackThreshold,
                     isValid = { this >= BigDecimal.ZERO && this <= BigDecimal.ONE }

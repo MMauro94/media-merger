@@ -7,7 +7,7 @@ import com.github.mmauro94.media_merger.cuts.Cuts
 import com.github.mmauro94.media_merger.cuts.computeCuts
 import com.github.mmauro94.media_merger.util.CliDescriptor
 import com.github.mmauro94.media_merger.util.Reporter
-import com.github.mmauro94.media_merger.util.askDouble
+import com.github.mmauro94.media_merger.util.ask.ask
 import com.github.mmauro94.media_merger.util.toTimeString
 import com.github.mmauro94.media_merger.video_part.*
 import java.time.Duration
@@ -30,8 +30,9 @@ sealed class CutsAdjustmentStrategy(val detectProgressSplit: Float) {
             .get(lazy, reporter.split(0, 2, "Detecting ${inputFile.file.name} black segments..."))
             .times(linearDrift)
 
-        val targetVideoParts = (targetFile.videoParts(blackdetectConfig) ?: return null.also { reporter.log.debug("No black segments in target file") })
-            .get(lazy, reporter.split(1, 2, "Detecting ${targetFile.file.name} black segments..."))
+        val targetVideoParts =
+            (targetFile.videoParts(blackdetectConfig) ?: return null.also { reporter.log.debug("No black segments in target file") })
+                .get(lazy, reporter.split(1, 2, "Detecting ${targetFile.file.name} black segments..."))
 
         return block(inputVideoParts, targetVideoParts).also {
             reporter.log.debug()
@@ -148,7 +149,7 @@ sealed class CutsAdjustmentStrategy(val detectProgressSplit: Float) {
             fun ask(): CutScenes {
                 return CutScenes(
                     blackdetectConfig = FFMpegBlackdetectConfig.ask(),
-                    minimumAccuracy = askDouble(
+                    minimumAccuracy = Double.ask(
                         question = "Select minimum accuracy",
                         isValid = { this in 0.0..100.0 },
                         default = 95.0

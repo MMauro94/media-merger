@@ -1,7 +1,6 @@
 package com.github.mmauro94.media_merger.group
 
-import com.github.mmauro94.media_merger.util.askString
-import com.github.mmauro94.media_merger.util.askYesNo
+import com.github.mmauro94.media_merger.util.ask.ask
 import com.github.mmauro94.media_merger.util.log.Logger
 import com.github.mmauro94.media_merger.util.menu
 import com.github.mmauro94.media_merger.util.select
@@ -14,7 +13,7 @@ interface Grouper<G : Group<G>> {
     companion object {
 
         fun <INFO : Any> select(type: String, vararg providers: GroupInfoProvider<INFO>): INFO? {
-            if (!askYesNo("Select $type?", true)) {
+            if (!Boolean.ask("Select $type?", true)) {
                 return null
             }
 
@@ -30,7 +29,7 @@ interface Grouper<G : Group<G>> {
         }
 
         private fun <INFO : Any> select(type: String, provider: GroupInfoProvider<INFO>, reselect: () -> INFO?): INFO? {
-            val q = askString("Name of $type to search:")
+            val q = String.ask("Name of $type to search:")
             val results = try {
                 provider.search(q)
             } catch (e: GroupInfoException) {

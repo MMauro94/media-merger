@@ -5,7 +5,7 @@ import com.github.mmauro94.media_merger.InputFile
 import com.github.mmauro94.media_merger.KNOWN_LINEAR_DRIFTS
 import com.github.mmauro94.media_merger.LinearDrift
 import com.github.mmauro94.media_merger.util.CliDescriptor
-import com.github.mmauro94.media_merger.util.askLong
+import com.github.mmauro94.media_merger.util.ask.ask
 import com.github.mmauro94.media_merger.util.log.Logger
 import com.github.mmauro94.media_merger.util.toTimeString
 import java.math.RoundingMode
@@ -73,7 +73,7 @@ sealed class LinearDriftAdjustmentStrategy {
             fun ask(): ByDuration {
                 return ByDuration(
                     Duration.ofSeconds(
-                        askLong(
+                        Long.ask(
                             question = "Select max duration error (in seconds)",
                             isValid = { this >= 0 },
                             default = 2

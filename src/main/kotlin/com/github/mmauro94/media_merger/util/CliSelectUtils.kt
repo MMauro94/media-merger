@@ -1,5 +1,6 @@
 package com.github.mmauro94.media_merger.util
 
+import com.github.mmauro94.media_merger.util.ask.ask
 import org.fusesource.jansi.Ansi.ansi
 import kotlin.reflect.KClass
 import kotlin.reflect.full.companionObject
@@ -18,7 +19,7 @@ fun <T : Any> select(
         options.forEachIndexed { i, value ->
             println(ansi().fgBrightCyan().a("${i + 1}").reset().a(") ${nameProvider(value)}"))
         }
-        return options[askInt(
+        return options[Int.ask(
             question = "Selection:",
             isValid = { this in 1..(options.size) },
             default = defaultValue?.let { options.indexOf(it) + 1 },
@@ -30,7 +31,7 @@ fun <T : Any> select(
     } else {
         val reverseMap = options.associateBy(nameProvider)
         while (true) {
-            val str = askString(
+            val str = String.ask(
                 question = ansi().fgDefault().a(question).fgBrightCyan().a(" (" + reverseMap.keys.joinToString(", ") + ")").reset().toString(),
                 default = defaultValue?.let(nameProvider) ?: "",
                 isValid = { this in reverseMap }
