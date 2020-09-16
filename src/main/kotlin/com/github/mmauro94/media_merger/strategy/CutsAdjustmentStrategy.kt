@@ -5,12 +5,15 @@ import com.github.mmauro94.media_merger.LinearDrift
 import com.github.mmauro94.media_merger.config.FFMpegBlackdetectConfig
 import com.github.mmauro94.media_merger.cuts.Cuts
 import com.github.mmauro94.media_merger.cuts.computeCuts
+import com.github.mmauro94.media_merger.ui.CutsSelectionFrame
 import com.github.mmauro94.media_merger.util.CliDescriptor
 import com.github.mmauro94.media_merger.util.Reporter
-import com.github.mmauro94.media_merger.util.ask.ask
+import com.github.mmauro94.media_merger.util.cli.type.DoubleCliType
 import com.github.mmauro94.media_merger.util.toTimeString
 import com.github.mmauro94.media_merger.video_part.*
 import java.time.Duration
+import java.util.concurrent.Semaphore
+import java.util.concurrent.locks.Lock
 
 sealed class CutsAdjustmentStrategy(val detectProgressSplit: Float) {
 
@@ -26,21 +29,51 @@ sealed class CutsAdjustmentStrategy(val detectProgressSplit: Float) {
         targetFile: InputFile,
         block: (inputVideoParts: VideoParts, targetVideoParts: VideoParts) -> Cuts?
     ): Cuts? {
-        val inputVideoParts = (inputFile.videoParts(blackdetectConfig) ?: return null.also { reporter.log.debug("No black segments in input file") })
-            .get(lazy, reporter.split(0, 2, "Detecting ${inputFile.file.name} black segments..."))
-            .times(linearDrift)
+        class NoBlackSegments() : Exception()
 
-        val targetVideoParts =
-            (targetFile.videoParts(blackdetectConfig) ?: return null.also { reporter.log.debug("No black segments in target file") })
+        val getInputParts: (Duration) -> VideoParts = {
+            (inputFile.videoParts(blackdetectConfig.thresholds, it)
+                ?: throw NoBlackSegments().also { reporter.log.debug("No black segments in input file") })
+                .get(lazy, reporter.split(0, 2, "Detecting ${inputFile.file.name} black segments..."))
+                .times(linearDrift)
+        }
+        val getTargetParts: (Duration) -> VideoParts = {
+            (targetFile.videoParts(blackdetectConfig.thresholds, it)
+                ?: throw NoBlackSegments().also { reporter.log.debug("No black segments in target file") })
                 .get(lazy, reporter.split(1, 2, "Detecting ${targetFile.file.name} black segments..."))
+        }
 
-        return block(inputVideoParts, targetVideoParts).also {
-            reporter.log.debug()
-            reporter.log.debug("TARGET VIDEO PARTS " + (if (lazy) "(Not complete)" else "") + " ($targetFile):")
-            reporter.log.debug(targetVideoParts.readOnly().joinToString(separator = "\n"))
-            reporter.log.debug()
-            reporter.log.debug("INPUT VIDEO PARTS " + (if (lazy) "(Not complete)" else "") + ", ALREADY STRETCHED BY $linearDrift ($inputFile):")
-            reporter.log.debug(inputVideoParts.readOnly().joinToString(separator = "\n"))
+        try {
+            if (blackdetectConfig.minDuration == null) {
+                val semaphore = Semaphore(0)
+                var cuts : Cuts? = null
+                CutsSelectionFrame(
+                    inputVideoPartsProvider = getInputParts,
+                    targetVideoPartsProvider = getTargetParts,
+                    onSelected = {
+                        cuts = it
+                        semaphore.release()
+                    }
+                ).apply {
+                    isVisible = true
+                }
+                semaphore.acquire()
+                return cuts
+            } else {
+                val inputVideoParts = getInputParts(blackdetectConfig.minDuration)
+                val targetVideoParts = getInputParts(blackdetectConfig.minDuration)
+
+                return block(inputVideoParts, targetVideoParts).also {
+                    reporter.log.debug()
+                    reporter.log.debug("TARGET VIDEO PARTS " + (if (lazy) "(Not complete)" else "") + " ($targetFile):")
+                    reporter.log.debug(targetVideoParts.readOnly().joinToString(separator = "\n"))
+                    reporter.log.debug()
+                    reporter.log.debug("INPUT VIDEO PARTS " + (if (lazy) "(Not complete)" else "") + ", ALREADY STRETCHED BY $linearDrift ($inputFile):")
+                    reporter.log.debug(inputVideoParts.readOnly().joinToString(separator = "\n"))
+                }
+            }
+        } catch (nbs: NoBlackSegments) {
+            return null
         }
     }
 
@@ -149,7 +182,7 @@ sealed class CutsAdjustmentStrategy(val detectProgressSplit: Float) {
             fun ask(): CutScenes {
                 return CutScenes(
                     blackdetectConfig = FFMpegBlackdetectConfig.ask(),
-                    minimumAccuracy = Double.ask(
+                    minimumAccuracy = DoubleCliType.ask(
                         question = "Select minimum accuracy",
                         isValid = { this in 0.0..100.0 },
                         default = 95.0

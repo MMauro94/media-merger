@@ -1,6 +1,7 @@
 package com.github.mmauro94.media_merger
 
 import com.github.mmauro94.media_merger.config.FFMpegBlackdetectConfig
+import com.github.mmauro94.media_merger.config.FFMpegBlackdetectThresholds
 import com.github.mmauro94.media_merger.util.findWalkingUp
 import com.github.mmauro94.media_merger.util.log.Logger
 import com.github.mmauro94.media_merger.util.toSecondsDuration
@@ -11,6 +12,8 @@ import net.bramp.ffmpeg.FFprobe
 import net.bramp.ffmpeg.probe.FFmpegProbeResult
 import java.io.File
 import java.io.IOException
+import java.time.Duration
+import kotlin.math.min
 
 class InputFile private constructor(
     val inputFilesProvider: () -> InputFiles<*>,
@@ -75,15 +78,16 @@ class InputFile private constructor(
 
     val framerate by lazy { detectFramerate() ?: mainFile?.detectFramerate() }
 
-    private val videoParts = mutableMapOf<FFMpegBlackdetectConfig, VideoPartsProvider?>()
-    fun videoParts(config: FFMpegBlackdetectConfig): VideoPartsProvider? {
-        return if (videoParts.containsKey(config)) videoParts[config]
+    private val videoParts = mutableMapOf<Pair<FFMpegBlackdetectThresholds, Duration>, VideoPartsProvider?>()
+    fun videoParts(thresholds: FFMpegBlackdetectThresholds, minDuration: Duration): VideoPartsProvider? {
+        val key = thresholds to minDuration
+        return if (videoParts.containsKey(key)) videoParts[key]
         else {
             val videoTrack = tracks.singleOrNull { it.isVideoTrack() }
             val ret = (if (videoTrack != null) {
-                VideoPartsProvider(this, config, videoTrack.startTime)
-            } else null) ?: mainFile?.videoParts(config)
-            videoParts[config] = ret
+                VideoPartsProvider(this, thresholds, minDuration, videoTrack.startTime)
+            } else null) ?: mainFile?.videoParts(thresholds, minDuration)
+            videoParts[key] = ret
             ret
         }
     }

@@ -5,6 +5,7 @@ import com.github.mmauro94.media_merger.LinearDrift
 import com.github.mmauro94.media_merger.Main
 import com.github.mmauro94.media_merger.Track
 import com.github.mmauro94.media_merger.config.FFMpegBlackdetectConfig
+import com.github.mmauro94.media_merger.config.FFMpegBlackdetectThresholds
 import com.github.mmauro94.media_merger.util.*
 import com.github.mmauro94.media_merger.util.json.KLAXON
 import com.github.mmauro94.media_merger.util.json.toPrettyJsonString
@@ -160,6 +161,9 @@ class VideoParts(
 
 fun Iterable<VideoPart>.sumDurations() = map { it.time.duration }.sum()
 
+fun Iterable<VideoPart>.duration() = maxOf { it.time.end }
+
+
 /**
  * Multiplies all the [VideoPart]s to the provided [linearDrift].
  *
@@ -170,12 +174,13 @@ operator fun Iterable<VideoPart>.times(linearDrift: LinearDrift) = map { it * li
 
 class VideoPartsProvider(
     private val inputFile: InputFile,
-    private val config: FFMpegBlackdetectConfig,
+    private val thresholds: FFMpegBlackdetectThresholds,
+    private val minDuration: Duration,
     private val offset: Duration
 ) {
 
     private fun videoParts(reporter: Reporter, chunkSize: Duration?): VideoParts {
-        return VideoParts(inputFile.detectVideoParts(config, chunkSize, reporter)) + offset
+        return VideoParts(inputFile.detectVideoParts(thresholds, minDuration, chunkSize, reporter)) + offset
     }
 
 
@@ -203,7 +208,8 @@ class VideoPartsProvider(
  * This iterator automatically takes care of merging black segments that happen to be between chunks.
  */
 private fun InputFile.detectVideoParts(
-    config: FFMpegBlackdetectConfig,
+    thresholds: FFMpegBlackdetectThresholds,
+    minDuration: Duration,
     chunkSize: Duration?,
     reporter: Reporter
 ): VideoPartIterator {
@@ -230,7 +236,7 @@ private fun InputFile.detectVideoParts(
         if (videoTrack != null) {
             var chunk = if (chunkSize == null) null else DurationSpan(Duration.ZERO, chunkSize)
 
-            var blacks = videoTrack.detectBlackSegments(config, chunk, createReporter(chunk))
+            var blacks = videoTrack.detectBlackSegments(thresholds, minDuration, chunk, createReporter(chunk))
 
             var lastBlack: DurationSpan? = null
             var lastYielded = true
@@ -278,7 +284,7 @@ private fun InputFile.detectVideoParts(
                         lastYielded = true
                     }
                     chunk = chunk.consecutiveOfSameLength()
-                    blacks = videoTrack.detectBlackSegments(config, chunk, createReporter(chunk))
+                    blacks = videoTrack.detectBlackSegments(thresholds, minDuration, chunk, createReporter(chunk))
                 } else {
                     blacks = null
                 }
@@ -307,7 +313,8 @@ private fun InputFile.detectVideoParts(
  * Calls [Track.runBlackSegmentDetection] or returned the cached value if present
  */
 fun Track.detectBlackSegments(
-    config: FFMpegBlackdetectConfig,
+    thresholds: FFMpegBlackdetectThresholds,
+    minDuration: Duration,
     range: DurationSpan? = null,
     reporter: Reporter
 ): List<DurationSpan>? {
@@ -318,9 +325,9 @@ fun Track.detectBlackSegments(
         }
     } else CachedBlackSegments()
 
-    return cache[config.toCachedConfig()].takeOrComputeForRange(range) { start, end ->
-        runBlackSegmentDetection(config, start, end, reporter)
-    }?.filter { it.duration >= config.minDuration }.also {
+    return cache[thresholds].takeOrComputeForRange(range) { start, end ->
+        runBlackSegmentDetection(thresholds, start, end, reporter)
+    }?.filter { it.duration >= minDuration }.also {
         blacksegmentsFile.writeText(KLAXON.toPrettyJsonString(cache.simplify().toJsonArray()))
     }
 }
@@ -334,7 +341,7 @@ fun Track.detectBlackSegments(
  * [start] and [end] are the range of the input file where to search the black segments in. If a black segment is between the start/end of the range, it will be returned split.
  */
 private fun Track.runBlackSegmentDetection(
-    config: FFMpegBlackdetectConfig,
+    thresholds: FFMpegBlackdetectThresholds,
     start: Duration = Duration.ZERO,
     end: Duration? = null,
     reporter: Reporter
@@ -377,8 +384,8 @@ private fun Track.runBlackSegmentDetection(
                 append('"')
                 append("blackdetect=")
                 append("d=0")
-                append(":pic_th=" + config.pictureBlackThreshold.toPlainString())
-                append(":pix_th=" + config.pixelBlackThreshold.toPlainString())
+                append(":pic_th=" + thresholds.pictureBlackThreshold.toPlainString())
+                append(":pix_th=" + thresholds.pixelBlackThreshold.toPlainString())
                 append('"')
             }
         )
