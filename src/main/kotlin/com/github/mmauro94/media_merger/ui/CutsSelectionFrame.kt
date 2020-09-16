@@ -23,7 +23,6 @@ class CutsSelectionFrame(
         fun recalcCuts() {
             val matches = target.parts?.let { targetParts -> input.parts?.matchWithTarget(targetParts) }
             cuts.cuts = matches?.first?.computeCuts()
-            println("Cuts recalced")
         }
         input.parts = inputVideoPartsProvider(Duration.ofSeconds(1))
         target.parts = targetVideoPartsProvider(Duration.ofSeconds(1))
@@ -71,6 +70,32 @@ class CutsSelectionFrame(
                 }
             )
             add(Box.createVerticalGlue())
+            add(Box.createRigidArea(Dimension(0, 8)))
+            add(Box(BoxLayout.X_AXIS).apply {
+                leftAlign()
+                add(Box.createHorizontalGlue())
+                add(JButton("Skip").apply {
+                    addActionListener {
+                        if(JOptionPane.showConfirmDialog(
+                            this,
+                            "Do you really wish to skip this group?",
+                            "Confirm skipping",
+                            JOptionPane.YES_NO_OPTION,
+                            JOptionPane.QUESTION_MESSAGE
+                        ) == JOptionPane.YES_OPTION) {
+                            onSelected(null)
+                            this@CutsSelectionFrame.isVisible = false
+                        }
+                    }
+                })
+                add(Box.createRigidArea(Dimension(8, 0)))
+                add(JButton("OK").apply {
+                    addActionListener {
+                        onSelected(cuts.cuts)
+                        this@CutsSelectionFrame.isVisible = false
+                    }
+                })
+            })
         })
         setSize(800, 400)
         setLocationRelativeTo(null)

@@ -4,6 +4,7 @@ import java.awt.Font
 import java.awt.Graphics
 import java.awt.Rectangle
 import java.awt.font.FontRenderContext
+import javax.swing.Box
 import javax.swing.JComponent
 import kotlin.math.roundToInt
 
@@ -20,4 +21,4 @@ fun Graphics.drawCenteredString(rect: Rectangle, string: String, font: Font) {
     drawString(string, rect.x + a, rect.y + b)
 }
 
-fun <T : JComponent> T.leftAlign() = apply { alignmentX = 0f }
+fun <T : JComponent> T.leftAlign() = apply { alignmentX = Box.LEFT_ALIGNMENT }
