@@ -33,19 +33,18 @@ class CutsComponent : JPanel() {
 
         cuts?.let { cuts ->
             for ((i, cut) in cuts.cuts.withIndex()) {
-                g.color = if (i % 2 == 0) Color.GRAY else Color.WHITE
-                g.fillPolygon(
-                    intArrayOf(
-                        zoom.calcX(cut.time.start),
-                        zoom.calcX(cut.time.end),
-                        zoom.calcX(cut.targetTime.end),
-                        zoom.calcX(cut.targetTime.start)
-                    ),
-                    intArrayOf(0, 0, height, height),
-                    4
+                g.color = if (i % 2 == 0) Color(0xFBC02D) else Color(0x43A047)
+                val x = intArrayOf(
+                    zoom.calcX(cut.time.start),
+                    zoom.calcX(cut.time.end),
+                    zoom.calcX(cut.targetTime.end),
+                    zoom.calcX(cut.targetTime.start)
                 )
-                //g.fillRect(zoom.calcX(cut.time.start), 0, zoom.calcX(cut.time.end), height)
-
+                val y = intArrayOf(0, 0, height, height)
+                g.fillPolygon(x, y, 4)
+                g.color = Color.BLACK
+                //g.drawLine(x[0], 0, x[3], height)
+                //g.drawLine(x[1], 0, x[2], height)
             }
         }
     }

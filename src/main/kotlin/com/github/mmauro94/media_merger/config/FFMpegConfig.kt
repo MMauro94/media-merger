@@ -14,7 +14,7 @@ data class FFMpegConfig(
 
 data class FFMpegBlackdetectThresholds(
     val pictureBlackThreshold: BigDecimal = BigDecimal("0.99"),
-    val pixelBlackThreshold: BigDecimal = BigDecimal("0.05")
+    val pixelBlackThreshold: BigDecimal = BigDecimal("0.01")
 ) {
     companion object {
         fun ask(): FFMpegBlackdetectThresholds {

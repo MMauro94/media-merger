@@ -76,8 +76,10 @@ private fun matchFirstScene(
                     if (inputsIterator.hasNext()) inputsIterator.next()
                 }
                 inputsIterator.skipIfBlackFragment()
-                val match = matchNext(inputsIterator, target) to (inputsIterator.nextIndex to targetsIterator.nextIndex)
-                candidates += match
+                if (inputsIterator.hasNext()) {
+                    val match = matchNext(inputsIterator, target) to (inputsIterator.nextIndex to targetsIterator.nextIndex)
+                    candidates += match
+                }
             }
             targets++
         }
@@ -167,7 +169,16 @@ fun VideoParts.matchWithTarget(targets: VideoParts): Pair<List<VideoPartMatch>, 
     val matches = mutableListOf<Pair<List<VideoPartMatch>, Accuracy>>()
     val firstSceneMatch = matchFirstScene(inputParts, targetParts)
         ?: throw VideoPartsMatchException("Unable to detect first scene!")
+
+    val initialInputParts = inputParts.copy().takeUntil(firstSceneMatch.first.first().input)
+    val initialTargetParts = targetParts.copy().takeUntil(firstSceneMatch.first.first().target)
+    try {
+        matches += VideoParts(initialInputParts).matchWithTarget(VideoParts(initialTargetParts))
+    } catch (ignored: VideoPartsMatchException) {
+    }
+
     matches += firstSceneMatch
+
 
     while (inputParts.hasNext() && targetParts.hasNext()) {
         val match = matchNext(inputParts, targetParts.next())

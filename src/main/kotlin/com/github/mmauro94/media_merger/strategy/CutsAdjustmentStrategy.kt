@@ -13,7 +13,6 @@ import com.github.mmauro94.media_merger.util.toTimeString
 import com.github.mmauro94.media_merger.video_part.*
 import java.time.Duration
 import java.util.concurrent.Semaphore
-import java.util.concurrent.locks.Lock
 
 sealed class CutsAdjustmentStrategy(val detectProgressSplit: Float) {
 
@@ -48,8 +47,8 @@ sealed class CutsAdjustmentStrategy(val detectProgressSplit: Float) {
                 val semaphore = Semaphore(0)
                 var cuts : Cuts? = null
                 CutsSelectionFrame(
-                    inputVideoPartsProvider = getInputParts,
-                    targetVideoPartsProvider = getTargetParts,
+                    input = CutsSelectionFrame.FileInfo(inputFile, getInputParts),
+                    target = CutsSelectionFrame.FileInfo(targetFile, getTargetParts),
                     onSelected = {
                         cuts = it
                         semaphore.release()

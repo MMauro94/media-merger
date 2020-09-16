@@ -4,9 +4,11 @@ import com.github.mmauro94.media_merger.InputFile
 import com.github.mmauro94.media_merger.LinearDrift
 import com.github.mmauro94.media_merger.Main
 import com.github.mmauro94.media_merger.Track
-import com.github.mmauro94.media_merger.config.FFMpegBlackdetectConfig
 import com.github.mmauro94.media_merger.config.FFMpegBlackdetectThresholds
 import com.github.mmauro94.media_merger.util.*
+import com.github.mmauro94.media_merger.util.iter.CachedIterator
+import com.github.mmauro94.media_merger.util.iter.takeUntil
+import com.github.mmauro94.media_merger.util.iter.transform
 import com.github.mmauro94.media_merger.util.json.KLAXON
 import com.github.mmauro94.media_merger.util.json.toPrettyJsonString
 import com.github.mmauro94.media_merger.util.progress.Progress
@@ -23,70 +25,13 @@ import kotlin.math.min
 /**
  * It requires and ensures that consecutive parts have different type and that the first part starts at 0:00.
  */
-class VideoPartIterator(
-    private val cache: MutableList<VideoPart>,
-    private val iterator: Iterator<VideoPart>,
-    private val transform: VideoPartIterator.(VideoPart) -> List<VideoPart> = { listOf(it) }
-) : ListIterator<VideoPart> {
-
-    var nextIndex = 0
-        private set
-
-    fun cache(): List<VideoPart> = cache
-
-    private fun addToCache(videoPart: VideoPart) {
-        if (cache.isEmpty()) {
-            check(videoPart.time.start == Duration.ZERO)
-        } else {
-            check(cache.last().type != videoPart.type)
-            check(videoPart.time.isConsecutiveOf(cache.last().time))
+class VideoPartIterator(iterator: Iterator<VideoPart>) : CachedIterator<VideoPart>(iterator) {
+    override fun addToCache(item: VideoPart): VideoPart {
+        if (cache.isNotEmpty()) {
+            check(cache.last().type != item.type)
+            check(item.time.isConsecutiveOf(cache.last().time))
         }
-        cache.add(videoPart)
-    }
-
-    override fun hasNext(): Boolean {
-        return if (nextIndex in cache.indices) true
-        else iterator.hasNext()
-    }
-
-    override fun hasPrevious(): Boolean {
-        return nextIndex > 0
-    }
-
-    override fun next(): VideoPart {
-        val ret = value {
-            val next = iterator.next()
-            val transformed = transform(this, next)
-            check(transformed.isNotEmpty())
-            transformed.forEach(::addToCache)
-            transformed.first()
-        }
-        nextIndex++
-        return ret
-    }
-
-    private inline fun value(otherwise: () -> VideoPart) =
-        if (nextIndex in cache.indices) cache[nextIndex] else otherwise()
-
-    override fun nextIndex(): Int {
-        return nextIndex
-    }
-
-    override fun previous(): VideoPart {
-        nextIndex--
-        return value { throw NoSuchElementException() }
-    }
-
-    override fun previousIndex(): Int {
-        return nextIndex - 1
-    }
-
-    fun peek(): VideoPart {
-        return next().also { previous() }
-    }
-
-    fun reset() {
-        nextIndex = 0
+        return super.addToCache(item)
     }
 
     /**
@@ -94,12 +39,12 @@ class VideoPartIterator(
      *
      * @see VideoPart.times
      */
-    operator fun times(linearDrift: LinearDrift) = VideoPartIterator(mutableListOf(), this) { listOf(it * linearDrift) }
+    operator fun times(linearDrift: LinearDrift) = VideoPartIterator(copy().transform { listOf(it * linearDrift) })
 
     operator fun plus(offset: Duration): VideoPartIterator {
         check(!offset.isNegative)
         return if (offset.isZero) copy()
-        else VideoPartIterator(mutableListOf(), this) {
+        else VideoPartIterator(copy().transform {
             if (nextIndex == 0) {
                 if (it.type == BLACK_SEGMENT) {
                     listOf(
@@ -117,22 +62,16 @@ class VideoPartIterator(
                     )
                 }
             } else listOf(it + offset)
-        }
+        })
     }
 
-    fun copy(): VideoPartIterator = VideoPartIterator(cache, iterator, transform)
+    override fun copy() = VideoPartIterator(super.copy())
+
+    fun takeUntil(videoPart: VideoPart)  = VideoPartIterator(takeUntil { it != videoPart })
 
     fun skipIfBlackFragment() {
-        if (hasNext() && peek().type == BLACK_SEGMENT) {
-            next()
-        }
+        skipIf { it.type == BLACK_SEGMENT }
     }
-
-    fun goTo(nextIndex: Int) {
-        require(nextIndex in 0..cache.size)
-        this.nextIndex = nextIndex
-    }
-
 }
 
 /**
@@ -146,7 +85,7 @@ class VideoParts(
         return iterator.copy()
     }
 
-    fun readOnly(): List<VideoPart> = iterator.cache()
+    fun readOnly(): List<VideoPart> = iterator.cache
 
     /**
      * Multiplies all the [VideoPart]s to the provided [linearDrift].
@@ -232,7 +171,7 @@ private fun InputFile.detectVideoParts(
         }
     }
 
-    return VideoPartIterator(mutableListOf(), iterator {
+    return VideoPartIterator(iterator {
         if (videoTrack != null) {
             var chunk = if (chunkSize == null) null else DurationSpan(Duration.ZERO, chunkSize)
 

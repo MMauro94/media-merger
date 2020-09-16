@@ -35,9 +35,7 @@ object Main {
     val outputDir by lazy { File(workingDir, "OUTPUT") }
     val globalLog: File by lazy { File(outputDir, "global_debug.txt") }
 
-
-    @JvmStatic
-    fun main(args: Array<String>) {
+    fun init(args: Array<String> = emptyArray()) {
         AnsiConsole.systemInstall()
         val options = args.toMutableList()
         if (options.remove("--debug")) {
@@ -68,6 +66,12 @@ object Main {
         if (!outputDir.exists()) {
             outputDir.mkdir()
         }
+    }
+
+
+    @JvmStatic
+    fun main(args: Array<String>) {
+        init(args)
 
         println(ansi().bgBrightGreen().fgBlack().a("----- MEDIA-MERGER UTILITY -----").reset())
         println(ansi().fgDefault().a("Working directory: ").fgGreen().a(workingDir.toString()).reset())
