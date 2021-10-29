@@ -1,5 +1,5 @@
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.4.0'
+    id 'org.jetbrains.kotlin.jvm' version '1.5.31'
 }
 
 group 'com.github.mmauro94'
@@ -7,14 +7,12 @@ version '1.0-SNAPSHOT'
 
 repositories {
     mavenCentral()
-    jcenter()
     maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
-
 }
 dependencies {
     implementation 'org.junit.jupiter:junit-jupiter:5.4.2'
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    compile "org.jetbrains.kotlin:kotlin-reflect"
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.5.31"
+    compile "org.jetbrains.kotlin:kotlin-reflect:1.5.31"
 
     compile 'com.github.mmauro94:mkvtoolnix-wrapper:1.0.1-SNAPSHOT'
 
