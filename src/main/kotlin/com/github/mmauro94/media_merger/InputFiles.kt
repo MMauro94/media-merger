@@ -64,7 +64,7 @@ data class InputFiles<G : Group<G>>(
             val ret = HashMap<G, MutableList<InputFile>>()
 
             var i = 0
-            val max = groupedFiles.values.sumBy { it.size }
+            val max = groupedFiles.values.sumOf { it.size }
             for ((ei, files) in groupedFiles) {
                 check(ei != null)
                 val groupRep = reporter.withDebug(ei.debugFile)

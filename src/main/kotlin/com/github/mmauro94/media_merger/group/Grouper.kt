@@ -22,7 +22,7 @@ interface Grouper<G : Group<G>> {
                 question = "Select $type info provider",
                 options = providers.asList(),
                 defaultValue = providers.singleOrNull(),
-                nameProvider = { it.service.name.toLowerCase() }
+                nameProvider = { it.service.name.lowercase() }
             )
             return select(type, provider) {
                 select(type, *providers)

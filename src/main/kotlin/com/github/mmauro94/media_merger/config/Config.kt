@@ -8,6 +8,7 @@ import com.github.mmauro94.media_merger.util.json.KLAXON
 import com.github.mmauro94.mkvtoolnix_wrapper.MkvToolnixLanguage
 import java.io.File
 import java.io.IOException
+import java.util.*
 
 /**
  * Config data class
@@ -35,11 +36,11 @@ data class Config(
      */
     fun apiKeyForService(service: String): String {
         //If in config, return it
-        apiKeys[service.toLowerCase()]?.let { return it }
+        apiKeys[service.lowercase()]?.let { return it }
 
         //Otherwise check environment variables
-        System.getenv("${service.toUpperCase()}_API_KEY").let {
-            return if (!it.isNullOrBlank()) it else throw IllegalStateException("API key for $service not found! Please specify it in the config.json under apiKeys/${service.toLowerCase()} or in an environment variable named ${service.toUpperCase()}_API_KEY")
+        System.getenv("${service.uppercase()}_API_KEY").let {
+            return if (!it.isNullOrBlank()) it else throw IllegalStateException("API key for $service not found! Please specify it in the config.json under apiKeys/${service.lowercase()} or in an environment variable named ${service.uppercase()}_API_KEY")
         }
     }
 

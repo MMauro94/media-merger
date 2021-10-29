@@ -29,7 +29,7 @@ data class Accuracy(val accuracy: Double, val offset: Duration?) {
     }
 }
 
-fun Collection<Accuracy>.avg(): Accuracy = Accuracy(sumByDouble { it.accuracy } / size, null)
+fun Collection<Accuracy>.avg(): Accuracy = Accuracy(sumOf { it.accuracy } / size, null)
 
 /**
  * Returns whether the different in duration of this video part with the given [duration] is within margin.

@@ -46,7 +46,7 @@ inline fun <reified E : Enum<E>> selectEnum(
     question: String,
     defaultValue: E? = null,
     long: Boolean = false,
-    noinline nameProvider: (E) -> String = { it.name.toLowerCase() }
+    noinline nameProvider: (E) -> String = { it.name.lowercase() }
 ): E {
     return select(
         question = question,

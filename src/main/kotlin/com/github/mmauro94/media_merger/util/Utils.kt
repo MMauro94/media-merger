@@ -19,7 +19,7 @@ val OUT = System.out
 fun MkvToolnixLanguage.Companion.find(language: String): MkvToolnixLanguage? {
     return all[language]
         ?: all.values.singleOrNull { it.iso639_1 == language }
-        ?: all.values.singleOrNull { it.name.toLowerCase() == language.toLowerCase() }
+        ?: all.values.singleOrNull { it.name.equals(language, ignoreCase = true) }
 }
 
 /**
