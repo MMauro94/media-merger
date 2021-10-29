@@ -14,7 +14,7 @@ dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.5.31"
     compile "org.jetbrains.kotlin:kotlin-reflect:1.5.31"
 
-    compile 'com.github.mmauro94:mkvtoolnix-wrapper:1.0.1-SNAPSHOT'
+    compile 'com.github.mmauro94:mkvtoolnix-wrapper:2.0.1'
 
     compile 'com.beust:klaxon:5.0.13'
 

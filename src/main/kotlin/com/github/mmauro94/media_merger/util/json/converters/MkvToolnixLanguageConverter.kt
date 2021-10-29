@@ -20,6 +20,6 @@ object MkvToolnixLanguageConverter : Converter {
 
     override fun toJson(value: Any): String {
         require(value is MkvToolnixLanguage)
-        return "\"" + value.iso639_2 + "\""
+        return "\"" + value.iso639_3 + "\""
     }
 }

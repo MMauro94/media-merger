@@ -146,7 +146,7 @@ data class SelectedTracks<G : Group<G>>(
                 Main.mainLanguages.forEach { l ->
                     comparables.add { it != l } //First all main languages
                 }
-                comparables.add { it.iso639_2 } //Then sorted by iso code
+                comparables.add { it.iso639_3 } //Then sorted by iso code
                 val sortedLanguages = languageTracks.toSortedMap(
                     compareBy(*comparables.toTypedArray())
                 ).filterKeys {
