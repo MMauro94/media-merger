@@ -20,6 +20,7 @@ class ShowGrouper(val show: ShowInfo?) : Grouper<Episode> {
                     show?.episodeInfo(s, e)
                 } catch (e: GroupInfoException) {
                     logger.warn(e.message)
+                    logger.debug(e.stackTraceToString())
                     null
                 }
                 Episode(s, e, epInfo)

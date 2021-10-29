@@ -21,7 +21,7 @@ object TvdbShowProvider : ShowProvider<TvdbShow> {
                 .series(query, null, null, null, Main.mainLanguages.first().iso639_1 ?: "en")
                 .execute()
         } catch (e: Exception) {
-            throw GroupInfoException(e.message ?: "Unknown exception while searching on TVDB")
+            throw GroupInfoException(e.message ?: "Unknown exception while searching on TVDB", e)
         }
         val body = search.body()
 
@@ -46,7 +46,7 @@ object TvdbShowProvider : ShowProvider<TvdbShow> {
                 Main.mainLanguages.first().iso639_1 ?: "en"
             ).execute()
         } catch (e: Exception) {
-            throw GroupInfoException(e.message ?: "Unknown exception while downloading episodes from TVDB")
+            throw GroupInfoException(e.message ?: "Unknown exception while downloading episodes from TVDB", e)
         }
         val ret = response
             .body()
@@ -58,9 +58,9 @@ object TvdbShowProvider : ShowProvider<TvdbShow> {
                     it.airedEpisodeNumber,
                     it.episodeName
                 )
-            } ?: throw GroupInfoException(
-            response.errorBody()?.string() ?: "Unknown error from TVDB"
-        )
+            }
+            ?: throw GroupInfoException(response.errorBody()?.string() ?: "Unknown error from TVDB")
+
         return if (ret.size >= 100) {
             ret + downloadEpisodes(show, page + 1)
         } else ret
