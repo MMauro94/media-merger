@@ -48,6 +48,9 @@ object TvdbShowProvider : ShowProvider<TvdbShow> {
         } catch (e: Exception) {
             throw GroupInfoException(e.message ?: "Unknown exception while downloading episodes from TVDB", e)
         }
+        if (response.code() == 404 && page > 1) {
+            return emptyList()
+        }
         val ret = response
             .body()
             ?.data
