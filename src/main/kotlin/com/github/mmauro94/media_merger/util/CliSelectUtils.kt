@@ -34,7 +34,7 @@ fun <T : Any> select(
         while (true) {
             val str = StringCliType.ask(
                 question = ansi().fgDefault().a(question).fgBrightCyan().a(" (" + reverseMap.keys.joinToString(", ") + ")").reset().toString(),
-                default = defaultValue?.let(nameProvider) ?: "",
+                default = defaultValue?.let(nameProvider),
                 isValid = { this in reverseMap }
             )
             return reverseMap.getValue(str)
