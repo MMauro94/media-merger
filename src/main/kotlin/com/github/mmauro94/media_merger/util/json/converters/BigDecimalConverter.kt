@@ -10,8 +10,14 @@ internal object BigDecimalConverter : Converter {
     override fun canConvert(cls: Class<*>) = cls == BigDecimal::class.java
 
     override fun fromJson(jv: JsonValue): BigDecimal? {
-        return if (jv.inside == null) null
-        else jv.string?.toBigDecimal() ?: jv.bigDecimal ?: jv.double?.toBigDecimal() ?: throw KlaxonException("Invalid big decimal")
+        return when (val inside = jv.inside) {
+            is BigDecimal -> inside
+            is Long -> inside.toBigDecimal()
+            is Int -> inside.toBigDecimal()
+            is String -> inside.toBigDecimal()
+            null -> null
+            else -> throw KlaxonException("Invalid type ${jv.type} for BigDecimal")
+        }
     }
 
     override fun toJson(value: Any): String {
