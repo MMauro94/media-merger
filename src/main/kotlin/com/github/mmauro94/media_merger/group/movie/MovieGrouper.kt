@@ -7,7 +7,7 @@ import com.github.mmauro94.media_merger.util.log.Logger
 
 class MovieGrouper(val movie: MovieInfo?) : Grouper<Movie> {
 
-    override fun detectGroup(filename: String, logger: Logger): Movie? {
+    override fun detectGroup(filename: String, logger: Logger): Movie {
         return Movie(movie)
     }
 

@@ -149,11 +149,11 @@ class Track(
 
         private fun File.findLanguage(logger: Logger): MkvToolnixLanguage? {
             return findWalkingUp(false) { f ->
-                val split = f.name.split(Regex("(\\s+|[_.\\-])")).filterNot { it.isBlank() }
+                val split = f.nameWithoutExtension.split(Regex("(\\s+|[_.\\-])")).filterNot { it.isBlank() }
                 logger.debug("Name split: $split")
                 val map = split
                     .groupingBy { s ->
-                        val lang = MkvToolnixLanguage.find(s.toLowerCase())
+                        val lang = MkvToolnixLanguage.find(s.lowercase())
                         if (Main.config.languagesDetectWhitelist.isEmpty() || lang in Main.config.languagesDetectWhitelist) {
                             logger.debug("File part '$s' matching with language $lang")
                             lang
