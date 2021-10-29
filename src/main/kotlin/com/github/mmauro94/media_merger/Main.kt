@@ -44,12 +44,10 @@ object Main {
         if (options.remove("--test")) {
             test = true
         }
-        val providedConfigFiles = options
-            .filter { it.startsWith("--config=") }
-            .map {
-                options.remove(it)
-                File(it.removePrefix("--config="))
-            }
+        val providedConfigFiles = options.getArgs("config").map { File(it) }
+        val infoLanguage = options.getArgs("info-language")
+            .mapNotNull { MkvToolnixLanguage.find(it) }
+            .singleOrNull()
 
         workingDir = File(options.getOrNull(0) ?: System.getProperty("user.dir") ?: "").absoluteFile
 
@@ -62,12 +60,21 @@ object Main {
             println(ansi().fgYellow().a("Using default config").reset())
             Config()
         }
+        config.infoLanguage = infoLanguage
 
         if (!outputDir.exists()) {
             outputDir.mkdir()
         }
     }
 
+    fun MutableList<String>.getArgs(name: String): List<String> {
+        return this
+            .filter { it.startsWith("--${name}=") }
+            .map {
+                this.remove(it)
+                it.removePrefix("--${name}=")
+            }
+    }
 
     @JvmStatic
     fun main(args: Array<String>) {
@@ -211,13 +218,13 @@ object Main {
                     println("\tVideo track: ${selectedTracks.videoTrack}")
                     selectedTracks.languageTracks.forEach { (lang, lt) ->
                         if (lt.audioTrack.track != null) {
-                            println("\t${lang.iso639_2} audio: ${lt.audioTrack}")
+                            println("\t${lang.iso639_3} audio: ${lt.audioTrack}")
                         }
                         if (lt.subtitleTrack.track != null) {
-                            println("\t${lang.iso639_2} subtitles: ${lt.subtitleTrack}")
+                            println("\t${lang.iso639_3} subtitles: ${lt.subtitleTrack}")
                         }
                         if (lt.forcedSubtitleTrack.track != null) {
-                            println("\t${lang.iso639_2} forced subtitles: ${lt.forcedSubtitleTrack}")
+                            println("\t${lang.iso639_3} forced subtitles: ${lt.forcedSubtitleTrack}")
                         }
                     }
                 }

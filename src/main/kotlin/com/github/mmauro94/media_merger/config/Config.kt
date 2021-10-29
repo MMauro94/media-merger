@@ -22,7 +22,7 @@ data class Config(
     val languagesDetectWhitelist: List<MkvToolnixLanguage> = emptyList(),
     val ffmpeg: FFMpegConfig = FFMpegConfig(),
     val apiKeys: Map<String, String> = emptyMap(),
-    val infoLanguage: MkvToolnixLanguage? = null,
+    var infoLanguage: MkvToolnixLanguage? = null,
     val episodeRenameFormat: String = "%(showName) %(seasonNumber00)x%(episodeNumber00) - %(episodeName)",
     val movieRenameFormat: String = "%(name) (%(year))"
 ) {
