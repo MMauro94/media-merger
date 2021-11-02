@@ -107,3 +107,6 @@ fun File.appendWriter(): FileOutputStream {
 fun newTmpFile(): File {
     return File(System.getProperty("java.io.tmpdir")!!, UUID.randomUUID().toString())
 }
+
+@Suppress("UNCHECKED_CAST")
+fun <K, V> Map<out K?, V>.filterNullKeys() = filterKeys { it != null } as Map<K, V>

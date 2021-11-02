@@ -49,16 +49,7 @@ data class InputFiles<G : Group<G>>(
         val EXTENSIONS_TO_IDENTIFY = VIDEO_EXTENSIONS + AUDIO_EXTENSIONS + SUBTITLES_EXTENSIONS
 
         fun <G : Group<G>> detect(grouper: Grouper<G>, dir: File, reporter: Reporter): List<InputFiles<G>> {
-            reporter.progress.indeterminate("Listing files...")
-            val allFiles = dir.walkTopDown().toList()
-            reporter.progress.indeterminate("Grouping files...")
-            val groupedFiles = allFiles
-                .filter { it.extension in EXTENSIONS_TO_IDENTIFY }
-                .filterNot { it.name.contains("@adjusted") || it.name.contains("@extracted") }
-                .groupBy { grouper.detectGroup(it.name, reporter.log) }
-                .filterKeys { it != null }
-
-
+            val groupedFiles = grouper.detectGroups(dir, reporter)
 
             val inputFiles = mutableMapOf<G, InputFiles<G>>()
             val ret = HashMap<G, MutableList<InputFile>>()
@@ -66,7 +57,6 @@ data class InputFiles<G : Group<G>>(
             var i = 0
             val max = groupedFiles.values.sumOf { it.size }
             for ((ei, files) in groupedFiles) {
-                check(ei != null)
                 val groupRep = reporter.withDebug(ei.debugFile)
                 files.forEach { f ->
                     groupRep.progress.discrete(i, max, "Identifying ${f.name}")

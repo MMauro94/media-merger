@@ -2,6 +2,7 @@ package com.github.mmauro94.media_merger
 
 import com.github.mmauro94.media_merger.config.Config
 import com.github.mmauro94.media_merger.config.ConfigParseException
+import com.github.mmauro94.media_merger.group.Group
 import com.github.mmauro94.media_merger.strategy.AdjustmentStrategies
 import com.github.mmauro94.media_merger.util.*
 import com.github.mmauro94.media_merger.util.cli.type.MkvToolnixLanguageCliType
@@ -161,28 +162,31 @@ object Main {
 
     private fun justRenameFiles() {
         ConsoleReporter().use { reporter ->
-            val inputFiles = inputFilesDetector.getOrReadInputFiles(reporter.split(0f, 0.9f, "Identifying..."))
+            val groups = inputFilesDetector.grouper
+                .detectGroups(workingDir, reporter.split(0f, 0.3f, "Identifying..."))
+                .toList()
 
-            val renameProgressHandler = reporter.split(0.9f, 1f, "Renaming...")
-            inputFiles.forEachIndexed { i, files ->
-                val groupReporter = renameProgressHandler.split(i, inputFiles.size, "Renaming group ${files.group}...")
+            val renameProgressHandler = reporter.split(0.3f, 1f, "Renaming...")
+            groups.forEachIndexed { i, (g, files) ->
+                val group: Group<*> = g
+                val groupReporter = renameProgressHandler.split(i, groups.size, "Renaming group ${group}...")
 
-                val outputName = files.outputName()
+                val outputName = group.outputName()
                 if (outputName != null) {
-                    files.inputFiles.forEachIndexed { j, f ->
-                        groupReporter.progress.discrete(j, files.inputFiles.size, "Renaming file ${f.file.name}")
+                    files.forEachIndexed { j, f ->
+                        groupReporter.progress.discrete(j, files.size, "Renaming file ${f.name}")
                         try {
                             Files.move(
-                                f.file.toPath(),
-                                File(f.file.parentFile, outputName + "." + f.file.extension).toPath(),
+                                f.toPath(),
+                                File(f.parentFile, outputName + "." + f.extension).toPath(),
                                 StandardCopyOption.ATOMIC_MOVE
                             )
                         } catch (ioe: IOException) {
-                            groupReporter.log.err("Unable to rename file ${f.file.name}: ${ioe.message}")
+                            groupReporter.log.err("Unable to rename file ${f.name}: ${ioe.message}")
                         }
                     }
                 } else {
-                    groupReporter.log.warn("Cannot rename group ${files.group}: insufficient information")
+                    groupReporter.log.warn("Cannot rename group ${group}: insufficient information")
                 }
             }
 

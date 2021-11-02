@@ -1,15 +1,30 @@
 package com.github.mmauro94.media_merger.group
 
+import com.github.mmauro94.media_merger.InputFiles
+import com.github.mmauro94.media_merger.util.Reporter
 import com.github.mmauro94.media_merger.util.cli.type.BooleanCliType
 import com.github.mmauro94.media_merger.util.cli.type.StringCliType
+import com.github.mmauro94.media_merger.util.filterNullKeys
 import com.github.mmauro94.media_merger.util.log.Logger
 import com.github.mmauro94.media_merger.util.menu
 import com.github.mmauro94.media_merger.util.select
 import org.fusesource.jansi.Ansi.ansi
+import java.io.File
 
 interface Grouper<G : Group<G>> {
 
     fun detectGroup(filename: String, logger: Logger): G?
+
+    fun detectGroups(dir: File, reporter: Reporter): Map<G, List<File>> {
+        reporter.progress.indeterminate("Listing files...")
+        val allFiles = dir.walkTopDown().toList()
+        reporter.progress.indeterminate("Grouping files...")
+        return allFiles
+            .filter { it.extension in InputFiles.EXTENSIONS_TO_IDENTIFY }
+            .filterNot { it.name.contains("@adjusted") || it.name.contains("@extracted") }
+            .groupBy { detectGroup(it.name, reporter.log) }
+            .filterNullKeys()
+    }
 
     companion object {
 
