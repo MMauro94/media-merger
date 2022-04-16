@@ -21,7 +21,7 @@ internal object BigDecimalConverter : Converter {
     }
 
     override fun toJson(value: Any): String {
-        return if (value is BigDecimal) value.toString()
+        return if (value is BigDecimal) "\"" + value.toString() + "\""
         else throw KlaxonException("Must be BigDecimal")
     }
 }
