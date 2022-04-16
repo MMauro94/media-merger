@@ -1,18 +1,22 @@
 package com.github.mmauro94.media_merger
 
-import com.github.mmauro94.media_merger.Framerate.Companion.FPS_23_976
-import com.github.mmauro94.media_merger.Framerate.Companion.FPS_25
+import com.github.mmauro94.media_merger.Framerate.Companion.KNOWN_FRAMERATES
 import com.github.mmauro94.media_merger.adjustment.LinearDriftAdjustment
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.Duration
 
+val KNOWN_LINEAR_DRIFTS = sequence {
+    yield(LinearDrift.NONE)
 
-val KNOWN_LINEAR_DRIFTS = arrayOf(
-    LinearDrift.NONE,
-    FPS_25.calculateLinearDriftTo(FPS_23_976),
-    FPS_23_976.calculateLinearDriftTo(FPS_25)
-)
+    for (a in KNOWN_FRAMERATES) {
+        for (b in KNOWN_FRAMERATES) {
+            if (a != b) {
+                yield(a.calculateLinearDriftTo(b))
+            }
+        }
+    }
+}.toList()
 
 /**
  * Represents a stretching parameter, to speedup/slowdown a track, aka linear drift.

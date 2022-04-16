@@ -35,8 +35,17 @@ data class Framerate(val framerate: BigDecimal) {
     }
 
     companion object {
+        val FPS_30 = Framerate(BigDecimal("30.000"))
         val FPS_25 = Framerate(BigDecimal("25.000"))
+        val FPS_24 = Framerate(BigDecimal("24.000"))
         val FPS_23_976 = Framerate(BigDecimal("23.976"))
+
+        val KNOWN_FRAMERATES = listOf(
+            FPS_30,
+            FPS_25,
+            FPS_24,
+            FPS_23_976
+        )
     }
 }
 
