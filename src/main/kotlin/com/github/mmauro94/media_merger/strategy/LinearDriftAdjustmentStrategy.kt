@@ -5,9 +5,11 @@ import com.github.mmauro94.media_merger.InputFile
 import com.github.mmauro94.media_merger.KNOWN_LINEAR_DRIFTS
 import com.github.mmauro94.media_merger.LinearDrift
 import com.github.mmauro94.media_merger.util.CliDescriptor
+import com.github.mmauro94.media_merger.util.cli.type.BigDecimalCliType
 import com.github.mmauro94.media_merger.util.cli.type.LongCliType
 import com.github.mmauro94.media_merger.util.log.Logger
 import com.github.mmauro94.media_merger.util.toTimeString
+import com.github.mmauro94.media_merger.util.toTimeStringOrUnknown
 import java.math.RoundingMode
 import java.time.Duration
 
@@ -94,6 +96,33 @@ sealed class LinearDriftAdjustmentStrategy {
         }
 
         override fun toString() = "By duration (precise)"
+    }
+
+    /**
+     * Calculates the linear drift using the file durations.
+     */
+    @CliDescriptor("Ask each time")
+    object Custom : LinearDriftAdjustmentStrategy() {
+
+        override fun detect(log: Logger, inputFile: InputFile, targetFile: InputFile): LinearDrift {
+            println()
+            println("Target file: ${inputFile.file.absolutePath}")
+            println("   - Duration: ${inputFile.duration.toTimeStringOrUnknown()}")
+            println("   - Framerate: ${inputFile.framerate?.toString() ?: "Unknown"}")
+            println("Input file: ${targetFile.file.absolutePath}")
+            println("   - Duration: ${targetFile.duration.toTimeStringOrUnknown()}")
+            println("   - Framerate: ${targetFile.framerate?.toString() ?: "Unknown"}")
+            println()
+
+            val linearDrift = BigDecimalCliType
+                .asker(isValid = { scale() == 3 })
+                .ask("Select linear drift (must have 3 decimal digits)", null)
+
+            println()
+            return LinearDrift.ofDurationMultiplier(linearDrift, null)
+        }
+
+        override fun toString() = "Ask each time"
     }
 
 
